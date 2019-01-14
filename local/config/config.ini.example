@@ -1,0 +1,95 @@
+; Example confige for BoviBook
+; Put your usernames and passowrds here.
+; Comments start with ';', as in php.ini
+
+
+[HOLSTEIN_CANADA]
+prefix= "FARM NAME"             
+era_file_prefix= "FARM_PREFIX"     ;registrations
+era_username= "USERNAME"      
+era_password= "PASSWORD"
+CDX_USERID="USERNAME"                 ; holstein canada webservice.
+CDX_PASSWORD= "PASSWORD"
+
+
+[timezone]
+default = 'America/Halifax'
+
+[HTTP]
+URL_SHORT = "https://YOURDOMAIN.com/"
+URL = "https://YOURDOMAIN.com/index.php"
+JSON_API = "https://YOURDOMAIN.com/api/json/"
+HTML_API = "https://YOURDOMAIN.com/api/html/"
+
+[PDO]
+dsnMain = "pgsql:user=DB_USERNAME dbname=DB_NAME password=DB_PASSSWORD"
+dsnAuthServerLocal = "pgsql:user=DB_AUTH_USERNAME dbname=DB_NAME password=DB_PASSWORD"
+dsnUrbanCalf = "pgsql:host=LOCAL_IP_ADDRESSS;port=5432;dbname=u46_1_kunde;user=LOCAL_LINUX_ACCOUNT;password=LOCAL_LINUX_PASSWORD"; ;urban alma pro calf feeder
+
+; for work schedule and scheduling medications.
+[GOOGLE_CALENDAR]
+CLIENT_ID ='NUMBER.apps.googleusercontent.com'
+SERVICE_ACCOUNT_NAME = 'NUMBER@developer.gserviceaccount.com'
+KEY_FILE = '/var/www/int/framework/google-keys/sssss6fd3dfe23f8b1fsdg7fab1eer1e89b6dgf93f4e9aac7b08gdf88efdfgdgfsd97cd1a-privatekey.p12'
+;
+; bovine_tratement: calendarID=GOOGLE_CAL_ID@group.calendar.google.com
+; work_schedule: calendarID=GOOGLE_CAL_ID@group.calendar.google.com
+;
+
+[GOOGLE_MAPS]
+API_KEY='GOOGLE_MAPS_API_KEY';
+
+;Ontario Commodity report email feed.
+[COMMODITY_REPORT]
+LOGIN = "email@email.com"
+PASSWORD = "EMAIL_PASSWORD"
+
+;Candian Cattle ID.
+[CCIA]
+;;LIVE AUTH
+Auth = "USERNAME:PASSWORD"
+WSCID = "BOVIEBOOK_ID"   ; is arbitrary, provided by client.
+Account = "CCIA_ACCOUNT_NUMBER"   ;in the initial document this is called an account
+PremisesID= "PROVINCIAL_PREMISES_ID"; //
+;;; END LIVE
+
+
+;www.milk2020.ca hoof healsth data feed.
+[MILK2020_HOOF]
+login="EMAIL@RMAIL.COM";
+password="PASSWORD";
+producerNumber="NB_FARM_ID";
+
+
+[MARITIME_QUALITY_MILK]
+login="LOGIN";
+password="PASSWORD";
+
+;; login stuff for oauth2local server goes here.
+;;
+[OAUTH2_LOCAL]
+google_client_id ='CLIENT_USERNAME';
+google_client_secret = 'PASSWORD';
+google_redirect_url = 'https://YOURDOMAIN.COM/index.php';
+google_developer_key = 'GOOGLE_NUMBER@developer.gserviceaccount.com';
+
+[ADMINLTE]
+path='framework/composer/vendor/almasaeed2010/adminlte/';
+
+[static_page_location]
+bovineQuery = 6
+fieldQuery = 107
+machineQuery = 49
+
+[MEDICAL]
+prostaglandin_id = 11
+gnrh_id = 12
+cidr_id = 43
+folltropin_id = 60
+
+[COLOUR]
+important =   'f06666'       ;light red
+attention =  'FFDA7F'        ;light yellow
+okay =      'CCFFCC'         ;light green
+
+

@@ -1,0 +1,36 @@
+Welcome to BoviBook! 
+
+Whole farm dairy (or possible goat, beef, etc.) management.
+
+
+requirements (composer):
+
+"require": {
+        "twbs/bootstrap": "^3.3",
+        "fortawesome/font-awesome": "^4.7",
+        "driftyco/ionicons": "^2.0",
+        "google/apiclient": "^2.0",
+        "bshaffer/oauth2-server-php": "~1.8",
+        "almasaeed2010/adminlte": "^2.0",
+        "components/jquery": "^3.2",
+        "components/jqueryui": "^1.12",
+        "datatables/datatables": "^1.10",
+        "tinymce/tinymce": ">= 4",
+        "select2/select2": "^4.0.0",
+        "drmonty/datatables-responsive": "^2.2",
+        "drmonty/datatables-plugins": "^1.10",
+        "moment/moment": "^2.21",
+        "phpoffice/phpspreadsheet": "^1.4",
+	"phpstan/phpstan": "^0.9",
+        "pear/html_quickform2": "^2.0"
+    }
+
+
+Uses postgres 10 or above. 
+Needs db template. Will provide later
+
+
+10+ years in the making.
+January 4, 2019
+ 
+See LICENSE.TXT
