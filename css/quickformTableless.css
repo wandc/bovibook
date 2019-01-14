@@ -1,0 +1,115 @@
+quickformtableless {
+    
+    border: 2px solid #0000ff;
+}
+
+form.quickformtableless {
+    margin: 0;
+    padding: 0;
+  /*  min-width: 300px;
+    max-width: 600px; */
+    /*position: relative;*/
+    top:0px;
+    left:0px;
+    
+}
+form.quickformtableless fieldset {
+    clear: both;
+    float: left;
+    border: 0;
+    margin: 0;
+    width: 100%;
+}
+form.quickformtableless fieldset.hidden {
+    border: 0;
+    display: block!important; /* added because of boostrap .hdden conflicts */
+}
+form.quickformtableless fieldset legend {
+    white-space: nowrap;
+    background-color: #605ca8 ;
+    font-weight: bold;
+    width: 90%;
+    padding: 1px;
+    display: block;
+}
+form.quickformtableless fieldset ol {
+    margin: 0;
+    padding: 0;
+}
+form.quickformtableless fieldset li {
+    display: block;
+    list-style: none;
+    margin: 0;
+    clear: both;
+}
+form.quickformtableless label {
+    margin: 0 0 0 5px;
+}
+form.quickformtableless label.element {
+    display: block;
+    float: left;
+    
+    padding: 0;
+    padding-left:5px;
+    margin: 5px 0 0 0;
+    font-weight: bold;
+    text-align: right;
+}
+form.quickformtableless input, form.quickformtableless textarea, form.quickformtableless select {
+    width: auto;
+}
+form.quickformtableless textarea {
+    overflow: auto;
+}
+form.quickformtableless br {
+    clear: left;
+}
+form.quickformtableless div.element {
+    display: inline;
+    float: left;
+    margin: 5px 0 0 10px;
+    padding: 0;
+}
+form.quickformtableless li.reqnote {
+    font-size: 80%; 
+    margin: 5px 0 0 10px;
+}
+form.quickformtableless span.error, form.quickformtableless span.required {
+    color: red;
+}
+form.quickformtableless div.error {
+    border: 1px solid red;
+    padding: 5px;
+}
+
+
+
+
+/* custom style follows for use with single buttons in datagrids */
+form.quickformtablelessButton {
+    margin: 0;
+    padding: 0;    
+    position: relative;
+    top:0px;
+    left:0px;
+}
+form.quickformtablelessButton fieldset {
+    clear: both;
+    float: left;
+    border: 0;
+    margin: 0;
+}
+form.quickformtablelessButton fieldset ol {
+    margin: 0;
+    padding: 0;
+}
+form.quickformtablelessButton fieldset li {
+   
+    list-style: none;
+    margin: 0;
+    padding:0;
+    clear: both;
+}
+form.quickformtablelessButton input {
+    width: auto;
+}   

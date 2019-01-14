@@ -1,0 +1,310 @@
+/* holds css code for header file only */
+
+
+/* just used as a place holder so page doesn't skip down wheile ajax is loading*/
+#headerReplace {
+    height: 40px;
+    background:#605ca8;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;   
+}
+
+.globalTopContainer {
+    
+    height: 40px;
+    margin: 0px;
+    padding: 0px;
+    background:#605ca8;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;   
+    overflow:hidden; /* key to having the inline div's not flow down the page, they instead flow within this container, which they should not??? */
+   
+}
+
+.globalTopContainerCrest {
+    float:left;
+    top: 0px;
+    Left: 2px;
+    width: 37px;
+    height: 40px;
+    background: url(/images/LittleRiverCrest.svg);
+    /* svg background needs these, remove in future... I hope. */
+    -o-background-size: 37px 40px;
+    -webkit-background-size: 37px 40px;
+    -moz-background-size: 37px 40px;
+    background-size: 37px 40px;
+}  
+
+
+.globalTopContainer h1 {
+    display: inline-block;
+    vertical-align: top;
+    font-family: "lucida sans unicode", "lucida grande", sans-serif;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+    color:#fff;
+    margin-left: 4em;
+    margin-right: 0em;
+    margin-top: 5px;
+   /* min-width: 11em;*/
+}
+
+.globalTopContainer h4 {
+    display: inline-block;
+    padding: 0px;
+    margin: 0px;
+    color:#fff;
+    
+
+}
+
+
+
+.headerOneLine div { white-space: nowrap;  }
+.headerOneLine p { display: inline }
+.headerOneLine img { display: inline }
+.headerOneLine p h1 { display: inline; }
+.headerOneLine p h2 { display: inline-block }
+.headerOneLine p a{ display: inline-block  }
+
+/* ovverides quickform tableless css */
+
+.headerOneLine form#animalBovineQuickSelect.quickformtableless { min-width: 51px; display: inline-table;}
+.headerOneLine form#frmFieldQuickSelect.quickformtableless { min-width: 51px; display: inline-table;}
+.headerOneLine form#frmMachineQuickSelect.quickformtableless { min-width: 51px; display: inline-table;}
+
+
+
+.headerRight {
+    float:right;
+}
+
+
+
+/************************************* 
+ *
+ *  Logout Form
+ * 
+ ***********************************/
+
+.logoutForm {
+    /*border: 1px solid #abc;*/
+    display:inline-block;
+    vertical-align: top;
+    padding: 0px;
+    margin: 0px;   
+    padding-right:3px;
+    padding-top:4px;
+    margin-left: 20px;
+}
+
+.logoutForm.submit input {
+    color: #000;
+}
+
+/* shows users name */
+h2.loginNameBox {
+   display:inline-block;
+   vertical-align: top;
+    padding: 0;
+    margin: 0;
+     padding-top:7px;
+    font-family: courier, "courier new", monospace;
+    font-size: 1.25em;
+    font-weight: 500;
+    text-align: left;
+    color:#fff;
+
+}
+
+#logoutButton 
+{  
+    white-space:nowrap;
+    overflow:hidden;
+    background:url(/images/iconLogout_hover.svg) no-repeat;
+    cursor:pointer;
+    width: 30px;
+    height: 30px;
+    border: none;
+    margin-right: 10px;
+    text-size:0em;
+}
+
+#logoutButton:hover
+{ 
+    background:url(/images/iconLogout_hover.svg) no-repeat;
+}
+
+
+#bovineSelect {
+    padding:0;
+    margin:0;   
+    appearance:none;
+   -webkit-appearance: none;
+   -moz-appearance:none;
+   border: 0;
+   border-radius: 0;
+   width: 30px;
+   height: 30px;
+   cursor:pointer; 
+   background:url(/images/iconCowHead_hover.svg) no-repeat;  
+   padding-right:48px;
+ 
+}
+#bovineSelect:hover
+{ 
+    background:url(/images/iconCowHead_hover.svg) no-repeat; 
+       padding-right:48px;
+}
+
+
+
+#bovineSelect:focus {
+outline: 0;
+}
+
+select#bovineSelect
+{
+padding-right:48px;
+}
+
+
+
+
+#fieldSelect {
+    padding:0;
+    margin:0;
+    appearance:none;
+   -webkit-appearance: none;
+    -moz-appearance:none;  
+   border: 0;
+   border-radius: 0;
+   margin-left:8px;  
+   width: 25px;
+   height: 30px;
+   cursor:pointer;
+    padding-right:48px;
+   background:url(/images/iconCorn_hover.svg) no-repeat;  
+}
+#fieldSelect:hover
+{ 
+    background:url(/images/iconCorn_hover.svg) no-repeat; 
+}
+
+#fieldSelect:focus {
+outline: 0;
+}
+
+select#fieldSelect  
+{
+
+}
+
+
+
+#machineSelect {
+    padding:0;
+    margin:0;   
+      appearance:none;
+   -webkit-appearance: none;
+    -moz-appearance:none;
+   border: 0;
+   border-radius: 0;
+   width: 40px;
+   height: 30px;
+   cursor:pointer;
+   background:url(/images/iconTractor_hover.svg) no-repeat;  
+   padding-right:48px;
+   margin-left:-6px;
+}
+#machineSelect:hover
+{ 
+    background:url(/images/iconTractor_hover.svg) no-repeat; 
+}
+
+#machineSelect:focus {
+outline: 0;
+}
+
+select#machineSelect
+{
+
+}
+
+
+
+.mailButton {
+
+    display: inline-block;
+    margin-left:5px;
+    width: 37px;
+    height: 34px;
+    background: url(/images/iconMail.svg)  no-repeat;
+    /* svg background needs these, remove in future... I hope. */
+    -o-background-size: 37px 34px;
+    -webkit-background-size: 37px 34px;
+    -moz-background-size: 37px 34px;
+    background-size: 37px 34px;
+}  
+
+.mailButton:hover
+{ 
+    display: inline-block;
+    background:url(/images/iconMail_hover.svg) no-repeat;
+    /* svg background needs these, remove in future... I hope. */
+    -o-background-size: 37px 34px;
+    -webkit-background-size: 37px 34px;
+    -moz-background-size: 37px 34px;
+    background-size: 37px 34px;
+}
+
+.googleMailNewCount {
+    display: inline-block; 
+     font-family: courier, "courier new", monospace;
+    font-size: 1.25em;
+    font-weight: 500;
+    text-align: left;
+}
+
+#googleMailNewCount b {
+    position:relative;
+    font-weight: 100;
+    font-size: 1em;
+    font-family:"Arial, Helvetica, sans-serif";
+    color:white;
+    background: red;
+    box-shadow: 1px 1px 1px 1px #3A3A19;
+    border-radius: .3em;
+    top:-15px;
+    left:-8px;
+    margin:0;
+    padding:1px;
+}
+
+
+.iconSpacer {
+    
+    width: 0px;
+    height: 26px;  
+    border: 1.5px solid #E6E6E6;
+    padding:0;
+    margin:0;
+}
+
+
+#searchForm
+{
+   display:inline-block;
+   vertical-align: top;
+    padding: 1px;
+    margin: 8px;
+   width: 200px;
+   height: 20px;  
+}
+
+#timeUntilLogout {
+    position:absolute;
+   background-color: #fbd850;
+}

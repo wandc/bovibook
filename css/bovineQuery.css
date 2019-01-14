@@ -1,0 +1,529 @@
+
+
+
+/*for anything in bovinequery class */
+div.bovineQuery h2 {
+    padding:2px;
+    margin:0px;
+    margin-bottom:10px;
+    font-size:3.0em;
+}
+
+div.bovineQuery h3 {
+    padding:2px;
+    margin:2px;
+    font-size:1.1em;
+}
+
+/* sets for lacation class */
+.lactationCurve {
+    position:relative;
+    /* CSS3 dont' break up*/
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+.familyTree {
+    border-style: solid;
+    border-width: 1px;
+    position:relative;
+    /*top:500px;
+    left:580px;
+    */
+    width:300px;
+    height:200px;
+}
+
+#potentialName {
+   font-size:0.3em;  
+   float: right;
+}
+
+#small {
+    font-size:0.3em;
+}
+
+/* always uses classes for this type, never id. */
+.smallish {
+    font-size:0.7em;
+}
+span.smallish {
+    font-size:0.7em;
+    font-weight: bold;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* used for header area of page */
+#bovineQueryTitle {
+    display: flex; 
+    flex-shrink: 0;
+    /*
+    position:relative;  
+     
+     
+   
+
+   width:80em; 
+*/
+    height:7.75em;
+   
+    
+     margin:0;
+    padding:0;
+
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 1em;
+  
+    padding-left: .75em;
+    font-family: "Trebuchet MS", Helvetica, sans-serif;
+    
+    /* gradient code */
+/*    
+background-image:-webkit-linear-gradient(-133deg,rgb(0,0,0) 0%,rgb(69,158,0) 20%);
+background-image:-moz-linear-gradient(-133deg,rgb(0,0,0) 0%,rgb(69,158,0) 20%);
+background-image:-o-linear-gradient(-133deg,rgb(0,0,0) 0%,rgb(69,158,0) 20%);
+background-image:-ms-linear-gradient(-133deg,rgb(0,0,0) 0%,rgb(69,158,0) 20%);
+*/
+/* */
+    
+    
+}
+
+#animalHeaderBox a {color:#000000;}      /* unvisited link */
+#animalHeaderBox a:visited {color:#000000;}  /* visited link */
+
+
+#animalNameBox {
+    
+   
+}
+
+#animalShortNameNumBox {
+   
+   font-size: 1.7vw;
+    position:relative;     
+
+    font-family: 'Lilita One', cursive;
+}
+
+#animalLongNameNumBox {
+    /*
+     border-style: solid;
+    border-width: 1px;
+    */
+    font-size:1.25em;
+    position:relative;     
+    text-align:center;
+}
+
+#regBox {
+
+    position:relative;     
+
+    text-align:center;  
+    padding-top: 0em;
+}
+
+#regBox a{
+    font-size:1.25em; 
+}
+
+
+
+#statsBox {
+    /*
+    border-style: solid;
+    border-width: 1px;
+    */
+    width:11em;
+    position:relative;     
+   
+    
+}
+
+
+#lpiBox {
+    position:relative;     
+    font-size:2vm; 
+    height:1.5em;
+    text-align:center;
+    font-weight:900;
+}
+
+#classificationBox {
+    position:relative;  
+    height:1.5em;
+    font-size:1.5em; 
+    text-align:center;
+    font-weight:900;
+}
+
+#birthBox {
+    position:relative;   
+
+    font-size:1.25em; 
+    text-align:center;
+}
+
+#birthBox img{
+    vertical-align:-40%;
+}
+
+#statsBox2 {
+
+ position:relative;     
+    height:100%;
+  
+   
+
+    font-size:1em; 
+    
+    
+}
+
+#statsBox3 {
+    
+   
+  position:relative;     
+   
+  
+    
+}
+
+
+
+#priceBox {
+    position:relative;     
+    text-align:left;   
+}
+#genoBox {
+    font-size: .6em;
+}
+
+
+#priceBox img {
+    vertical-align:-50%;
+}
+
+#locationBox {
+    position:relative;     
+    text-align:left;   
+}
+
+#locationBox img {
+    position:relative; 
+    vertical-align:-50%;
+    left:-.5em;
+}
+
+
+#cdnBox {
+    position:relative;     
+    font-size:1em; 
+    text-align:left;   
+    padding-bottom: 1em;
+    left:1.25em;
+    top:.25em;
+}
+#cdnBox a{
+    vertical-align:-50%;
+    
+}
+
+#sireBox {
+    position:relative;     
+    font-size:1em; 
+    text-align:left;   
+    padding-bottom: 1em;
+}
+#sireBox img{
+    vertical-align:-50%;
+}
+#sireBox a{
+    font-size:1.25em; 
+}
+
+#damBox {
+    position:relative;     
+    text-align:left;   
+}
+#damBox img{
+    vertical-align:-50%;
+}
+#damBox a{
+    font-size:1.25em; 
+}
+
+
+/* ************* */
+
+
+#medium {
+    font-size:.5em;
+}
+
+/* used to offset the text from base line.*/
+#medium_offset {
+    font-size:.5em;
+    vertical-align:33%; 
+}
+
+#location {
+    position:relative;
+    /*top:140px;
+    left:580px;*/
+}
+
+.computerFeeder {
+    border-style: solid;
+    border-width: 1px;
+    position:relative;
+    /*top:710px;
+    left:580px;*/
+    width:300px;
+    height:120px;
+}
+
+.computerFeeder p {
+    padding:2px;
+    margin:0px;
+    font-size:0.6em;
+}
+
+
+.latestAdlicTest {
+    border-style: solid;
+    border-width: 1px;
+    position:relative;
+    /*top:420px;
+    left:580px;
+    */
+    width:350px;
+
+    margin-top:1px;
+}
+
+.latestParlorTest {
+    border-style: solid;
+    border-width: 1px;
+    position:relative;
+    width:350px;
+  
+    -webkit-column-break-inside:avoid;
+    -moz-column-break-inside:avoid;
+    column-break-inside:avoid;
+}  
+
+
+div.latestAdlicTest h3
+{
+    font-size:0.9em;
+    padding:0px;
+    margin:0px;
+}
+div.latestAdlicTest p
+{
+    font-size:0.9em;
+    padding:0px;
+    margin:0px;
+}
+div.latestParlorTest h3
+{
+    font-size:0.9em;
+    padding:0px;
+    margin:0px;
+}
+div.latestParlorTest p
+{
+    font-size:0.9em;
+    padding:0px;
+    margin:0px;
+}
+
+div.lastBreedings {
+    width:550px;
+}
+
+
+p
+{
+ 
+}
+
+
+#container { float: left; background: #abc bottom center no-repeat; padding-bottom: 1px; }
+#inner { float: left; overflow: hidden; }
+#inner div { float: left; background: #fff; border: 1px solid #000; width: 30em; margin-right: 10px; margin-bottom: -1000px; padding-bottom: 1000px; }
+#inner .col2 { background: #eee; margin-right: 0; }
+.clear { clear: both; padding-top: 10px; }
+
+
+
+#bovinePic {
+    position:relative;
+} 
+
+
+
+#frmBovineQuery {
+    position:relative;
+    /*border:1px solid;
+    border-color:#f0f;*/
+    width:200px;
+}
+
+#container
+{
+    position:relative;
+    border:1px solid;
+    border-color:#f0f;
+    height:100%;
+}
+
+/*
+.ui-tabs-panel{
+    height:100%;
+}
+*/
+
+#reproTabInfo {
+    position:relative;     
+    width:93%;
+    border-color: #605ca8;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 1em;   
+    padding:.75em;
+    margin-bottom: 1.5em;
+    line-height: 150%; 
+}
+
+#chooseAnimal p {
+    font-size:1.5em;
+    margin:0;
+    padding:0;
+    font-weight: bold;
+}
+
+
+.summaryBlock
+{
+    border:1px solid;
+    border-color:#009933;
+    /*width:350px;*/
+    margin:3px;
+}
+
+.summaryBlock h1
+{
+    font-size:1.8em;
+    background:#abc;
+    margin:0;
+}
+
+.summaryBlock h2
+{
+    font-size:1.4em;
+    margin:0;
+}
+
+#bovine_query_log {
+    min-height:400px;
+}
+
+#bovine_query_quickforms {
+
+}
+
+#two-column-tab {
+    /* css3 */
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 2;
+    -webkit-column-gap: 20px;
+    column-count: 2;
+    column-gap: 20px; 
+}  
+
+.accordionNarrowBovineQuery {
+    position:relative;
+    margin:0;
+    padding:0;
+   
+    overflow-x: hidden;
+    z-index:1; 
+}
+
+#twoColumnLayout .accordionNarrowBovineQuery{
+    /* CSS3 dont' break up forms! */
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+.hidden {
+display:block!important; /* bootstrap override */
+    margin:0px;
+    padding:0px;
+    top:0px;
+    left:0px;
+}
+
+
+
+/* pile of poor css to make delete quickform button be inline with no padding */
+
+#genericEventDeleteButton .hidden {
+    margin:0px;
+    padding:0px;
+}
+
+#genericEventDeleteButton .element
+{   
+    margin:0px;
+    padding:0px; 
+}
+
+#genericEventDeleteButton label.element {
+    border:none;
+    width:0px;
+    height:0px;
+}
+
+#genericEventDeleteButton input {   
+    margin:0px;
+    padding:0px;  
+}
+
+
+
+/* fancy header code for tab content <hr> */
+.hr_1 {
+    padding:0.8em;  
+}
+
+.hr_2 {
+    height: .2em;
+    background-color: #605ca8;
+    text-align: center; 
+}
+
+.hr_3 {
+    padding-left:1em;
+    padding-right:1em;
+    background-color: #f5f3e5;
+    position: relative;
+    top: -0.5em;
+    font-weight:bold;
+}
+/* ********* */

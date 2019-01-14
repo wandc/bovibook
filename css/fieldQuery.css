@@ -1,0 +1,82 @@
+/* css code specific to the field query page */
+#fieldQueryTitle  {
+    position: relative;
+    float: left;
+    padding: 5px;
+    margin: 5px;
+
+    left: 1px;
+    width: 384px;
+    height: auto;
+    min-height: 300px;
+    border-color: #605ca8;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 1em;
+}
+
+#alphanumeric  {
+
+    font-size:9rem;
+    padding:0px;
+    margin:0px;
+   
+}
+
+#fieldname  {
+
+
+    padding:0px;
+    margin:0px;
+    background: #605ca8;
+    padding-left:.25em; 
+    margin-bottom:.25em;
+    color: #fff;
+}
+
+#fieldQueryTitle p{
+    margin-left:1em;   
+}
+
+#fieldQueryTitleImage img {
+    position: relative;
+
+    margin-left:20px;
+}
+
+#fieldQueryHeader  {
+    position: relative;
+    top:0px;
+    left:0px;
+    padding-bottom:1em;
+    display: inline-flex;
+}
+
+#fieldQueryHeaderParamaters {
+    width:200px;
+  
+}
+
+#fieldQueryCloseFields  {
+    position: absolute;
+    top: 150px;
+    left: 170px;
+}
+#fieldQueryCloseFields h3 {
+    font-size: .5rem;
+}
+
+
+
+#fieldHeaderMap {
+    border-style: solid;
+    border-width: 1px;
+    border-radius: .75em;    
+
+}
+
+/* over ride for tabs */
+.flora {
+    position: relative;
+    margin-top:10px;
+}

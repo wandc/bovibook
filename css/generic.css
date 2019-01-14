@@ -1,0 +1,1259 @@
+/* 
+
+/************************************* 
+ *
+ *  Login Form
+ * 
+ ***********************************/
+.loginForm {
+    position: relative;
+    top:370px;
+    text-align: left;
+    width: 800px;
+    margin: 0 auto;
+    z-index: 3;
+    border: 2px solid #49aa43;
+    padding:20px;
+    border-radius: 15px;
+}
+
+form.loginForm {
+    width:390px;
+}  
+
+/* username password text */
+.loginForm p b {
+    padding-right:5px;
+    font-size:2.2em;
+}  
+
+.loginFormInput {
+    float:right;
+    color: #000;
+    border: 1px solid #000;
+    padding: 0px;
+    margin: 0px;
+    font-size:1.8em;
+    padding-left:4px;
+
+}
+
+.loginFormImage {
+    width: 800px; 
+    height:866px; 
+    margin: 0 auto;
+    background: url(/images/LittleRiver_logo_grayscale_background.jpg);
+}
+
+.loginFormSubmit {
+    position: relative;
+    margin-top: 20px;
+    left:160px;
+    -webkit-border-radius: 20;
+    -moz-border-radius: 20;
+    border-radius: 20px;
+    font-family: Arial;
+    color: #000000;
+    background: #49aa43;
+    padding: 10px 20px 10px 20px;
+    font-size:1.5em;
+    text-decoration: none;
+}
+input.loginFormSubmit:hover {
+
+    background: #41cc37;
+    text-decoration: none;
+}  
+
+.loginText {
+    font-size: 4em;
+    color: #ff0000;
+    margin: 0px;
+    padding: 0px;
+}
+
+.loginGoogleButton {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -50px;
+    margin-left: -50px;
+    width: 100px;
+    height: 100px;
+    text-decoration:none;
+}
+
+.loginGoogleButton h1 {
+    font-size:2.0em;
+    width: 200px;
+    color: #000000;
+    margin:0;
+}
+
+
+.allContainer {
+    display: inline-flex; /* keeps main container next to side bar and not down.*/
+    min-width: 100%; 
+}
+
+.mainContainer {
+
+    margin-top: 5px;
+    margin-Left: 15px;
+
+    padding-bottom: 70px;
+    min-width: 55%;
+    width: 91%;
+    overflow:hidden;
+    padding-right: 10px;
+    /*
+    border-style: solid;
+     border-width: 1px;
+    */
+}
+
+/* side bar info  on left page isde*/
+#sideBarInfo {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 2px;
+    position: relative;
+    border: 2px solid #605ca8;
+    margin-top:10px;  
+    height:auto;
+
+    border-radius: 8px;
+    margin-bottom:40px; /* so footer doesn't cover it */
+}
+
+/* causes left side menu info etc. to float */
+#leftSideFloatContainer {
+
+    height:auto;
+
+    width:125px;
+
+}
+
+
+h2 {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+/* Iframe */
+#cdnframe {
+      position: relative;
+    border: 1px solid #abc;
+    margin-top: 5px;
+    background-color: #fff;
+    width: 587px;
+    height: 933px;
+}
+
+#holframe {
+    border: 1px solid #abc;
+    margin-top: 5px;
+    background-color: #fff;
+    width: 760px;
+    height: 970px;
+}
+
+
+
+/* Footer stuff */
+#footer {
+    position: fixed;
+    z-index: 1;
+    width: 100%;
+    background: #ccc;  
+    bottom: 0;
+    padding-top: 0px;
+    padding-bottom: 0px;
+
+    overflow: hidden; /* causes the footer to stay same heigth and clip */
+    height:30px; /*30*/
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+}
+
+.footerOneLine div {  white-space: nowrap;  }
+.footerOneLine span { display: inline-block; }
+.footerCowCount {
+    vertical-align: top;
+    padding: 0;
+    margin:0;
+    padding-top:8px;
+    padding-left:5px;
+    padding-right:5px;
+
+}
+
+
+#responsecontainer {
+    position:relative;
+    float: right;
+    top:0px;
+    left:0px;
+}
+
+.quotaDiffFooterRed {
+
+    color: red;
+    line-height: 65%;
+}
+.quotaDiffFooterGreen {
+
+    color: rgb(21, 216, 31);;
+    line-height: 65%;
+}
+
+/* google sparklines (footer) */
+.ss00 {    
+    float:left;
+    padding-left:10px;
+}
+
+.ss0 {
+    position:relative;
+    width:13em;
+    background-color: #fff;
+    height:2em;
+    line-height:1.75em
+
+}
+
+.ss0 p{
+    position: absolute;
+    text-align: center ;
+    background-color: #fff;
+    color:#000000;
+    top:.3em;
+
+
+}
+
+.ss1 {
+    position: absolute;
+    left:1.1em;
+    top:0em;
+
+}
+
+.ss2 {
+    font-family: Arial, Helvetica, sans-serif;
+    position: absolute;
+    top:.6em;
+    left:10.25em;
+    color:#dc3912;
+    font-weight: 300;  
+
+}
+/* end sparklines */
+
+
+
+
+/* End Footer stuff */ /* *************************************** */
+
+
+
+
+
+
+
+
+/* Datagrid start */
+table.datagrid {
+    padding: 0;
+    border-spacing: 0;
+    width: 100%;
+    border-top: 1px solid #e5eff8;
+    border-right: 1px solid #e5eff8;
+    border-top: 1px solid #e5eff8;
+    page-break-inside: avoid;
+}
+
+table.datagrid th {
+    font-weight: normal;
+    color: #678197;
+    text-align: left;
+    border-bottom: 1px solid #e5eff8;
+    border-left: 1px solid #e5eff8;
+    padding: .1em .5em;
+}
+
+table.datagrid td {
+    border-bottom: 1px solid #e5eff8;
+    border-left: 1px solid #e5eff8;
+    padding: .1em .1em;
+    text-align: left;
+    font-size: 1.0em;
+    font-family: arial, "lucida console", sans-serif;
+    color: #000;
+}
+
+table.datagrid thead th {
+    background: #605ca8;
+    text-align: center;
+    font: bold 1.1em/ 2em "Century Gothic", "Trebuchet MS", Arial, Helvetica,
+        sans-serif;
+   
+}
+
+table.datagrid thead th tr a{
+color:#fff;
+}
+
+table.datagrid tfoot th {
+    text-align: center;
+    background: #f4f9fe;
+}
+
+table.datagrid a:link {
+    color: #000;
+    text-decoration: none;
+    border-bottom: 1px dotted #ffbac8;
+}
+
+table.datagrid a:visited {
+    color: #000;
+    border-bottom: none;
+    text-decoration: none;
+}
+
+table.datagrid a:hover,table.datagrid a:focus {
+    color: #fad375;
+    border-bottom: 1px solid #f03b58;
+    text-decoration: none;
+}
+
+table.datagrid a,table.datagrid a:link,table.datagrid a:visited {
+    border: none;
+}
+
+/* Datagrid end */ 
+
+/* Small Datagrid for mini views and summarys */
+table.datagridSummary {
+    width: 360px;
+    font-size:0.8em;
+    page-break-inside: avoid;
+}
+table.datagridSummary thead th {
+    font-size:0.9em;
+    margin:0;
+    padding:0;
+}
+h3.datagridSummary {
+    font-size:1em;
+    margin:0;
+    padding:0; 
+}  
+/* end */
+
+
+table.datagridPortrait {
+    width: 660px;
+    font-size:0.8em;
+    page-break-inside: avoid;
+}
+
+
+
+/* even small datgrid modifer */
+table.datagridSummaryNarrow {
+    max-width: 240px;
+    font-size:0.8em;
+    page-break-inside: avoid;
+}
+
+
+
+/* Narrow up standard Datagrid for things like tabs */
+table.datagridNarrow {
+    width: 50%;
+    font-size:1em;
+    page-break-inside: avoid;
+}
+table.datagridNarrow thead th {
+
+    margin:0;
+    padding:0;
+}
+h3.datagridNarrow {
+    font-size:1em;
+    margin:0;
+    padding:0; 
+}  
+/* end */
+
+
+
+/* Parent */
+table.datagridParent td {
+    background: #ffffff;
+    border-top: 2px solid #605ca8; /* create thicker borders for parent */
+    border-bottom: 2px solid #605ca8;
+}
+
+#scrollable {
+    max-height:155px;
+    overflow-y: visible;
+    overflow-x: hidden;
+}
+
+#showAll {
+    max-height:auto;
+    overflow:auto;
+}
+
+
+/* Nested */
+table.datagridNested {
+    height:auto;
+    page-break-inside: avoid;
+}  
+
+table.datagridNested td {
+    background: none;
+    border-top: none;
+    border-bottom: none;
+}
+
+table.datagridNested th {
+    display:none;
+}
+
+table.datagridNested tr td {
+    text-align: left;
+    border: none;
+}
+
+table.datagridNested {
+    border: none;
+}
+
+.smallish {
+    font-size:0.7em;
+}
+
+/* FIXME: should be class (.) instead */
+#largish {
+    font-size:1.7em;
+}
+
+.large1_1 {
+    font-size:1.1em;
+}
+
+
+/* svg show picture css */
+.svgshow {
+    overflow: hidden;
+    margin:0px;
+    padding:0px;
+    padding-left:10px;
+}
+
+
+
+/* specific quickform erase borders */
+#purchaseCompletedRejectedQuickform table tr td {
+    border: none;
+}  
+
+/* shrink size of tasks quickform */
+#taskCompletedQuickFormButton  table tr td {
+    border: none;
+
+    margin:0px;
+    padding:0px;
+}
+
+#recipe {
+    page-break-inside: avoid;
+    font-size: 1.4em;
+}
+
+
+
+/* bovine query */
+#name {
+
+}
+
+/* needed because mobile devices screens are not big enough */
+#twoColumnLayoutVideo {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 2;
+    -webkit-column-gap: 20px;
+    column-count: 2;
+    column-gap: 20px;
+}
+
+#twoColumnLayout {
+    /* css3  code to make two columns*/
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 2;
+    -webkit-column-gap: 20px;
+    column-count: 2;
+    column-gap: 20px;
+}
+
+/*use <hr/> to cuase column break....DOES NOT WORK???
+#twoColumnLayout hr {
+break-after: column;
+-webkit-column-break-after: column;
+-moz-column-break-after: column;
+-ms-column-break-after: column;
+-o-column-break-after: column;
+}
+*/
+
+#twoColumnLayout p {
+
+}
+
+
+#twoColumnLayout form, #threeColumnLayout form, #fourColumnLayout form, #fiveColumnLayout form{
+    /* CSS3 dont' break up forms! */
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid;
+}
+#twoColumnLayout table.datagridNarrow, #twoColumnLayout table.datagrid , #twoColumnLayout table.datagridSummary {
+    /* CSS3 dont' break up forms! */
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+#threeColumnLayout table.datagridNarrow, #threeColumnLayout table.datagrid , #threeColumnLayout table.datagridSummary {
+    /* CSS3 dont' break up forms! */
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+
+#threeColumnLayout {
+    /* css3  code to make three columns*/
+    -moz-column-count: 3;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 3;
+    -webkit-column-gap: 20px;
+    column-count: 3;
+    column-gap: 20px;
+}
+
+#fourColumnLayout {
+    /* css3  code to make four columns*/
+    -moz-column-count: 4;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 4;
+    -webkit-column-gap: 20px;
+    column-count: 4;
+    column-gap: 20px;
+}
+
+#fourColumnLayoutBreakup {
+    /* css3  code to make four columns which allows forms to be broken up.*/
+    -moz-column-count: 4;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 4;
+    -webkit-column-gap: 20px;
+    column-count: 4;
+    column-gap: 20px;
+}
+
+
+#fiveColumnLayout {
+    /* css3  code to make five columns*/
+    -moz-column-count: 5;
+    -moz-column-gap: 20px;
+    -webkit-column-count: 5;
+    -webkit-column-gap: 20px;
+    column-count: 5;
+    column-gap: 20px;
+}
+#fiveColumnLayout div {
+    /* CSS3 dont' break up divs! */
+    column-break-inside : avoid;
+    -webkit-column-break-inside: avoid; 
+}  
+
+
+/* colour the background of some text*/
+#colourBack {
+    background-color: #FF7F7F;
+}
+#colourBackYellow {
+    background-color: #FFC200;
+}
+
+/* makes the tab wide enough for both columns */
+.jquery_tabs_treatment  {
+    width: 100%; 
+}
+
+/* makes the tab wide enough for both columns */
+.jquery_tabs_sale_price  {
+    height: 1400px; 
+}
+
+#displayNext10HoursScheduledMedicines {
+    width:100%;
+    max-height:150px;
+    min-height:0px;
+    overflow:scroll;
+    overflow-x:hidden; 
+}
+
+
+
+/*
+#treatmentColumnOne {
+    display: inline-block;
+    vertical-align: top;
+    width: 58%;
+}
+
+#treatmentColumnTwo {  
+    display: inline-block;
+    vertical-align: top;
+    width: 33%;
+    margin-left:0.5em;
+}
+
+#treatmentBorder {
+    border: 1px solid #AAAAAA;
+    padding:10px;
+    width:100%;
+    height:100%;
+}
+*/
+
+
+/* used for calving page */
+.accordionCalving {
+    margin:0;
+    padding:0;
+    width:630px;
+}
+
+#boldRed {
+    color:red;
+}
+
+#boldBlue {
+    color:blue;
+}
+
+#boldLightBlue {
+    color:#3399FF;
+}
+
+
+#boldGreen {
+    color:green;
+}
+
+
+#boldBlink {
+    text-decoration: blink;
+}  
+
+#lightRed {
+    color:#FF7A95;
+}
+
+
+
+/* small button for internal datatable, ie machinery service.*/
+.smallButton {
+    border-width: 1px;
+    padding: 0px;
+    margin: 0px;
+    height: 9px;
+    line-height: 9px;
+    font-size:9px;
+}  
+
+
+/* change colour of row to bring to users attention */
+#rowAlert {
+    background-color:#FFDA7F;
+}  
+
+/*color all strikthroughs red */
+del {
+    color:red; 
+}
+
+/* make super small */
+address {
+    font-size:.5em;
+}  
+
+.staticVideoImage {
+    float:left; 
+}
+
+
+
+/* source: downloads.sixrevisions.com/css-tooltips/index.html */
+.tooltip {
+    border-bottom: 1px dotted #000000; color: #000000; outline: none;
+    cursor: help; text-decoration: none;
+    position: relative;
+}
+.tooltip span {
+    margin-left: -999em;
+    position: absolute;
+}
+.tooltip:hover span {
+    border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px; 
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+    font-family: Calibri, Tahoma, Geneva, sans-serif;
+    position: absolute; left: 1em; top: 2em; z-index: 99;
+    margin-left: 0; width: 250px;
+}
+.tooltip:hover img {
+    border: 0; margin: -10px 0 0 -55px;
+    float: left; position: absolute;
+}
+.tooltip:hover em {
+    font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+    display: block; padding: 0.2em 0 0.6em 0;
+}
+.classic { padding: 0.8em 1em; }
+.custom { padding: 0.5em 0.8em 0.8em 2em; }
+.classic {background: #FFFFAA; border: 1px solid #FFAD33; }
+.critical { background: #FFCCAA; border: 1px solid #FF3334;	}
+.help { background: #9FDAEE; border: 1px solid #2BB0D7;	}
+.info { background: #9FDAEE; border: 1px solid #2BB0D7;	}
+.warning { background: #FFFFAA; border: 1px solid #FFAD33; }
+
+
+
+
+#normalSize {
+
+
+}
+
+/* machinery query */
+
+
+#machineQueryHeader  {
+    position: relative;
+    top:0px;
+    left:0px;
+    padding-bottom:1em;
+    height:100%;
+}
+
+#machineQueryTitle  {
+    position: relative;
+    float:left;
+    padding:0px;
+    margin:0px;
+
+
+    left:10px;
+    width:300px;
+    height:240px;
+
+    border-color: #605ca8;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 1em;   
+
+}
+
+
+
+#machineQueryTitle h1{
+    font-size:1.5em;   
+    background: #605ca8;
+    padding-left:.25em; 
+    margin-bottom:.25em;
+    color: #fff;
+}
+
+#machineQueryTitle h3{
+    font-size:.8em;   
+}
+
+#machineQueryTitle p{
+    margin-left:1em;   
+}
+
+#machineQueryHeader img {
+    position: relative;
+
+    margin-left:50px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 1em;         
+}
+
+.documentList  {
+    -moz-column-count:4; /* Firefox */
+    -webkit-column-count:4; /* Safari and Chrome */
+    column-count:4;
+    column-gap: 5em;
+
+}
+
+
+.documentList  a {
+    color: #000000;
+    text-decoration: none;
+}
+
+.documentList  a:hover 
+{
+    color:#49aa43; 
+    text-decoration:none; 
+    cursor:pointer;  
+}
+
+progress {
+    width: 20em;
+
+}
+
+
+
+
+
+/*no show data for jquery datable sort */
+.sortOrder {
+    display:none;
+}
+
+/* Javascript datatable highlight */
+tr.highlight_important td {
+    background-color: #f06666;
+}
+tr.highlight_attention td {
+    background-color: #FFDA7F;
+}
+tr.highlight_okay td {
+    background-color: #CCFFCC;
+}    
+
+
+/* code to keep div stuck to tope of page as we scroll down */
+/*
+#sticky {
+    position: absolute;
+    right:20px;
+
+    padding: 0.5ex;
+    width: 500px;
+
+    top:46px;
+    border-radius: 0.5ex;
+    z-index: 10000;
+}
+#sticky.stick {
+    right:20px;
+    position: fixed;
+    top: 0;
+    z-index: 10000;
+    border-radius: 0 0 0.5em 0.5em;
+}
+*/
+
+#treatmentContainer {
+    -webkit-column-width: 31em;
+    -moz-column-width: 31em;
+    column-width: 31em;
+
+}
+
+/*fixed size*/
+#treatmentRight {
+    width: 31em;
+    float: right;
+
+    width:30%;
+}
+
+#treatmentLeft {
+    float: none; /* not needed, just for clarification */
+    /*  background: #e8f6fe;*/
+    /* the next props are meant to keep this block independent from the other floated one */
+    width: auto;
+    overflow: hidden;
+    -webkit-column-width: 36em;
+    -moz-column-width: 36em;
+    column-width: 36em;
+    width:65%;
+}
+
+.medicalTreatmentLeft {
+    float: none; /* not needed, just for clarification */
+
+    /* the next props are meant to keep this block independent from the other floated one */
+    width: auto;
+    overflow: hidden;
+
+    width:65%;
+}
+
+#jquery_tabs {
+    width:100%;
+    overflow: auto;
+
+}
+
+
+
+
+/* show php errors above everything lse */
+.xdebug-error  {
+    z-index: 1000000000;
+    position: absolute;
+}
+
+
+table.dataTable.compact thead th,
+table.dataTable.compact thead td {
+    padding: 4px 17px 4px 4px;
+    background-color: #605ca8;
+    color:#fff;
+}
+
+
+
+#recipeGroupStaging {
+    position:relative;
+    border: 2px solid #FFAD33;
+    padding:20px;
+    border-radius: 15px;
+    max-width: 90%;
+    font-size: 0.9em;
+}
+
+#recipeGroupActive {
+    border: 2px solid #49aa43;
+    padding:20px;
+    border-radius: 15px;
+
+    max-width: 90%;
+    font-size: 0.9em;
+}
+
+/* NRC 2001 DISPLAY */
+
+.recipeBoxStaging {
+    display: inline-block;
+    height:auto;
+    width:auto;
+    background:#FFAD33;
+    margin: 10px;
+    border-radius: 15px;
+    padding:5px;
+
+}
+
+.recipeBoxActive {
+    display: inline-block;
+    height:auto;
+    width:auto;
+    background:#605ca8;
+    margin: 10px;
+    border-radius: 15px; 
+    padding:5px;
+    font-size: 0.9em;
+}
+
+
+.recipeBoxStaging p{
+    font-size: 0.9em;
+}
+
+#nrc_summaryReportPage1 {
+    border: 2px solid #605ca8; 
+    border-radius: 7px;
+    margin-bottom: 10px;
+    padding:10px;
+}
+
+
+#workSchedule {
+ /*margin-right:50px; */
+ border-width:0;
+    width: 100%;
+  /*  max-width: 800; */
+    height: 90%;
+
+}
+
+/* quickform2 */
+.quickform {
+    position: relative;
+    margin-left: 20px;
+}
+
+/**/
+/* calf feeding page */
+/**/
+
+.calfBox {
+    display: inline-block;
+    height:auto;
+    width:auto;
+    margin: 10px;
+    border-radius: 15px; 
+    line-height: 0em;
+}
+
+.calfBox h3 img {
+width: 1.5em;
+}
+
+.calfBox h3 a {
+    color:#ffffff;   
+}
+
+
+.calfBox ul {
+    list-style-type: none;
+      padding-left:.5em;;
+      font-size:1em;
+}
+
+.calfBox li{
+   margin: 1.3em 0;
+   font-size: 1.1em;
+}
+
+.calfBoxGreen {
+     border: 10px solid #1fab15;
+     background:#1fab15;
+}
+
+.calfBoxRed{
+    border: 10px solid #da1217;
+     background:#da1217;
+}
+
+.calfBoxYellow{
+    border: 10px solid #fe9900;
+     background:#fe9900;
+}
+
+.calfBoxPurple{
+    border: 10px solid #8d43cd;
+     background:#8d43cd;
+}
+
+.calfBoxMedical{
+   font-size:4em;
+   color:#fff;
+   vertical-align: middle;
+   margin-left: .5em;
+}
+
+
+/*change colour to draw attaention.*/
+.calfBoxAttention {
+   animation: animationFrames 2s infinite;
+}
+        
+@keyframes animationFrames{
+  50% {
+   border-color: black;
+  }
+}
+
+.calfBoxAttentionSolidGreen {
+    border-color: #1fab15;
+   border-bottom-width:3em
+} 
+
+.calfBoxAttentionSolidYellow {
+    border-color: #fe9900;
+   border-bottom-width:3em
+}
+
+.calfBoxAttentionSolidRed {
+    border-color: #da1217;
+   border-bottom-width:3em
+}
+
+.calfBoxAttentionSolidPurple {
+    border-color: #8d43cd;
+   border-bottom-width:3em
+}
+
+.manualMilkText{
+    margin-bottom: -1.2em;
+     color:#fff;
+}
+
+#calfPenGroup {
+    border: 2px solid #33a1ff;
+    padding:20px;
+    border-radius: 15px;
+
+    max-width: 99%;
+    font-size: 0.9em;
+    margin-bottom: 1.5em;
+
+}
+
+.calfStall { 
+  background-image: url(/images/urbanFeederStall.svg);
+  width:160px;
+  height:125px;
+  display:inline-block;
+}
+
+/* Pen A, B C D */
+.calfStall h1 {
+    color: #000;
+    padding-top: 14px;
+    padding-left: 42px; 
+    margin:0;
+    
+}
+
+.calfStall h2 {
+    color:#ffffff;   
+    padding-top: 14px;
+    padding-left: 42px;   
+}
+
+.calfStall a {
+     color:#ffffff;
+    font-size:1.1em;
+     margin-left: 1em;
+}
+
+/* for calfStall_CalfNumber_Pen* */
+.calfStall span {
+    color:#ffffff;
+    font-size:1.3em;
+    margin-left: 1em;  
+}
+
+
+.calfStall ul {
+     list-style-type: none;
+      padding-left:0;
+}
+
+.calfStall li {
+    
+}
+
+.calfStall_cowHead{
+   width:2.2em;
+   left:.2em;
+   margin-left:.4em;
+}
+
+.calfStall_milkCarton  {
+   width:.8em;
+   left:.1em;
+    margin-left:1em;
+     margin-top:.5em;
+}
+
+
+/* avatar initials */
+.avatar-circle {
+  width: 100px;
+  height: 100px;
+  background-color: #33ff33;
+  text-align: center;
+  border-radius: 50%;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+}
+
+.avatar-square {
+    width: 3em;
+    height: 3em;
+    background-color: #33ff33;
+    text-align: center;
+    border-radius: 50%;
+}
+
+
+.initials {
+    position: relative;
+    top: 0em;
+    font-size: 2em;
+    line-height: 1.5em;
+    color: #fff;
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+}
+
+
+/* calf feeding modal */
+@media (min-width: 768px) {
+  .modal-xl {
+    width: 90%;
+   max-width:1200px;
+  }
+}
+
+/* used for axis camer crop fisheye lens in calf barn */
+.cropFishEye {
+    width: 640px;
+    height: 350px;
+    overflow: hidden;
+}
+
+.cropFishEyeLarge {
+    width: 2048px;
+    height: 1100px;
+    overflow: hidden;
+}
+
+/* bootstrap form override */
+.form-inline > * {
+    margin:0px 5px !important;
+}
+.profile-user-img {
+    width:300px;
+}
+
+
+/* make google visualization charts responsive */
+.chartGoogle {
+  width: 100%; 
+  min-height: 450px;
+}
+
+.fieldMapBig {
+    height: 75vh;
+    /*
+    display:block;
+overflow:auto;
+height: 100%;
+  width: 100%;
+  */
+}
+
+/* TMR recipe page */
+#tmrLiveMass {
+    display: block;
+   font-size: 2.5vmax;
+   background-color: red;
+min-height:.75em;
+}
+
+#tmrItemMass {
+    display: block;
+   font-size: 5vmax;  
+   background-color: green;
+  min-height:1.5em;
+}
