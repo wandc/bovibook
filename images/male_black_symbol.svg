@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.46"
+   width="400"
+   height="400"
+   version="1.0"
+   sodipodi:docname="Male black symbol.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs5">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective9" />
+    <inkscape:perspective
+       id="perspective11"
+       inkscape:persp3d-origin="105 : 70 : 1"
+       inkscape:vp_z="210 : 105 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 105 : 1"
+       sodipodi:type="inkscape:persp3d" />
+  </defs>
+  <sodipodi:namedview
+     inkscape:window-height="712"
+     inkscape:window-width="1024"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     guidetolerance="10.0"
+     gridtolerance="10.0"
+     objecttolerance="10.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base"
+     showgrid="false"
+     inkscape:zoom="1.155"
+     inkscape:cx="200"
+     inkscape:cy="200"
+     inkscape:window-x="-4"
+     inkscape:window-y="-4"
+     inkscape:current-layer="svg2" />
+  <path
+     style="fill:#000000;stroke:#000000;stroke-width:0;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+     id="path4"
+     stroke-miterlimit="4"
+     d="M 313.08211,1.8287384e-06 L 296.52632,28.972622 L 337.91579,28.972622 L 261.34529,105.54314 C 192.66194,54.224462 96.00127,64.683002 39.884171,129.5049 C -16.232929,194.32679 -12.740749,291.48886 47.885186,352.11481 C 108.51112,412.74073 205.67319,416.23294 270.49511,360.11583 C 335.31699,303.99873 345.77552,207.33806 294.45685,138.65472 L 371.02735,62.084202 L 371.02735,103.47367 L 400,86.917881 L 400,1.8287384e-06 L 313.08211,1.8287384e-06 z M 164.08003,117.95998 C 229.22753,117.95998 282.04002,170.77246 282.04002,235.91997 C 282.04002,301.06747 229.22753,353.87996 164.08003,353.87996 C 98.93253,353.87996 46.120045,301.06747 46.120045,235.91997 C 46.120045,170.77246 98.93253,117.95998 164.08003,117.95998 L 164.08003,117.95998 z" />
+</svg>

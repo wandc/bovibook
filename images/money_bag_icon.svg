@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 10.0, SVG Export Plug-In . SVG Version: 3.0.0 Build 76)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN"    "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd" [
+	<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/">
+	<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">
+	<!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/">
+	<!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">
+	<!ENTITY ns_vars "http://ns.adobe.com/Variables/1.0/">
+	<!ENTITY ns_imrep "http://ns.adobe.com/ImageReplacement/1.0/">
+	<!ENTITY ns_sfw "http://ns.adobe.com/SaveForWeb/1.0/">
+	<!ENTITY ns_custom "http://ns.adobe.com/GenericCustomNamespace/1.0/">
+	<!ENTITY ns_adobe_xpath "http://ns.adobe.com/XPath/1.0/">
+	<!ENTITY ns_svg "http://www.w3.org/2000/svg">
+	<!ENTITY ns_xlink "http://www.w3.org/1999/xlink">
+]>
+<svg 
+	 xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;" i:viewOrigin="204.7271 706.9131" i:rulerOrigin="0 0" i:pageBounds="0 792 612 0"
+	 xmlns="&ns_svg;" xmlns:xlink="&ns_xlink;" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
+	 width="260.959" height="304.694" viewBox="0 0 260.959 304.694" overflow="visible" enable-background="new 0 0 260.959 304.694"
+	 xml:space="preserve">
+	<metadata>
+<rdf:RDF
+      xmlns="http://web.resource.org/cc/"
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <Work rdf:about="">
+         <dc:title>Money</dc:title>
+         <dc:description>Money</dc:description>
+         <dc:subject>
+          <rdf:Bag>
+            <rdf:li>work</rdf:li>
+            <rdf:li>equipment</rdf:li>
+            <rdf:li>money</rdf:li>
+          </rdf:Bag>
+         </dc:subject>
+         <dc:publisher><Agent rdf:about="http://www.openclipart.org/"><dc:title>Open Clip Art Project</dc:title></Agent></dc:publisher>
+         <dc:creator><Agent rdf:about=""><dc:title>ArtFavor</dc:title></Agent></dc:creator>
+         <dc:rights><Agent rdf:about="http://web.resource.org/cc/PublicDomain"><dc:title>Public Domain</dc:title></Agent></dc:rights>
+         <dc:date>2005/10/03</dc:date>
+         <dc:format>image/svg+xml</dc:format>
+         <dc:type>http://purl.org/dc/dcmitype/StillImage</dc:type>
+         <license rdf:resource="http://web.resource.org/cc/PublicDomain" />
+      </Work>
+      <License rdf:about="http://web.resource.org/cc/PublicDomain">
+         <permits rdf:resource="http://web.resource.org/cc/Reproduction" />
+         <permits rdf:resource="http://web.resource.org/cc/Distribution" />
+         <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
+      </License>
+   </rdf:RDF>
+		<variableSets  xmlns="&ns_vars;">
+			<variableSet  varSetName="binding1" locked="none">
+				<variables></variables>
+				<v:sampleDataSets  xmlns="&ns_custom;" xmlns:v="&ns_vars;"></v:sampleDataSets>
+			</variableSet>
+		</variableSets>
+		<sfw  xmlns="&ns_sfw;">
+			<slices></slices>
+			<sliceSourceBounds  y="402.219" x="204.727" width="260.959" height="304.694" bottomLeftOrigin="true"></sliceSourceBounds>
+		</sfw>
+	</metadata>
+	<switch>
+		<foreignObject requiredExtensions="&ns_ai;" x="0" y="0" width="1" height="1">
+			<i:pgfRef  xlink:href="#adobe_illustrator_pgf">
+			</i:pgfRef>
+		</foreignObject>
+		<g i:extraneous="self">
+			<g id="Layer_1" i:layer="yes" i:dimmedPercent="50" i:rgbTrio="#4F008000FFFF">
+				<g>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M112.062,4.791l2.43-1.721l4.25-0.81l9.109-0.91l8.704-0.81h13.965l5.871,0.81l0.809,1.72l-17.509,42.101l-16.293-3.643
+						L112.062,4.791z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M112.062,16.024V3.981v0.81l2.43,0.91l5.161,0.81l4.048,0.81l1.519,1.822l0.91,2.53L112.062,16.024z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M155.582,16.833l2.428-12.042L157.2,2.26l-0.809-0.91l0.809,1.72l-1.618,1.721l-3.34,2.53l-4.149,3.441l-4.96,2.63v1.823
+						l0.811,8.501L155.582,16.833z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M122.993,41.528l4.048-31.576l-0.911-0.81l-0.91,1.62l-4.048,0.91l-9.109,0.912h-11.436l-9.917,0.809l-5.769,0.911l-2.429,1.72
+						l-1.721,1.721l11.639,20.038L122.993,41.528z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M139.894,38.29l3.238-24.897l0.811,0.911l1.619,0.912l6.68-2.631l4.958-1.822l4.96-0.81l5.769-0.81l5.769,0.81l1.619,0.81
+						v1.822L153.86,36.67L139.894,38.29z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M80.69,17.644l1.417,5.87l4.958,9.412l6.174,13.865l4.858,7.893l7.792,13.764l6.173,14.474l2.227,7.388l-1.416,5.768
+						l-3.542,2.834l-9.716,5.869l-11.942,4.453l-8.299,2.833l-5.566,3.542l-9.008,5.87l-10.524,7.894l-10.525,8.805l-12.549,12.347
+						l-8.299,10.625l-8.501,17.408l-6.882,15.181l-5.566,17.407l-1.417,10.931l1.417,10.221l2.025,7.996l2.935,7.893l3.441,6.579
+						l9.006,10.121l13.36,11.031l11.031,7.186l5.566,3.643l12.549,5.06l11.234,4.252l22.265,5.161l27.124,2.935h17.913l15.282-0.708
+						l16.09-2.935l18.724-5.063l16.092-6.578l13.966-8.704l14.775-10.828l9.108-8.097l6.983-10.829l6.174-11.638l2.833-15.89
+						l-0.606-5.06l-2.227-15.99l-5.466-11.031l-8.501-12.246l-11.132-12.347l-7.085-5.769l-3.541-3.745l-3.441-4.15l-8.4-11.436
+						l-5.566-8.703l-4.757-5.163l-4.25-4.25l-6.983-4.453l-7.691-5.061l-6.274-3.643l-6.982-2.935l-10.425-4.351l-7.692-3.643
+						l-4.857-2.834l-1.417-4.453l4.251-15.18l6.275-16.699l6.881-14.574l9.817-18.115l5.566-10.121v-5.06l-2.733,2.833l-7.083,2.935
+						l-11.842,2.227l-6.882,0.708l-6.982,0.708l-2.126,0.708l-1.417,0.708l-0.404,1.823l0.607,3.44l1.214,2.733l1.416,2.227
+						l-4.147,0.708l-10.223,0.81h-10.424l-4.858-0.81l-4.149-0.708l-2.125-0.708h-2.126l-1.923-1.113l-0.91-1.822l0.506-1.518
+						l1.72-1.417l2.125-1.418l0.404-0.91l-0.506-1.316h-2.833l-10.424-0.708l-4.857-1.417l-2.833-1.518L80.69,17.644z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" fill="none" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M139.894,31.407l-4.959,39.571l-1.618,8.501v11.234l0.708,5.161"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" fill="none" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M98.298,29.383l1.822,10.424l2.429,9.311l4.959,11.336l5.667,15.282"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" fill="#FFFFFF" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M114.087,89.802h-2.835l-1.618,0.912l-0.811,1.822v2.428l0.811,1.721l1.618,1.72l4.149,0.708l9.817,1.113l8.098-1.012
+						l5.666-1.62l4.96-0.91l2.529-1.721l1.62-2.428v-1.822l-0.811-2.631h-1.72l-3.239,0.91l-4.958,1.721l-6.579,1.822h-10.424
+						l-4.96-1.013l-1.314-0.303V89.802z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" fill="#FFFFFF" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M158.82,128.563l-12.348,0.81h-6.578l-2.529-6.882l-6.982,0.912l2.022,6.881l-12.043,3.34l-5.87,2.631l-3.239,3.34
+						l-2.429,3.543v3.339l4.15,11.841l4.149,11.132l2.529,2.53l2.328,1.62l4.148,0.91h14.575h4.149l2.428,8.603l4.049,18.015
+						l1.721,12.144l-4.959,0.81l-14.067,0.81l-11.639,0.202l-0.202,16.902l-1.013,6.881l5.869,1.013l18.521-1.013l9.107-0.708
+						l0.912,7.692l-0.912,6.881l9.008-1.923l0.911-5.87v-8.501l9.918-2.631l6.578-2.53l5.769-4.351l4.15-5.163l2.428-5.162v-5.161
+						l-1.619-11.132l-4.959-15.484l-5.769-16.295l-4.149-7.691l-1.619-2.53l-2.529-1.316l-3.441-0.505l-22.063,0.81l-3.339-13.359
+						h12.448l9.006-0.81l1.722-0.912L158.82,128.563z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M136.555,143.947l-4.15,0.809l-2.022,1.721l-0.811,1.822l0.811,4.756l1.213,3.441l2.43,1.821h6.68L136.555,143.947z"/>
+					
+						<path i:knockout="Off" fill-rule="evenodd" clip-rule="evenodd" stroke="#000000" stroke-width="1.08" stroke-linejoin="bevel" stroke-miterlimit="2.4142" d="
+						M152.242,173.599l4.149,13.764l3.238,15.483l2.53,8.603l3.237-0.81l3.948-2.632l1.821-3.44v-5.061l-6.578-21.557l-1.721-3.441
+						l-2.429-0.91l-5.77-0.81L152.242,173.599z"/>
+				</g>
+			</g>
+		</g>
+	</switch>
+</svg>
