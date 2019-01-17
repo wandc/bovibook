@@ -152,7 +152,7 @@ class UserAdmin extends BasePage {
             $firstname = $form->getElementValue('firstname');
             $lastname = $form->getElementValue('lastname');
             $email = $form->getElementValue('email');
-            $password = md5($form->exportValue('txtPassword1')); //convert to md5 one-way hash.
+            $password = md5($form->exportValue('txtPassword1')); //convert to md5 one-way hash. FIXME: NOT SECURE, change to modern salt and hash
             $pageid = $form->exportValue('pageid');
 
             if ($auth == 'oauth2Local') {

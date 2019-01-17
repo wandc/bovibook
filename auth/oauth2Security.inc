@@ -6,12 +6,12 @@ ini_set('display_errors',1);
 error_reporting(-1);
 */
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/global.php'); //loads db code.
+require_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //loads db code.
 //include google api files
-set_include_path($_SERVER['DOCUMENT_ROOT'] . '/framework/google-api-php-client/src/' . PATH_SEPARATOR . get_include_path());
-require_once($_SERVER['DOCUMENT_ROOT'] . '/framework/google-api-php-client/src/Google/Client.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/framework/google-api-php-client/src/Google/Auth/OAuth2.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/framework/google-api-php-client/src/Google/Service/Oauth2.php');
+set_include_path($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/' . PATH_SEPARATOR . get_include_path());
+require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Client.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Auth/OAuth2.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Service/Oauth2.php');
 
 
 
@@ -367,7 +367,7 @@ error_reporting(-1);
         print("</div>");
         
         //used to load CSS files.
-        include_once($_SERVER['DOCUMENT_ROOT'].'/template/basePage.php');
+        include_once($_SERVER['DOCUMENT_ROOT'].'template/basePage.php');
         BasePage::pageCSS();
     }
 

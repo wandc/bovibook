@@ -4,7 +4,7 @@
 /** there is no security with this, although we do json decode, that helps only a little (or really not at all).
 
   /** code to put BLE tag data in DB */
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
+include_once($_SERVER['DOCUMENT_ROOT'] .'/'. 'global.php');
 
 
 

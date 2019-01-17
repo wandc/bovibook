@@ -15,6 +15,13 @@ Choose Linux Ubuntu for OS.
 #sudo apt-get install php7.2-gd
 #sudo apt-get install php7.0-mbstring
 #sudo apt-get install php7.0-zip
+#sudo apt-get install php-pgsql
+#sudo apt install postgresql postgresql-contrib
+#sudo apt-get install php7.0-curl
+
+Setup PostgreSQL
+Follow instructions here:
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-18-04
 
 
 #cd /var/www/html

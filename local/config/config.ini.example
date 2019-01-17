@@ -22,15 +22,15 @@ JSON_API = "https://YOURDOMAIN.com/api/json/"
 HTML_API = "https://YOURDOMAIN.com/api/html/"
 
 [PDO]
-dsnMain = "pgsql:user=DB_USERNAME dbname=DB_NAME password=DB_PASSSWORD"
-dsnAuthServerLocal = "pgsql:user=DB_AUTH_USERNAME dbname=DB_NAME password=DB_PASSWORD"
+dsnMain = "pgsql:user=r2d2 dbname=bovibook password=r2d2needstotalktoc3po"
+dsnAuthServerLocal = "pgsql:user=r2d2 dbname=bovibook password=r2d2needstotalktoc3po"
 dsnUrbanCalf = "pgsql:host=LOCAL_IP_ADDRESSS;port=5432;dbname=u46_1_kunde;user=LOCAL_LINUX_ACCOUNT;password=LOCAL_LINUX_PASSWORD"; ;urban alma pro calf feeder
 
 ; for work schedule and scheduling medications.
 [GOOGLE_CALENDAR]
 CLIENT_ID ='NUMBER.apps.googleusercontent.com'
 SERVICE_ACCOUNT_NAME = 'NUMBER@developer.gserviceaccount.com'
-KEY_FILE = '/var/www/int/framework/google-keys/sssss6fd3dfe23f8b1fsdg7fab1eer1e89b6dgf93f4e9aac7b08gdf88efdfgdgfsd97cd1a-privatekey.p12'
+KEY_FILE = '/var/www/int/local/config/6f8b17fab1e1e89b693f4e9aac7b0888ef97cd1a-privatekey.p12'
 ;
 ; bovine_tratement: calendarID=GOOGLE_CAL_ID@group.calendar.google.com
 ; work_schedule: calendarID=GOOGLE_CAL_ID@group.calendar.google.com
@@ -62,8 +62,8 @@ producerNumber="NB_FARM_ID";
 
 
 [MARITIME_QUALITY_MILK]
-login="LOGIN";
-password="PASSWORD";
+login="NB254";
+password="F43703";
 
 ;; login stuff for oauth2local server goes here.
 ;;
@@ -74,7 +74,7 @@ google_redirect_url = 'https://YOURDOMAIN.COM/index.php';
 google_developer_key = 'GOOGLE_NUMBER@developer.gserviceaccount.com';
 
 [ADMINLTE]
-path='framework/composer/vendor/almasaeed2010/adminlte/';
+path='vendor/almasaeed2010/adminlte/';
 
 [static_page_location]
 bovineQuery = 6

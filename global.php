@@ -5,6 +5,8 @@
  */
 if (defined('STDIN')) { //when called from cli, command line define constant.
     $_SERVER['DOCUMENT_ROOT']=(__DIR__).'/';
+}else {
+    $_SERVER['DOCUMENT_ROOT']=$_SERVER['DOCUMENT_ROOT'].'/'; //apache says document root should not have trailing slash in spec.
 }
 
 $iniFile = 'local/config/config.ini'; //load custom config

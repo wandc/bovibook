@@ -5,11 +5,11 @@ ini_set('display_errors',1);error_reporting(E_ALL);
 if (defined('STDIN')) { //when called from cli, command line
     include_once('../global.php');
 } else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/global.php');
 }
 
 // Autoloading (composer is preferred, but for this example let's just do this)
-require_once($_SERVER['DOCUMENT_ROOT'] .'vendor/bshaffer/oauth2-server-php/src/OAuth2/Autoloader.php');
+require_once($_SERVER['DOCUMENT_ROOT'] .'/vendor/bshaffer/oauth2-server-php/src/OAuth2/Autoloader.php');
 OAuth2\Autoloader::register();
 
 

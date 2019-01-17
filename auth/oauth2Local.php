@@ -10,12 +10,6 @@
 
  */
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/global.php'); //loads db code.
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'template/basePage.php'); //for login page
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc'); //for login page
-
-
 
 /* main function that checks security */
 
