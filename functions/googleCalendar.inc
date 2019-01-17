@@ -55,7 +55,7 @@ class GoogleCalendar {
         //this all created by the calendar user. 
      
         
-         require_once $_SERVER['DOCUMENT_ROOT'].'framework/composer/vendor/autoload.php';
+         require_once $_SERVER['DOCUMENT_ROOT'].'vendor/autoload.php';
  
        $client = new Google_Client();
       

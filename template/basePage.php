@@ -318,22 +318,22 @@ abstract Class BasePage {
 
     static function pageCSS() {
 
-        print(cssLinkGenerate('framework/composer/vendor/twbs/bootstrap/dist/css/bootstrap.min.css', 'all'));
+        print(cssLinkGenerate('/vendor/twbs/bootstrap/dist/css/bootstrap.min.css', 'all'));
          //DO NOT ENABLE BOOTSTRAP THEME. ADMIN LTE IS THEME.
         
         //jquery
-        print(cssLinkGenerate('/framework/composer/vendor/components/jqueryui/themes/blitzer/jquery-ui.css', 'all')); //modifed blitzer theme to match bootstrap.
+        print(cssLinkGenerate('/vendor/components/jqueryui/themes/blitzer/jquery-ui.css', 'all')); //modifed blitzer theme to match bootstrap.
         print(cssLinkGenerate('/css/jquery-ui.theme.css', 'all')); //modifed blitzer theme to match bootstrap.
         //jquery datatables
-        print(cssLinkGenerate('/framework/composer/vendor/datatables/datatables/media/css/jquery.dataTables.css', 'all'));
+        print(cssLinkGenerate('/vendor/datatables/datatables/media/css/jquery.dataTables.css', 'all'));
         print(cssLinkGenerate('/jscript/select.dataTables.min.css', 'all')); //for tmr recipe new page.
         
         //select2 needs
-        print(cssLinkGenerate('/framework/composer/vendor/select2/select2/dist/css/select2.min.css', 'all')); // <!-- Select2 CSS -->
+        print(cssLinkGenerate('/vendor/select2/select2/dist/css/select2.min.css', 'all')); // <!-- Select2 CSS -->
         
         //adminLTE Needed CSS
-        print(cssLinkGenerate('/framework/composer/vendor/fortawesome/font-awesome/css/font-awesome.min.css', 'all')); //  <!-- Font Awesome -->
-        print(cssLinkGenerate('/framework/composer/vendor/driftyco/ionicons/css/ionicons.min.css', 'all')); // <!-- Ionicons -->
+        print(cssLinkGenerate('/vendor/fortawesome/font-awesome/css/font-awesome.min.css', 'all')); //  <!-- Font Awesome -->
+        print(cssLinkGenerate('/vendor/driftyco/ionicons/css/ionicons.min.css', 'all')); // <!-- Ionicons -->
         
 
         print(cssLinkGenerate($GLOBALS['config']['ADMINLTE']['path'] . 'dist/css/AdminLTE.min.css', 'all'));
@@ -375,18 +375,18 @@ abstract Class BasePage {
 
     private function allPageJavascript() {
        
-      print('<script type="text/javascript" src="framework/composer/components/jquery/jquery.min.js"></script>' . "\n");
-      print('<script type="text/javascript" src="framework/composer/components/jquery-ui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
-      print('<script type="text/javascript" src="framework/composer/vendor/datatables/datatables/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
-      print('<script type="text/javascript" src="framework/composer/vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
+      print('<script type="text/javascript" src="vendor/components/jquery/jquery.min.js"></script>' . "\n");
+      print('<script type="text/javascript" src="vendor/components/jqueryui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
+      print('<script type="text/javascript" src="vendor/datatables/datatables/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
+      print('<script type="text/javascript" src="vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
        
         //NOTE: adminLTE is loaded in header. 
         print('<script type="text/javascript" src="jscript/dataTables.select.min.js"</script>' . "\n"); //used on TMR recipe new page.
-        print('<script type="text/javascript" src="framework/composer/vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
-        print('<script type="text/javascript" src="framework/composer/vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
-        print('<script type="text/javascript" src="framework/composer/vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
-        print('<script type="text/javascript" src="framework/composer/vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
-        print('<script type="text/javascript" src="framework/composer/vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
+        print('<script type="text/javascript" src="vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
+        print('<script type="text/javascript" src="vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
+        print('<script type="text/javascript" src="vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
+        print('<script type="text/javascript" src="vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
+        print('<script type="text/javascript" src="vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
         //load for all pages, because it is easier
         include_once('functions/googleVisualization.inc');
         print(GoogleVisGlobal::loadVisualization());

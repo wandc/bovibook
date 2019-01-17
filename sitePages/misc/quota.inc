@@ -430,7 +430,7 @@ SQL;
         //output
         $dataArr = $results;
       
-         print( (new JQueryDataTable)->startBasicArray($dataArr,''));
+         print( (new JQueryDataTable)->startBasicArray($dataArr,'searching: false,ordering: false,info: false'));
         
      
     }
@@ -484,13 +484,13 @@ from batch.credit order by event_time DESC";
 SELECT  event_time::date,event_type,credit_change 
  , sum(credit_change) OVER ( ORDER BY event_time::date) AS cum_amt
 from batch.credit order by event_time DESC";
-         print( (new JQueryDataTable)->startBasicSql($sql,''));
+         print( (new JQueryDataTable)->startBasicSql($sql,'searching: false,ordering: false,info: false'));
     }
 
     function histoicalCreditExchangePriceLog() {
          print ("<h3>Credit Exchange Log</h3>");
         $sql = "SELECT * FROM batch.credit_exchange ORDER by date DESC";
-        print( (new JQueryDataTable)->startBasicSql($sql,''));
+        print( (new JQueryDataTable)->startBasicSql($sql,'searching: false,ordering: false,info: false'));
     }
 
     function histoicalCreditExchangePriceQuickform() {
@@ -883,8 +883,6 @@ from batch.credit order by event_time DESC";
     }
 
     function milkCreditEstimation() {
-        include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/misc/bulkTankPickup.inc');
-        include_once($_SERVER['DOCUMENT_ROOT'] . 'template/footer.inc');
 
 
        
@@ -899,9 +897,10 @@ from batch.credit order by event_time DESC";
         foreach ($arr as $key => $value) {
 
             $componentArr = self::milkComponenetGuesstimator($value['date']);
-
-            $daily_cred_arrEpoch[strtotime($value['date'])] = $componentArr['avg_fat'] * .01 * $value['pickup'] - $value['quota'];
-            $daily_cred_arrEpochPermQuota[strtotime($value['date'])] = $componentArr['avg_fat'] * .01 * $value['pickup'] - $value['perm_quota'];
+            $daily_cred_arrEpoch[strtotime($value['date'])] = $componentArr['avg_fat'] * .01 * $value['pickup'] - $value['quota']; //with incentive days included, always use this
+            $daily_cred_arrEpochPermQuota[strtotime($value['date'])] = $componentArr['avg_fat'] * .01 * $value['pickup'] - $value['perm_quota']; //owned quota
+            
+    
         }
 
 
@@ -915,17 +914,19 @@ from batch.credit order by event_time DESC";
             //when it doesn't exist yet, make it 0 first.
            if (!isset($totArray[$abrDate])) {
 
-                $totArray[$abrDate]['total'] = 0;
-                $totArray[$abrDate]['count'] = 0;
+                $totArray[$abrDate]['Daily Quota (over/under) - w/ incentives'] = 0;
+                $totArray[$abrDate]['Daily Quota (over/under) - ignore incentives'] = 0;
+                $totArray[$abrDate]['Days in Month'] = 0;
            }
 
-            //keep adding values up.
-            $totArray[$abrDate]['date'] = $abrDate;
-            $totArray[$abrDate]['total'] = round($totArray[$abrDate]['total'] + $value,1);
-            $totArray[$abrDate]['total_if_ignoring_incentive_days'] =round( $totArray[$abrDate]['total'] + $daily_cred_arrEpochPermQuota[$key],1);
-            $totArray[$abrDate]['count'] = date('t', ($key));
+
+            $totArray[$abrDate]['Date'] = $abrDate;
+            $totArray[$abrDate]['Daily Quota (over/under) - w/ incentives'] = round( $value,1);
+            $totArray[$abrDate]['Daily Quota (over/under) - ignore incentives'] =round( $daily_cred_arrEpochPermQuota[$key],1);
+            $totArray[$abrDate]['Days in Month'] = date('t', ($key));
+            $totArray[$abrDate]['Month Credits (over/under) PROJECTED'] = date('t', ($key)) * $totArray[$abrDate]['Daily Quota (over/under) - w/ incentives'];
         }
-        $endMonthCreditPosition = array_sum($daily_cred_arrEpoch);
+       // $endMonthCreditPosition = array_sum($daily_cred_arrEpoch);
         
         
         
@@ -1075,10 +1076,10 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
 
             //////////////////
             $dataArray[$res->rowCount()]['date'] = $row['date_series'];
-            $dataArray[$res->rowCount()]['quota'] = $row['quota'];
+            $dataArray[$res->rowCount()]['quota'] = $row['quota']; //includes incentive days
             $dataArray[$res->rowCount()]['pickup'] = $row['pickup'];
             $dataArray[$res->rowCount()]['fat'] = $row['fat'];
-            $dataArray[$res->rowCount()]['perm_quota'] = $row['perm_quota'];
+            $dataArray[$res->rowCount()]['perm_quota'] = $row['perm_quota']; //"owned quota"
         }
 
         //returns an array with null values removed of future events.
@@ -1293,7 +1294,7 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
         //get 1st of the month dates
         $dateArray = Misc::createMonthlyDatesLastDayMonthForNextAndPrevManyMonths();
 
-        $creditEvents = array(null => 'Please Select one...', 'buy_sell' => '(Bought) / Sold', 'over_under' => 'Over / (Under) for Month', 'above_below' => '(Above) / Below Quota Limit', 'incentive' => '(Incentives) used');
+        $creditEvents = array(null => 'Please Select one...', 'buy_sell' => '(Bought) / Sold', 'over_under' => 'Over / (Under) for Month', 'above_below' => '(Above) / Below Quota Limit', 'incentive' => '(Incentives) used','over_quota' => '(Over) Quota');
 
         $form = new HTML_QuickForm("creditHoldingsQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
 

@@ -1,36 +1,39 @@
-Welcome to BoviBook! 
+Install Instructions for Amazon EC2 Ubuntu
+install on EC2 instance:
 
-Whole farm dairy (or possible goat, beef, etc.) management.
-
-
-requirements (composer):
-
-"require": {
-        "twbs/bootstrap": "^3.3",
-        "fortawesome/font-awesome": "^4.7",
-        "driftyco/ionicons": "^2.0",
-        "google/apiclient": "^2.0",
-        "bshaffer/oauth2-server-php": "~1.8",
-        "almasaeed2010/adminlte": "^2.0",
-        "components/jquery": "^3.2",
-        "components/jqueryui": "^1.12",
-        "datatables/datatables": "^1.10",
-        "tinymce/tinymce": ">= 4",
-        "select2/select2": "^4.0.0",
-        "drmonty/datatables-responsive": "^2.2",
-        "drmonty/datatables-plugins": "^1.10",
-        "moment/moment": "^2.21",
-        "phpoffice/phpspreadsheet": "^1.4",
-	"phpstan/phpstan": "^0.9",
-        "pear/html_quickform2": "^2.0"
-    }
+#sudo apt-get install php7.0 apache2
+#sudo apt-get install composer
+#sudo apt-get install curl
+#sudo apt-get install php libapache2-mod-php
+#sudo apt-get install php7.2-gd
+#sudo apt-get install php7.0-mbstring
+#sudo apt-get install php7.0-zip
 
 
-Uses postgres 10 or above. 
-Needs db template. Will provide later
+#cd /var/www/html
 
+#sudo composer create-project wandc/bovibook:dev-master
+Do you want to remove the existing VCS (.git, .svn..) history? [Y,n]?
+YES
 
-10+ years in the making.
-January 4, 2019
- 
-See LICENSE.TXT
+CHANGE PERMISSION on bovibook dir 744? check
+
+go edit apache2 config
+
+ sudo nano /etc/apache2/sites-enabled/000-default.conf
+
+change line:
+ DocumentRoot /var/www/html/
+toL:
+ DocumentRoot /var/www/html/bovibook
+
+restart apache
+
+sudo systemctl restart apache2
+
+If everything went well you can go to your URL and should see bovibook login.
+
+If you do not, go check less /var/log/apache2/error.log for errors
+
+#needed, but I wish it wasnt:
+sudo pear install HTML_QuickForm

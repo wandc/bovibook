@@ -84,7 +84,7 @@ function example() {
       <ul class="contacts-list">
         <li>
           <a href="#">
-            <img class="contacts-list-img" src="framework/composer/vendor/almasaeed2010/adminlte/dist/img/user1-128x128.jpg" alt="Contact Avatar">
+            <img class="contacts-list-img" src="vendor/almasaeed2010/adminlte/dist/img/user1-128x128.jpg" alt="Contact Avatar">
             <div class="contacts-list-info">
               <span class="contacts-list-name">
                 Count Dracula

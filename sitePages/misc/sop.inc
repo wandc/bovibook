@@ -225,7 +225,7 @@ if ($sop_id!=null) {
     
   function customJavascript() {
     ?>
-    <script type="text/javascript" src="framework/composer/vendor/tinymce/tinymce/tinymce.min.js"></script>
+    <script type="text/javascript" src="vendor/tinymce/tinymce/tinymce.min.js"></script>
 <script type="text/javascript">
     
    tinymce.init({

@@ -564,7 +564,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
                  FROM bovinemanagement.bovine
                  LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
                  WHERE purebred=true
-                 ORDER BY birth_date desc
+                 ORDER BY birth_date desc,rfid_number desc
                  LIMIT 1
                ";
         $res1 = $GLOBALS['pdo']->query($sql1); 
@@ -575,12 +575,13 @@ Class QF2_CalvingEvent extends Quickform2Helper {
                  FROM bovinemanagement.bovine
                  LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
                  WHERE purebred=false
-                 ORDER BY birth_date desc
+                 ORDER BY birth_date desc,rfid_number desc
                  LIMIT 1
                ";
         $res2 = $GLOBALS['pdo']->query($sql2);
         $row2 = $res2->fetch();
         
+        //FIXME: can overflow eartag range number by +1, I think.
         
          $tagArray[null] = "Please Select one..."; //dummy value
             //show first 2 male and female, mix them up to reducde entry error. 
@@ -591,7 +592,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         
          $tagArray['dead']='Dead';
         
-
+        
         /* input data arrays */
         $massArray = array(null => 'Please Select One', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31', 32 => '32', 33 => '33', 34 => '34', 35 => '35', 36 => '36', 37 => '37', 38 => '38', 39 => '39', 40 => '40', 41 => '41', 42 => '42', 43 => '43', 44 => '44', 45 => '45', 46 => '46', 47 => '47', 48 => '48', 49 => '49', 50 => '50', 51 => '51', 52 => '52', 53 => '53', 54 => '54', 55 => '55', 56 => '56', 57 => '57', 58 => '58', 59 => '59', 60 => '60', 61 => '61', 62 => '62', 63 => '63', 64 => '64', 65 => '65');
         $deadAliveArray = array(null => 'Please Select One', 'alive' => 'Alive', 'dead' => 'Dead');

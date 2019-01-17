@@ -10,7 +10,7 @@ $iniFile = 'local/config/config.ini'; //load custom config
 require_once('HTML/QuickForm.php'); //one off loader for old deprecated pear class. remove forms then delete this. FIXME
 require_once 'HTML/QuickForm/Renderer/Tableless.php'; //one off loader for old deprecated pear class. remove forms then delete this. FIXME
 new IntAutoLoader(); //bovibook loader
-require_once('framework/composer/vendor/autoload.php'); // autoloads all composer files.
+require_once('vendor/autoload.php'); // autoloads all composer files.
 
 /*
  * Initiate Misc Class and make global

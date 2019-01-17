@@ -118,7 +118,7 @@ class ShurGainXlsxReader {
 //PhpSpreadsheet
     function loadSpreadSheetSheet($inputFileName, $sheetNum) {
 
-        require '/var/www/int/framework/composer/vendor/autoload.php';
+        require '/var/www/int/vendor/autoload.php';
 
         /** Create a new Xls Reader  * */
         $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();

@@ -1,0 +1,4227 @@
+﻿National Research Council
+Nutrient Requirements of Dairy Cattle, Seventh Revised Edition
+Model Computational Code
+
+Below are the computational equations in the computer model accompanying Nutrient Requirements of Dairy Cattle (2001). The program was written in Visual Basic, version 6.0 and was programmed by Vajesh Durbal.  Information on variables can be found in the Glossary in the accompanying report as can the rationale used by the subcommittee to develop the model.
+
+The model is divided into submodels to compute requirements for minerals (line 689), reserves (line 1901), young calves (line 2151), growth (line 2564), maintenance (line 2659), target weight (line 3653), lactation (line 3723) and pregnancy (line 3761). The submodels for calculation of nutrient supply are DietEvalOne (line 1663), DietEvalTwo (line 1970), Intake (line 2873), Amino Acids (line 3005), Energy and Protein Supply (line 3466), and Energy Values (line 3801). Lines 1- 594 include definition of both public and private (those used in computations but not shown as output) variables. These line values are approximate because they are affected by the margin width and page layout of your word processor.
+
+
+' Program parameters
+Public NumFeeds As Byte         ' keeps track of the total number of
+                                ' feeds loaded by the user
+
+Public FeedNum As Byte          ' keeps track of the current feed
+                                ' selected (e.g. for Edit Feed Comp)
+
+
+' Program Settings variables
+Public Metric As Boolean            ' True = Metric units, False = English units
+Public DryMatterBasis As Boolean    ' True = Dry Matter Basis
+Public Comments As String
+Public Header(1 To 3) As String     ' Header(1) = Left, Header(2) = Center, Header(3) = Right
+Public Footer(1 To 3) As String     ' Footer(1) = Left, Footer(2) = Center, Footer(3) = Right
+Public SumRes(0 To 9) As String     ' Summary Results
+Public DefaultZoom As String
+
+
+' Animal Description variables
+Public AnimalType As String     ' Options : "Lactating Cow", "Dry Cow"
+                                ' "Replacement Heifer", "Young Calf"
+Public Age As Single            ' age  (months)
+Public BW As Single             ' body weight
+Public DaysPreg As Integer      ' days pregnant
+Public CS As Single             ' condition score (1 - 5)
+Public DaysInMilk As Integer    ' days in milk
+Public LactNum As Byte          ' lactation number
+Public FirstCalf As Single      ' age at first calving  (months)
+Public CalfInt As Single        ' calving interval  (months)
+Public DesiredADG As Integer    ' desired ADG (g/day)
+Public UseTargetADG As Boolean  ' if True, indicates that program should
+                                ' use Target ADG, instead of Desired ADG to
+                                ' determine growth requirements
+                                
+Public CalfBW As Single         ' Calf Body Weight (kg)
+Public CalfTemp As Single       ' Calf Temperature (deg C)
+
+
+
+' Animal Production variables
+Public MW As Single                 ' mature weight
+Public MWFromBreed As Boolean       ' indicates if the animal's MW should
+                                    ' be set as a function of the breed
+Public Breed As String              ' Choices :  "Ayrshire", "Brown Swiss"
+                                    ' "Guernsey", "Holstein", "Jersey"
+Public CBW As Single                ' calf birth weight
+Public CBWFromMW As Boolean         ' to compute CBW from MW
+Public MilkProd As Single           ' milk production
+Public MilkFat As Single            ' milk fat  (%)
+Public ShowMilkTrue As Boolean      ' indicates if milk protein should be shown
+                                    ' on a true or crude basis
+Public MilkTrueProtein As Single    ' milk true protein (%)
+Public Lactose As Single            ' milk lactose (%)
+
+
+
+' Management and Environment variables
+Public Temp As Single           ' current temperature
+Public PrevTemp As Single       ' previous temperature
+Public WindSpeed As Single
+Public Grazing As Boolean
+Public Distance As Single       ' Distance between Pasture and Milking Center
+Public Topography As String     ' "Flat", "Hilly"
+Public Trips As Integer         ' Number of one-way trips
+Public CoatCond As String       ' Choices :  "Clean/Dry", "Some Mud"
+                                ' "Wet/Matted", "Covered with Snow/Mud"
+Public HeatStress As String     ' "None", "Rapid/Shallow", "Open Mouth"
+Public HairDepth As Single      ' depth of hair on coat
+Public NightCooling As Boolean  ' True = Night Cooling, False = None
+
+
+
+
+' Feed Components
+Type FeedType
+
+  DMFed As Single           ' Quantity of this feed fed to the animal (dry matter basis)
+  Name As String            ' name of the feed (e.g. "Corn Silage, mature")
+  ReadOnly As Boolean       ' is "True" if the feed is part of the original library
+  Category As String        ' feed category (e.g. Forage, Grass, Animal Product,...)
+  IFN As String             ' International Reference Number
+  TDN As Single             ' total digestible nutrients (%DM) at 1X Maintenance
+  EnergyEqClass As String   ' "Forage", "Concentrate" or "Animal"
+  ForageDescrp As String    ' "Wet" vs. "Dry"
+  PAF As Single             ' processing adjustment factor
+  DE As Single              ' digestible energy (Mcal)
+  DM As Single              ' dry matter (%AF)
+  NDF As Single             ' neutral detergent fiber (%DM)
+  ADF As Single             ' acid detergent fiber (%DM)
+  Lignin As Single          ' (% DM)
+  CP As Single              ' crude protein (%DM)
+  NDFIP As Single           ' (%DM)
+  ADFIP As Single           ' (%DM)
+  PrtA As Single            ' (%CP)
+  PrtB As Single            ' (%CP)
+  PrtC As Single            ' (%CP)
+  Kd As Single              ' Protein Digestion rate (%/hr)
+  RUPDigest As Single       ' (%)
+  Fat As Single             ' (%DM)
+  Ash As Single             ' (%DM)
+  Ca As Single              ' (%DM)
+  CaBio As Single           ' Bioavailablity of Ca in the feed (%)
+  P As Single               ' (%DM)
+  PBio As Single            ' Bioavailablity of P in the feed (%)
+  Mg As Single              ' (%DM)
+  MgBio As Single           ' Bioavailablity of Mg in the feed (%)
+  Cl As Single              ' (%DM)
+  ClBio As Single           ' Bioavailability of Cl in the feed (%)
+  K As Single               ' (%DM)
+  KBio As Single            ' Bioavailability of K in the feed (%)
+  Na As Single              ' (%DM)
+  NaBio As Single           ' Bioavailability of Na in the feed (%)
+  s As Single               ' (%DM)
+  SBio As Single            ' Bioavailability of S in the feed (%)
+  Co As Single              ' (mg/kg)
+  CoBio As Single           ' Bioavailability of Co in the feed (%)
+  Cu As Single              ' (mg/kg)
+  CuBio As Single           ' Bioavailability of Cu in the feed (%)
+  I As Single               ' (mg/kg)
+  IBio As Single            ' Bioavailability of I in the feed (%)
+  Fe As Single              ' (mg/kg)
+  FeBio As Single           ' Bioavailability of Fe in the feed (%)
+  Mn As Single              ' (mg/kg)
+  MnBio As Single           ' Bioavailability of Mn in the feed (%)
+  Se As Single              ' (mg/kg)
+  SeBio As Single           ' Bioavailability of Se in the feed (%)
+  Zn As Single              ' (mg/kg)
+  ZnBio As Single           ' Bioavailability of Zn in the feed (%)
+  Met As Single
+  Lys As Single
+  Arg As Single
+  His As Single
+  Ile As Single
+  Leu As Single
+  Cys As Single
+  Phe As Single
+  Thr As Single
+  Trp As Single
+  Val As Single
+  VitA As Single            ' (1000 IU/kg)
+  VitD As Single            ' (1000 IU/kg)
+  VitE As Single            ' (IU/kg)
+  NFCDigest As Single       ' NFC Digestibility Coefficient
+  CPDigest As Single        ' CP Digestibility Coefficient
+  NDFDigest As Single       ' NDF Digestibility Coefficient
+  FatDigest As Single       ' Fat Digestibility Coefficient
+  
+  
+  
+  ' The following characteristics apply to Calf Feeds only
+  ' the "c" prefix is given to any characteristics that have
+  ' non-calf counterparts (e.g. "cMEng")
+  cDM As Single              ' (%AF)
+  cGE As Single              ' (Mcal/kg DM)
+  cDE As Single              ' (Mcal/kg DM)
+  cMEng As Single            ' (Mcal/kg DM)
+  cNEm As Single             ' (Mcal/kg DM)
+  cNEg As Single             ' (Mcal/kg DM)
+  cCP As Single              ' (%DM)
+  cDCP As Single             ' (%DM)
+  cEE As Single              ' (%DM)
+  cAsh As Single             ' (%DM)
+  
+  
+  ' Computed compositional values
+  TDN_ActX As Single        ' TDN at Intake Over Maintenance
+  DiscDE As Single          ' Discounted DE (Mcal/kg)
+  MEforNEg As Single        ' efficiency of conversion of ME to NEg
+  MEng As Single            ' *** ME - metabolizable energy (Mcal/kg) ***
+  NEl As Single             ' *** net energy of lactation (Mcal/kg) ***
+  NEg As Single             ' *** net energy of growth (Mcal/kg) ***
+  NEm As Single             ' *** net energy for maintenance (Mcal/kg) ***
+End Type
+
+
+
+' Feed/Ration Variables
+Public Feed() As FeedType
+Public TotalDMFed As Single        ' Total quantity of dry matter fed (kg/day)
+Public TotalRegDMFed As Single     ' Total quantity of regular feed (i.e. non-calf feed) DM Fed (kg/day)
+Public PredIntake As Single
+
+
+
+' Mineral Name Constants
+Public Enum Minerals
+  Ca = 1
+  P
+  Mg
+  Cl
+  K
+  Na
+  Su
+  Co
+  Cu
+  Io
+  Fe
+  Mn
+  Se
+  Zn
+  Mo
+  VitA
+  VitD
+  VitE
+End Enum
+
+
+
+
+
+' Output Variables
+
+
+
+' Pregnancy Requirements
+Public Km As Single                 ' diet NEl/diet NE  =  efficiency of use of ME for Maintenance
+Public MEPreg As Single             ' metabolizable energy requirement for pregnancy (Mcal/day)
+Public NEPreg As Single             ' net energy required for pregnancy (Mcal/day)
+Public MPPreg As Single             ' metabolizable protein requirement for pregnancy (g/day)
+Public CPPreg As Single             ' crude protein requirement for pregnancy (g/day)
+Public CW As Single                 ' conceptus weight (kg)
+Public ADGPreg As Single            ' average daily gain due to conceptus growth (g/day)
+
+
+
+' Lactation Requirements
+Public MilkEn As Single                  ' energy content of milk (Mcal NEl/kg)
+Public YEn As Single                ' daily energy secretion in milk (Mcal NEl/day)
+Public NELact As Single             ' net energy requirement for lactation (Mcal/day)
+Public YProtn As Single             ' daily milk protein yield at current stage of lactation (kg/day)
+Public YFatn As Single              ' daily milk fat yield at current stage of lactation (kg/day)
+Public MPLact As Single             ' metabolizable protein requirement for lactation (g/day)
+Public FCM As Single                ' fat corrected milk production (kg/day)
+
+
+
+' Target Weights and ADG for Breeding Females
+Public Age1st As Single             ' age at first calving = FirstCalf  (mon)
+Public Age2nd As Single             ' age at second calving (mon)
+Public Age3rd As Single             ' age at third calving (mon)
+Public Age1stBred As Single         ' age at first breeding (mon)
+Public Wt1st As Single              ' target weight at first calving (kg)
+Public Wt2nd As Single              ' target weight at second calving (kg)
+Public Wt3rd As Single              ' target weight at third calving (kg)
+Public Wt1stBred As Single          ' target weight at first breeding (kg)
+Public ADG1st As Single             ' average daily gain at first calving (kg/day)
+Public ADG2nd As Single             ' average daily gain at second calving (kg/day)
+Public ADG3rd As Single             ' average daily gain at third calving (kg/day)
+Public ADG1stBred As Single         ' average daily gain at first breeding (kg/day)
+Public ADGNonBred As Single         ' average daily gain needed to get to ADG1stBred (kg/day)
+Public ADG As Single                ' average daily gain for the cow, given the current characteristics (kg/day)
+
+
+
+' Reserves Requirements
+Public CS_F(1 To 9) As Single       ' factor for condition score x
+Public CS5EBW As Single             ' empty body weight of the animal for condition score 5 (kg)
+Public EBW(1 To 9) As Single        ' empty body weight of the animal for condition score x (kg)
+Public AF(1 To 9) As Single         ' proportion of fat in the animal at condition score x
+Public TF(1 To 9) As Single         ' total weight of fat in the animal at condition score x (kg)
+Public AP(1 To 9) As Single         ' proportion of protein in the animal at condition score x
+Public TP(1 To 9) As Single         ' total weight of protein in the animal at condition score x (kg)
+Public ER(1 To 9) As Single         ' energy reserves of the animal at condition score x (Mcal)
+Public Lose1CS As Single            ' energy needed to lose one condition score (Mcal)
+Public Gain1CS As Single            ' energy needed to gain one condition score (Mcal)
+Public NElSub As Single             ' amount of retained energy that will be substituted for
+                                    ' dietary NEl in order to lose one condition score (Mcal)
+Public NElReq As Single             ' amount of energy dietary NEl will supply in
+                                    ' order to gain one condition score (Mcal)
+Public deltaER As Single            ' change in ER needed to move up or down one condition score (Mcal)
+Public DaysToChange As Single       ' number of days needed to move up or down one condition score
+
+
+
+' Compute Energy Values
+Public DMI_to_DMIMaint As Single    ' ratio of DMI to DMI required for maintenance
+
+
+' Energy and Protein Supply
+' N.B. Those variables that are arrays are for specific feeds.
+' For example DMI(2) will be the dry matter intake for Feed(2).
+Public PsgRate() As Single          ' predicted passage rate
+Public DMI() As Single              ' dry matter intake (kg/day)
+Public TDN() As Single              ' total digestible nutrients (g/day)
+Public TDN_Act() As Single          ' discounted total digestible nutrients (g/day)
+Public CP() As Single               ' crude protein intake (g/day)
+Public MEng() As Single             ' metabolizable energy (Mcal/day)
+Public NEl() As Single              ' net energy for lactation (Mcal/day)
+Public NEg() As Single              ' net energy for growth (Mcal/day)
+Public RUP() As Single              ' ruminally undegradable intake protein (g/day)
+Public RDP() As Single              ' ruminally degradable intake protein (g/day)
+Public NDF() As Single              ' neutral detergent fiber (kg/day)
+Public ADF() As Single              ' acid detergent fiber (kg/day)
+Public DMI_Total As Single          ' total dry matter intake (kg/day)
+Public TDN_Total As Single          ' total 1X-TDN intake (g/day)
+Public TDN_Act_Total As Single      ' actual, discounted TDN intake (g/day)
+Public Discount As Single           ' discounts energy value to adjust for intake
+Public UndiscDE_Total As Single     ' total, undiscounted, DE intake (Mcal/day)
+Public DE_Total As Single           ' total DE intake (Mcal/day)
+Public Fat_Total As Single          ' total Fat intake (kg/day)
+Public MEng_Total As Single         ' total ME intake (Mcal/day)
+Public NEm_Total As Single          ' total NEm intake (Mcal/day)
+Public NEl_Total As Single          ' total NEl intake (Mcal/day)
+Public NEg_Total As Single          ' total NEg intake (Mcal/day)
+Public CP_Total As Single           ' total crude protein intake (g/day)
+Public RUP_Total As Single          ' total RUP intake (g/day)
+Public TotalDigestedRUP As Single   ' total digested RUP (g/day)
+Public DietRUPDigest As Single      ' total RUP digestibility for the diet (weighted average)
+Public RDP_Total As Single          ' total RDP intake (g/day)
+Public NDF_Total As Single          ' total NDF intake (g/day)
+Public ADF_Total As Single          ' total ADF intake (g/day)
+Public MCP_Total As Single          ' total MCP synthesis (g/day)
+Public DietTDN As Single            ' fraction of TDN in the diet
+Public NEgOverMEng As Single        ' NEg_Total/MEng_Total
+Public NElOverMEng As Single        ' NEl_Total/MEng_Total
+Public NEmOverMEng As Single        ' NEm_Total/MEng_Total
+Public DietaryNFC As Single         ' total dietary NFC (g/day)
+Public EndCP As Single              ' endogenous crude protein (g/day)
+Public MPEndo As Single             ' endogenous metabolizable protein (g/day)
+Public MPEndoReq As Single          ' MPEndo requirement (g/day)
+
+
+
+' Amino Acid Supply
+Public perEAA As Single             ' percent total essential amino acids (%RUP)
+Public TotalEAA As Single           ' total essential amino acids (g/day)
+Public Arg_Flow As Single           ' flow of arginine to the small intestine (g/day)
+Public His_Flow As Single           ' flow of histidine to the small intestine (g/day)
+Public Ile_Flow As Single           ' flow of isoleucine to the small intestine (g/day)
+Public Leu_Flow As Single           ' flow of leucine to the small intestine (g/day)
+Public Lys_Flow As Single           ' flow of lysine to the small intestine (g/day)
+Public Met_Flow As Single           ' flow of methionine to the small intestine (g/day)
+Public Phe_Flow As Single           ' flow of phenylalanine to the small intestine (g/day)
+Public Thr_Flow As Single           ' flow of threonine to the small intestine (g/day)
+Public Val_Flow As Single           ' flow of valine to the small intestine (g/day)
+Public Dig_Arg_Flow As Single       ' flow of digestible arginine to the small intestine (g/day)
+Public Dig_His_Flow As Single       ' flow of digestible histidine to the small intestine (g/day)
+Public Dig_Ile_Flow As Single       ' flow of digestible isoleucine to the small intestine (g/day)
+Public Dig_Leu_Flow As Single       ' flow of digestible leucine to the small intestine (g/day)
+Public Dig_Lys_Flow As Single       ' flow of digestible lysine to the small intestine (g/day)
+Public Dig_Met_Flow As Single       ' flow of digestible methionine to the small intestine (g/day)
+Public Dig_Phe_Flow As Single       ' flow of digestible phenylalanine to the small intestine (g/day)
+Public Dig_Thr_Flow As Single       ' flow of digestible threonine to the small intestine (g/day)
+Public Dig_Val_Flow As Single       ' flow of digestible valine to the small intestine (g/day)
+Public ArgPctMP As Single           ' arginine as a percent of metabolizable protein (%)
+Public HisPctMP As Single           ' histidine as a percent of metabolizable protein (%)
+Public IlePctMP As Single           ' isoleucine as a percent of metabolizable protein (%)
+Public LeuPctMP As Single           ' leucine as a percent of metabolizable protein (%)
+Public LysPctMP As Single           ' lysine as a percent of metabolizable protein (%)
+Public MetPctMP As Single           ' methionine as a percent of metabolizable protein (%)
+Public PhePctMP As Single           ' phenylalanine as a percent of metabolizable protein (%)
+Public ThrPctMP As Single           ' threonine as a percent of metabolizable protein (%)
+Public ValPctMP As Single           ' valine as a percent of metabolizable protein (%)
+
+
+
+
+' Maintenance Requirements
+Public a1 As Single                 ' thermal neutral maintenance requirement (Mcal/day/BW^0.75)
+Public CS9 As Single                ' condition score on 1-9 scale (1996 NRC)
+Public COMP As Single               ' effect of previous plane of nutrition on NEMaint requirement
+Public a2 As Single                 ' maintenance adjustment for previous ambient temperature (Mcal/day/BW^0.75)
+Public Pasture As Single            ' percent of the predicted dry matter intake supplied by grazing
+Public NEmact As Single             ' activity factor on the NEMaint requirement
+Public NEMaintNS As Single          ' net energy requirement for maintenance without stress (Mcal/day)
+Public NEDietConc As Single         ' concentration of net energy in diet (kg DM/day)
+Public FeedMaint As Single          ' feed required for maintenance (kg DM/day)
+Public NEGrowthDietNS As Single     ' net energy for growth, with no stress, available in the diet (Mcal/day)
+Public NEFP As Single               ' net energy for production (Mcal/day)
+Public MEI As Single                ' metabolizable energy intake (Mcal/day)
+Public SA As Single                 ' surface area (m^2)
+Public HP As Single                 ' heat production (Mcal/m^2/day)
+Public T As Single                  ' age in days
+Public Coat As Single               ' coat condition factor (dependent on CoatCond)
+Public TI As Single                 ' tissue insulation (Mcal/m^2/deg C/day)
+Public EI As Single                 ' external insulation (Mcal/m^2/deg C/day)
+Public INS As Single                ' total insulation (Mcal/m^2/deg C/day)
+Public LCT As Single                ' lower critical temperature (deg C)
+Public MEcs As Single               ' metabolizable energy required due to cold stress (Mcal/day)
+Public ColdStr As Single            ' cold stress factor for computing the net energy requirement
+                                    ' for maintenance with stress (Mcal/day/BW^0.75)
+Public HeatStr As Single            ' heat stress factor for computing the net energy requirement
+                                    ' for maintenance which is dependent upon the HeatStress variable
+Public NEMaint As Single            ' net energy required for maintenance (Mcal/day)
+Public DMIMaint As Single           ' dry matter intake required for maintenance (kg DM/day)
+Public DMIPreg As Single            ' dry matter intake requirement for pregnancy
+Public NEGrowthDiet As Single       ' net energy for growth available in the diet (Mcal/day)
+Public MPMaint As Single            ' metabolizable protein requirement for maintenance (g/day)
+Public MEMaint As Single            ' used only for Replacement Heifers
+Public ScurfMP As Single            ' scurf MP requirement (g/day)
+Public UrineMP As Single            ' urine MP requirement (g/day)
+Public FecalMP As Single            ' fecal MP requirement (g/day)
+
+
+
+' Dry Matter Intake
+Public TempFact As Single           ' temperature adjustment factor for DMI calculations
+Public CCFact As Single             ' coat condition adjustment factor for DMI calculations
+Public SubFact As Single            ' factor used in the DMI_RH calculation
+Public DivFact As Single            ' factor used in the DMI_RH calculation
+Public DMILact As Single            ' DMI of a lactating cow (kg/day)
+Public DMIDry As Single             ' DMI of a dry cow  (kg/day)
+Public DMI_RH As Single             ' DMI of a replacement heifer (kg/day)
+Public DryMatterIntake As Single    ' dry matter intake (kg/day)
+
+
+
+' Growth Requirements
+Public SBW As Single                ' shrunk body weight (kg)
+Public SRW_to_MSBW As Single        ' standard reference weight / mature shrunk body weight
+Public EQSBW As Single              ' equivalent shrunk body weight (kg)
+Public SWG As Variant               ' shrunk weight gain (kg)
+Public WG As Single                 ' weight gain (kg/day)
+Public DLWReq As Single             ' DLW required (kg/day)
+Public EQEBW As Single              ' equivalent empty body weight (kg)
+Public EQEBG As Single              ' equivalent empty body gain (kg)
+Public RE As Single                 ' retained energy (Mcal/day)
+Public NEGrowth As Single           ' net energy required for growth (Mcal/day)
+Public NPg As Single                ' net protein requirement (g/day)
+Public EffMP_NPg As Single          ' efficiency of use of MP for NPg
+Public MPGrowth As Single           ' metabolizable protein requirement for growth (g/day)
+Public NEReserves As Single         ' net energy required for reserves replenishment
+                                    ' or provided when reserves are mobilized (Mcal NEl/day)
+Public DMIAvailGrowth As Single     ' dry matter available for growth (kg/day)
+Public ADGwoPreg As Single          ' average daily gain w/o pregnancy (kg/day)
+Public ADGwPreg As Single           ' average daily gain with pregnancy (kg/day)
+Public MEGrowth As Single           ' only used for Replacement Heifers
+Public MEAllowGain As Single
+Public MEAllowGainPreg As Single
+
+
+
+
+' Mineral Requirements
+Type MineralType
+  Name As String                    ' name of mineral
+  Units As String                   ' units the mineral is reported in
+  Fecal As Single                   ' fecal endogenous loss component
+  Urine As Single                   ' urine endogenous loss component
+  Sweat As Single                   ' sweat loss (temperature) component
+  Misc As Single                    ' miscellaneous loss component
+  Maint As Single                   ' sum of the misc, fecal, urine and sweat losses
+  Fetal As Single                   ' fetal requirement
+  Milk As Single                    ' milk production requirement
+  Growth As Single                  ' heifer growth requirement
+  Total As Single                   ' total quantity of mineral required
+  Supplied As Single                ' total quantity of mineral supplied by the animal's diet
+  Absorbable As Single              ' total quantity of absorbable mineral supplied by the diet
+  Balance As Single                 ' difference between the quantity of the mineral required and supplied
+  RD As Single                      ' density of the mineral in the animal's ration
+  RDReq As Single                   ' ration density required
+End Type
+
+Public Mineral(Ca To VitE) As MineralType
+
+
+
+' Diet Evaluation
+Type EvalType
+   Name As String                 ' name of evaluation factor (e.g. NE-Diet)
+   Units As String                ' units of evaluation factor (e.g. Mcal/day)
+   Total As Single
+   Maint As Single
+   Preg As Single
+   Lact As Single
+   Gain As Single
+   Reserves As Single
+End Type
+
+
+
+Public EvalFactor(1 To 6) As EvalType
+' The upper grid of the diet evaluation screen is represented
+' as these six Evaluation Factors.  They correspond to NE-Diet,
+' NE-Req, NE-Diff, MP-Diet, MP-Req, and MP-Diff.  It is possible
+' that the first three factors may be given in different energy
+' units, under certain conditions, which is another motivation
+' for this type of variable definition
+
+Public DMIPred As Single            ' predicted dry matter intake (kg/day)
+Public DMIActual As Single          ' actual dry matter intake (kg/day)
+
+Public RDPReq As Single             ' RDP required (g/day)
+Public RDPSup As Single             ' RDP supplied (g/day)
+Public RDPBal As Single             ' difference between RDPReq and RDPSup (g/day)
+Public RUPReq As Single             ' RUP required (g/day)
+Public RUPSup As Single             ' RUP supplied (g/day)
+Public RUPBal As Single             ' difference between RUPReq and RUPSup (g/day)
+
+Public MPBalance As Single
+Public ProteinInGain As Single
+Public MPAllowGain As Single
+Public MPAllowGainPreg As Single
+
+Public CondMessage As String
+
+Public MPBact As Single             ' metabolizable protein supplied by microbial protein (g/day)
+Public MPFeed As Single             ' metabolizable protein supplied by animal's ration (g/day)
+
+Public DietCP As Single             ' fraction of CP in the diet
+Public CP_RDP As Single             ' fraction of CP which is RDP
+Public CP_RUP As Single             ' fraction of CP which is RUP
+
+Public DietNDF As Single            ' fraction of NDF in animal's ration
+Public DietADF As Single            ' fraction of ADF in animal's ration
+Public ForageNDF As Single          ' fraction of NDF from Forage in ration
+Public DietME As Single             ' quantity of ME in animal's ration (Mcal/kg)
+Public DietNEl As Single            ' quantity of NEl in animal's ration (Mcal/kg)
+Public DietNEg As Single            ' quantity of NEg in animal's ration (Mcal/kg)
+
+Public EnergyAllowableMilk As Single    ' energy allowable milk production (kg/day)
+Public ProteinAllowableMilk As Single   ' protein allowable milk production (kg/day)
+Public DailyMilk As Single              ' milk production (kg/day)
+
+Public TargetADGwoPreg As Single    ' target ADG without pregnancy (kg/day)
+Public TargetADGPreg As Single      ' target ADG with pregnancy (kg/day)
+
+Public Reserves_WG As Single        ' weight gain due to reserves (kg)
+
+Public MPReqReserves As Single      ' MP required for reserves (g/day)
+Public MPProvReserves As Single     ' MP provided for reserves (g/day)
+
+Public RUPReqReserves As Single     ' RUP required for reserves (g/day)
+Public RUPProvReserves As Single    ' RUP provided for reserves (g/day)
+
+Public Energy_TargetDietConc As Single
+Public MP_TargetDietConc As Single
+Public Ca_TargetDietConc As Single
+Public P_TargetDietConc As Single
+Public DCAD As Single
+
+
+
+
+' Young Calf Computation Variables
+Public CalfKm As Single             ' Efficiency of use of ME for NEm
+Public CalfKg As Single             ' Efficiency of use of ME for NEg
+
+Public MilkDMI As Single            ' Milk Dry Matter Intake (kg/day)
+Public StarterDMI As Single         ' Starter Dry Matter Intake (kg/day)
+Public NEmCalf As Single            ' Net Energy required for maintenance (Mcal/day)
+Public TempFactor As Single
+
+Public CalfFat As Single            ' Dietary Fat (kg/day)
+Public DietFatCalf As Single        ' Dietary Fat (%)
+Public DietNEmCalf As Single        ' Dietary NEm (Mcal/kg)
+Public DietMECalf As Single         ' Dietary ME  (Mcal/kg)
+Public DietNEgCalf As Single        ' Dietary NEg (Mcal/kg)
+Public DietCPCalf As Single         ' Dietary CP (%)
+Public DietDCPCalf As Single        ' Dietary DCP (%)
+Public DMIForNEmCalf As Single      ' Dry Matter Intake required to meet NEm requirement (kg/day)
+Public DMIForMECalf As Single       ' Dry Matter Intake required to meet ME requirement  (kg/day)
+Public DMIForGrowth As Single       ' Total dry matter intake used for growth  (kg/day)
+Public MEFGCalf As Single           ' Metabolizable energy available for growth  (Mcal/day)
+Public NEFGCalf As Single           ' Net Energy available for growth (Mcal/day)
+Public EnergyADGCalf As Single      ' Energy allowable Average Daily Gain (kg/day)
+Public ProteinReqCalf As Single     ' Protein allowable Average Daily Gain (kg/day)
+Public BV As Single                 ' Biological value used in ADP calculation
+Public EUN As Single                ' endogenous urinary nitrogen losses (g/day) used in ADP calculation
+Public MFN As Single                ' metabolic fecal nitrogen (g/day), used in ADP calculation
+Public ADPmaint As Single           ' apparently digested crude protein for maintenance (g/day)
+Public ADPgrowth As Single          ' apparently digested crude protein for gain (g/day)
+Public CPmCalf As Single            ' calf maintenance crude protein requirement (g/day)
+Public CPgCalf As Single            ' calf growth crude protein required (g/day)
+Public CalfADG As Single            ' Calf Average Daily Gain (g/day)
+Public CalfADPBal As Single         ' digestible ADP Balance (g/day)
+Public CalfCPBal As Single          ' digestible CP Balance (g/day)
+Public ADPAllowGain As Single       ' ADP Allowable Gain (g/day)
+
+Public Sub ModelComputations()
+' All of the model's computations are run by calling this procedure.
+' Different output is computed by separate computational routines, but
+' they are all called here.
+
+' Important Note :  All calculations in this model are made with metric units
+
+
+
+' Different set of computations are run if the animal
+' type is a Young Calf
+If AnimalType = "Young Calf" Then
+  
+  If TotalDMFed = 0 Then
+    Exit Sub
+  End If
+  
+  ' Run Calf Computations
+  Call CalfComputations
+    
+  ' Mineral Sub-Model Calculations
+  Call MineralComputations
+
+Else
+
+  ' Run Pregnancy Sub-Model Calculations
+  Call PregnancyComputations
+  
+  ' Lactation Sub-Model Calculations
+  Call LactationComputations
+ 
+  ' Target Weights and ADG for Breeding Females
+  Call TargetWeightsComputations
+
+
+  ' All of the remaining sub-models assume that the animal is being fed,
+  ' so if no feeds are selected or the quantity fed is equal to zero,
+  ' the computations finish here.
+
+  If (NumFeeds = 0) Or (TotalDMFed = 0) Then
+    'Don't run any more computations
+    Exit Sub
+
+  Else
+
+    ' Energy and Protein Supply Calculations
+    Call EnergyAndProteinSupplyComputations
+
+    ' Amino Acid Supply Calculations
+    Call AminoAcidComputations
+
+    ' Dry Matter Intake Calculations
+    Call DryMatterIntakeComputations
+
+    ' Maintenance Sub-Model Calculations
+    Call MaintenanceComputations
+
+    ' Growth Sub-Model Calculations
+    Call GrowthComputations
+
+    ' Mineral Sub-Model Calculations
+    Call MineralComputations
+
+    ' Diet Evaluation Calculations - Part I
+    '
+    ' The Diet Evaluation Section is done in two parts.  The first
+    ' part is needed to get the EnergyBalance (aka NE-Differ-Gain,
+    ' aka EvalFactor(3).Gain), which is needed for the Reserves
+    ' Calculations, which computes the DaysToChange variable, which
+    ' is displayed in the Diet Evaluation Screen.
+    Call DietEvalOneComputations
+
+    ' Reserves Calculations
+    Call ReservesComputations
+
+    ' Diet Evaluation Calculations - Part II
+    Call DietEvalTwoComputations
+
+  End If
+
+End If
+
+
+End Sub
+
+
+
+
+Private Sub MineralComputations()
+
+Dim C As Integer
+Dim d As Integer
+
+Dim X As Integer
+Dim MilkFeeds As Single
+Dim CalfStarter As Single
+Dim RegFeeds As Single
+Dim m As Single
+Dim n As Single
+Dim o As Single
+
+
+
+
+' Calcium
+
+  With Mineral(1)
+    .Name = "Ca"
+    .Units = "(g/d)"
+    
+    If DaysInMilk > 0 Then
+      .Fecal = 3.1 * (BW / 100)
+    Else
+      .Fecal = 1.54 * (BW / 100)
+    End If
+    
+    .Urine = 0.08 * (BW / 100)
+    .Misc = 0
+    .Sweat = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 0.02456 * Exp((0.05581 - (0.00007 * DaysPreg)) * DaysPreg) _
+                  - 0.02456 * Exp((0.05581 - (0.00007 * (DaysPreg - 1))) * (DaysPreg - 1))
+    Else
+      .Fetal = 0
+    End If
+    
+    
+    Select Case DaysInMilk
+      Case 0
+        .Milk = 0
+      Case Else
+        Select Case Breed
+          Case "Holstein", "Milking Shorthorn"
+            .Milk = 1.22 * MilkProd
+          Case "Jersey"
+            .Milk = 1.45 * MilkProd
+          Case Else
+            .Milk = 1.37 * MilkProd
+        End Select
+    End Select
+    
+    
+    If ((BW > 0) And (WG > 0)) Then
+      .Growth = (9.83 * (MW ^ 0.22) * (BW ^ -0.22)) * (WG / 0.96)
+    Else
+      .Growth = 0
+    End If
+    
+           
+  End With
+  
+  
+  
+' Phosphorus
+
+  With Mineral(2)
+    .Name = "P"
+    .Units = "(g/d)"
+    
+    If InStr(AnimalType, "Cow") > 0 Then
+      .Fecal = 1 * TotalDMFed
+    Else
+      .Fecal = 0.8 * TotalDMFed
+    End If
+    
+    .Urine = 0.002 * BW
+    .Misc = 0
+    .Sweat = 0
+          
+    If DaysPreg >= 190 Then
+      .Fetal = 0.02743 * Exp(((0.05527 - (0.000075 * DaysPreg)) * DaysPreg)) _
+              - 0.02743 * Exp(((0.05527 - (0.000075 * (DaysPreg - 1))) * (DaysPreg - 1)))
+    Else
+      .Fetal = 0
+    End If
+    
+    Select Case DaysInMilk
+      Case 0
+        .Milk = 0
+      Case Else
+        .Milk = 0.9 * MilkProd
+    End Select
+    
+    
+    If ((BW > 0) And (WG > 0)) Then
+      .Growth = (1.2 + (4.635 * (MW ^ 0.22) * (BW ^ -0.22))) * (WG / 0.96)
+    Else
+      .Growth = 0
+    End If
+    
+  End With
+  
+  
+  
+' Magnesium
+
+  With Mineral(3)
+    .Name = "Mg"
+    .Units = "(g/d)"
+    
+    .Fecal = 0.003 * BW
+    
+    .Urine = 0
+    .Misc = 0
+    .Sweat = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 0.33
+    Else
+      .Fetal = 0
+    End If
+    
+    
+    Select Case DaysInMilk
+      Case 0
+        .Milk = 0
+      Case Else
+        .Milk = 0.15 * MilkProd
+    End Select
+    
+    .Growth = 0.45 * (WG / 0.96)
+              
+  End With
+  
+  
+  
+' Chlorine
+
+  With Mineral(4)
+    .Name = "Cl"
+    .Units = "(g/d)"
+    
+    .Fecal = 2.25 * (BW / 100)
+    
+    .Urine = 0
+    .Misc = 0
+    .Sweat = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 1
+    Else
+      .Fetal = 0
+    End If
+    
+    
+    .Milk = 1.15 * MilkProd
+    
+    .Growth = 1 * (WG / 0.96)
+    
+            
+  End With
+    
+
+
+' Potassium
+
+  With Mineral(5)
+    .Name = "K"
+    .Units = "(g/d)"
+    
+    If AnimalType = "Lactating Cow" Then
+      .Fecal = 6.1 * TotalDMFed
+    Else
+      .Fecal = 2.6 * TotalDMFed
+    End If
+    
+    
+    .Urine = 0.038 * BW                     ' urine loss
+
+    
+    Select Case Temp
+      Case Is < 25
+        .Sweat = 0
+      Case 25 To 30
+        .Sweat = 0.04 * (BW / 100)
+      Case Else
+        .Sweat = 0.4 * (BW / 100)
+    End Select
+    
+    .Misc = 0
+   
+    
+    If DaysPreg > 190 Then
+      .Fetal = 1.027
+    Else
+      .Fetal = 0
+    End If
+    
+    
+    .Milk = 1.5 * MilkProd
+    
+    .Growth = 1.6 * (WG / 0.96)
+        
+              
+  End With
+  
+  
+  
+' Sodium
+
+  With Mineral(6)
+    .Name = "Na"
+    .Units = "(g/d)"
+    
+    If AnimalType = "Lactating Cow" Then
+      .Fecal = 0.038 * BW
+    Else
+      .Fecal = 0.015 * BW
+    End If
+      
+    
+    .Urine = 0
+    .Misc = 0
+    
+    Select Case Temp
+      Case Is < 25
+        .Sweat = 0
+      Case 25 To 30
+        .Sweat = 0.1 * (BW / 100)
+      Case Else
+        .Sweat = 0.5 * (BW / 100)
+    End Select
+    
+    
+    If DaysPreg > 190 Then
+      .Fetal = 1.39
+    Else
+      .Fetal = 0
+    End If
+    
+    .Milk = 0.63 * MilkProd
+    
+    .Growth = 1.4 * (WG / 0.96)
+    
+    
+  End With
+  
+  
+  
+' Sulfur
+
+  With Mineral(7)
+    .Name = "S"
+    .Units = "(g/d)"
+    
+    ' Non-factorial approach used
+    .Fecal = 0
+    .Misc = 0
+    .Urine = 0
+    .Sweat = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+    
+  End With
+  
+  
+  
+' Cobalt
+
+  With Mineral(8)
+    
+    .Name = "Co"
+    .Units = "(mg/d)"
+    
+    ' Factorial approach not used here
+    .Fecal = 0
+    .Misc = 0
+    .Urine = 0
+    .Sweat = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+    
+  End With
+  
+  
+  
+' Copper
+
+  With Mineral(9)
+    .Name = "Cu"
+    .Units = "(mg/d)"
+    
+    .Fecal = 0.0071 * BW
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    
+    
+    Select Case DaysPreg
+      Case 0
+        .Fetal = 0
+      Case Is < 100
+        .Fetal = 0.5
+      Case 100 To 225
+        .Fetal = 1.5
+      Case Else
+        .Fetal = 2
+    End Select
+    
+    
+    
+    Select Case DaysInMilk
+      Case 0
+        .Milk = 0
+      Case Else
+        .Milk = 0.15 * MilkProd
+    End Select
+    
+    .Growth = 1.15 * (WG / 0.96)
+        
+  End With
+  
+  
+  
+' Iodine
+
+  With Mineral(10)
+    .Name = "I"
+    .Units = "(mg/d)"
+    
+    .Fecal = 0
+    .Urine = 0
+    .Sweat = 0
+    .Fetal = 0
+    
+    If DaysInMilk > 0 Then
+      .Milk = 1.5 * (BW / 100)
+      .Misc = 0
+    Else
+      .Milk = 0
+      .Misc = 0.6 * (BW / 100)
+    End If
+    
+    
+    .Growth = 0
+    
+  End With
+  
+  
+  
+' Iron
+
+  With Mineral(11)
+    .Name = "Fe"
+    .Units = "(mg/d)"
+    
+    .Fecal = 0
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 18
+    Else
+      .Fetal = 0
+    End If
+    
+    .Milk = 1 * MilkProd
+    
+    .Growth = 34 * (WG / 0.96)  ' Requirement is on a full, not shrunk, basis
+        
+  End With
+  
+  
+  
+' Manganese
+
+  With Mineral(12)
+    
+    .Name = "Mn"
+    .Units = "(mg/d)"
+    
+    .Fecal = 0.002 * BW
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 0.3
+    Else
+      .Fetal = 0
+    End If
+    
+    Select Case DaysInMilk
+      Case 0
+        .Milk = 0
+      Case Else
+        .Milk = 0.03 * MilkProd
+    End Select
+    
+    .Growth = 0.7 * (WG / 0.96)
+        
+  End With
+  
+  
+  
+' Selenium
+
+  With Mineral(13)
+    .Name = "Se"
+    .Units = "(mg/d)"
+    
+    ' Factorial approach not used here
+    .Fecal = 0
+    .Misc = 0
+    .Urine = 0
+    .Sweat = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+
+    
+  End With
+  
+  
+' Zinc
+
+  With Mineral(14)
+    .Name = "Zn"
+    .Units = "(mg/d)"
+    
+    .Fecal = 0.033 * BW
+    .Urine = 0.012 * BW
+    .Sweat = 0
+    .Misc = 0
+    
+    If DaysPreg > 190 Then
+      .Fetal = 12
+    Else
+      .Fetal = 0
+    End If
+    
+    .Milk = 4 * MilkProd
+    .Growth = 24 * (WG / 0.96)  ' Requirement is on a full, not shrunk, basis
+        
+  End With
+  
+  
+  
+' Vitamin A
+
+  With Mineral(16)
+    .Name = "Vit A"
+    .Units = "(1000 IU/kg)"
+    
+    ' Factorial approach not used here
+    .Fecal = 0
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+    
+  End With
+  
+  
+' Vitamin D
+
+  With Mineral(17)
+    .Name = "Vit D"
+    .Units = "(1000 IU/kg)"
+    
+    ' Factorial approach not used here
+    .Fecal = 0
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+    
+  End With
+  
+  
+' Vitamin E
+
+  With Mineral(18)
+    .Name = "Vit E"
+    .Units = "(IU/kg)"
+    
+    ' Factorial approach not used here
+    .Fecal = 0
+    .Urine = 0
+    .Sweat = 0
+    .Misc = 0
+    .Fetal = 0
+    .Milk = 0
+    .Growth = 0
+    
+  End With
+
+
+' Calves don't have a factorial mineral requirements system
+If AnimalType = "Young Calf" Then
+  For C = 1 To 18
+    With Mineral(C)
+      .Fecal = 0
+      .Urine = 0
+      .Sweat = 0
+      .Misc = 0
+      .Fetal = 0
+      .Milk = 0
+      .Growth = 0
+    End With
+  Next C
+End If
+
+
+If AnimalType = "Young Calf" Then
+  MilkFeeds = 0
+  CalfStarter = 0
+  RegFeeds = 0
+
+  For X = 1 To NumFeeds
+    If Feed(X).Name = "Calf Starter" Then
+      CalfStarter = CalfStarter + Feed(X).DMFed
+    ElseIf (InStr(Feed(X).Category, "Calf Feed") > 0) Then
+      MilkFeeds = MilkFeeds + Feed(X).DMFed
+    Else
+      RegFeeds = RegFeeds + Feed(X).DMFed
+    End If
+  Next X
+End If
+
+  
+  
+For C = 1 To 18
+
+  With Mineral(C)
+    
+    .Maint = .Fecal + .Urine + .Sweat + .Misc
+    
+  
+    If AnimalType <> "Young Calf" Then
+    
+      If ((Age < (FirstCalf + CalfInt)) Or (LactNum <= 1)) Then
+        ' Keep the already computed growth requirement
+      Else
+        ' Set the growth requirement to zero
+        .Growth = 0
+      End If
+  
+      
+      If C < VitA Then
+        .Total = (.Maint + .Fetal + .Milk + .Growth)
+      Else
+        Select Case C
+          Case 16
+            If (AnimalType = "Replacement Heifer") Then
+              If DaysPreg > 259 Then
+                .Total = 0.11 * BW
+              Else
+                .Total = 0.08 * BW
+              End If
+            Else
+              .Total = 0.11 * BW
+            End If
+          Case 17
+            .Total = 0.03 * BW
+          Case 18
+            If Grazing = True Then
+              If AnimalType = "Dry Cow" Then
+                .Total = 0.5 * BW
+              Else
+                .Total = 0.26 * BW
+              End If
+            Else
+              If AnimalType = "Dry Cow" Then
+                .Total = 1.6 * BW
+              ElseIf AnimalType = "Young Calf" Then
+                .Total = 50 * TotalDMFed
+              Else
+                .Total = 0.8 * BW
+              End If
+            End If
+        End Select
+      End If
+    
+    
+      If .Name = "Co" Then
+        .Total = 0.11 * TotalDMFed
+      End If
+    
+      If .Name = "S" Then
+        .Total = 2 * TotalDMFed
+      End If
+    
+      If .Name = "Se" Then
+        .Total = 0.3 * TotalDMFed
+      End If
+          
+      
+  
+    Else
+  
+      If StarterDMI = 0 Then
+    
+        Select Case .Name
+          Case "Ca"
+            .Total = 10 * TotalDMFed
+          Case "P"
+            .Total = (7.5 * TotalDMFed) / 0.9
+          Case "Mg"
+            .Total = 0.7 * TotalDMFed
+          Case "Na"
+            .Total = 1 * TotalDMFed
+          Case "K"
+            .Total = 6.5 * TotalDMFed
+          Case "Cl"
+            .Total = 2 * TotalDMFed
+          Case "S"
+            .Total = 2.9 * TotalDMFed
+          Case "Fe"
+            .Total = 100 * TotalDMFed
+          Case "Mn"
+            .Total = 40 * TotalDMFed
+          Case "Zn"
+            .Total = 40 * TotalDMFed
+          Case "Cu"
+            .Total = 10 * TotalDMFed
+          Case "I"
+            .Total = 0.25 * TotalDMFed
+          Case "Co"
+            .Total = 0.1 * TotalDMFed
+          Case "Se"
+            .Total = 0.3 * TotalDMFed
+          Case "Vit A"
+            .Total = 0.11 * CalfBW
+          Case "Vit D"
+            .Total = 0.6 * TotalDMFed
+          Case "Vit E"
+            .Total = 50 * TotalDMFed
+        End Select
+     
+      Else
+
+        Select Case .Name
+          Case "Ca"
+            .Total = 7 * TotalDMFed
+          Case "P"
+            .Total = (4.5 * TotalDMFed) / 0.78
+          Case "Mg"
+            .Total = 1 * TotalDMFed
+          Case "Na"
+            .Total = 1.5 * TotalDMFed
+          Case "K"
+            .Total = 6.5 * TotalDMFed
+          Case "Cl"
+            .Total = 2 * TotalDMFed
+          Case "S"
+            .Total = 2 * TotalDMFed
+          Case "Fe"
+            .Total = 50 * TotalDMFed
+          Case "Mn"
+            .Total = 40 * TotalDMFed
+          Case "Zn"
+            .Total = 40 * TotalDMFed
+          Case "Cu"
+            .Total = 10 * TotalDMFed
+          Case "I"
+            .Total = 0.25 * TotalDMFed
+          Case "Co"
+            .Total = 0.1 * TotalDMFed
+          Case "Se"
+            .Total = 0.3 * TotalDMFed
+          Case "Vit A"
+            .Total = 0.11 * CalfBW
+          Case "Vit D"
+            .Total = 0.6 * TotalDMFed
+          Case "Vit E"
+            .Total = 50 * TotalDMFed
+        End Select
+      
+      End If
+     
+    End If
+  
+  
+  
+  .Supplied = 0
+  .Absorbable = 0
+
+  If NumFeeds > 0 Then
+        
+    For d = 1 To NumFeeds
+      
+      Select Case .Name
+        Case "Ca"
+          .Supplied = .Supplied + ((Feed(d).Ca / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).Ca / 100) * Feed(d).DMFed) * (Feed(d).CaBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).Ca / 100) * Feed(d).DMFed)
+          End If
+          
+        Case "Mg"
+          .Supplied = .Supplied + ((Feed(d).Mg / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).Mg / 100) * Feed(d).DMFed) * (Feed(d).MgBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).Mg / 100) * Feed(d).DMFed)
+          End If
+                  
+        Case "P"
+          .Supplied = .Supplied + ((Feed(d).P / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).P / 100) * Feed(d).DMFed) * (Feed(d).PBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).P / 100) * Feed(d).DMFed)
+          End If
+          
+        Case "K"
+          .Supplied = .Supplied + ((Feed(d).K / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).K / 100) * Feed(d).DMFed) * (Feed(d).KBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).K / 100) * Feed(d).DMFed)
+          End If
+        
+        Case "Na"
+          .Supplied = .Supplied + ((Feed(d).Na / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).Na / 100) * Feed(d).DMFed) * (Feed(d).NaBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).Na / 100) * Feed(d).DMFed)
+          End If
+        
+        Case "Cl"
+          .Supplied = .Supplied + ((Feed(d).Cl / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).Cl / 100) * Feed(d).DMFed) * (Feed(d).ClBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).Cl / 100) * Feed(d).DMFed)
+          End If
+          
+        Case "Zn"
+          .Supplied = .Supplied + (Feed(d).Zn * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Zn * Feed(d).DMFed) * (Feed(d).ZnBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Zn * Feed(d).DMFed)
+          End If
+                        
+        Case "Cu"
+          .Supplied = .Supplied + (Feed(d).Cu * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Cu * Feed(d).DMFed) * (Feed(d).CuBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Cu * Feed(d).DMFed)
+          End If
+        
+        Case "Co"
+          .Supplied = .Supplied + (Feed(d).Co * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Co * Feed(d).DMFed) * (Feed(d).CoBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Co * Feed(d).DMFed)
+          End If
+                        
+        Case "Mn"
+          .Supplied = .Supplied + (Feed(d).Mn * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Mn * Feed(d).DMFed) * (Feed(d).MnBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Mn * Feed(d).DMFed)
+          End If
+                        
+        Case "I"
+          .Supplied = .Supplied + (Feed(d).I * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).I * Feed(d).DMFed) * (Feed(d).IBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).I * Feed(d).DMFed)
+          End If
+                        
+        Case "Fe"
+          .Supplied = .Supplied + (Feed(d).Fe * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Fe * Feed(d).DMFed) * (Feed(d).FeBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Fe * Feed(d).DMFed)
+          End If
+                        
+        Case "S"
+          .Supplied = .Supplied + ((Feed(d).s / 100) * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + (((Feed(d).s / 100) * Feed(d).DMFed) * (Feed(d).SBio))
+          Else
+            .Absorbable = .Absorbable + ((Feed(d).s / 100) * Feed(d).DMFed)
+          End If
+          
+        Case "Se"
+          .Supplied = .Supplied + (Feed(d).Se * Feed(d).DMFed)
+          
+          If AnimalType <> "Young Calf" Then
+            .Absorbable = .Absorbable + ((Feed(d).Se * Feed(d).DMFed) * (Feed(d).SeBio))
+          Else
+            .Absorbable = .Absorbable + (Feed(d).Se * Feed(d).DMFed)
+          End If
+         
+        Case "Vit A"
+          .Supplied = .Supplied + (Feed(d).VitA * Feed(d).DMFed)
+          .Absorbable = .Absorbable + (Feed(d).VitA * Feed(d).DMFed)
+          
+        Case "Vit D"
+          .Supplied = .Supplied + (Feed(d).VitD * Feed(d).DMFed)
+          .Absorbable = .Absorbable + (Feed(d).VitD * Feed(d).DMFed)
+            
+        Case "Vit E"
+          .Supplied = .Supplied + (Feed(d).VitE * Feed(d).DMFed)
+          .Absorbable = .Absorbable + (Feed(d).VitE * Feed(d).DMFed)
+            
+      End Select
+      
+    Next d
+      
+  End If
+  
+  
+  'Ration Density Calculation
+  If TotalDMFed > 0 Then
+    Select Case .Name
+      Case "Co", "Cu", "I", "Fe", "Mn", "Se", "Zn"
+        .RD = .Supplied / TotalDMFed
+      Case "Vit A", "Vit D", "Vit E"
+        .RD = .Supplied / TotalDMFed
+      Case Else
+        .RD = .Supplied / TotalDMFed
+    End Select
+  Else
+    .RD = 0
+  End If
+  
+  
+  
+  ' Balance Calculation - First the .Supplied variable must be converted to
+  ' the same units as the .Total
+  
+  Select Case .Units
+    Case "(g/d)"
+      .Supplied = .Supplied * 1000
+      .Absorbable = .Absorbable * 1000
+    Case "(mg/d)"
+      Select Case .Name
+        Case "Co", "Cu", "I", "Fe", "Mn", "Se", "Zn"
+          ' These minerals are listed as mg/kg, no need to convert them to mg units
+        Case Else
+          .Supplied = .Supplied * 1000000
+          .Absorbable = .Absorbable * 1000000
+      End Select
+  End Select
+  
+  .Balance = .Absorbable - .Total
+  
+  
+  
+  ' Used to calculate Ration Density requirements for young calves
+  If AnimalType = "Young Calf" Then
+    Select Case .Name
+      Case "Ca"
+        m = 1
+        n = 0.7
+        o = 0.6
+      Case "P"
+        m = 0.7
+        n = 0.45
+        o = 0.4
+      Case "Mg"
+        m = 0.07
+        n = 0.1
+        o = 0.1
+      Case "Na"
+        m = 0.4
+        n = 0.15
+        o = 0.14
+      Case "K"
+        m = 0.65
+        n = 0.65
+        o = 0.65
+      Case "Cl"
+        m = 0.25
+        n = 0.2
+        o = 0.2
+      Case "S"
+        m = 0.29
+        n = 0.2
+        o = 0.2
+      Case "Fe"
+        m = 100
+        n = 50
+        o = 50
+      Case "Mn", "Zn"
+        m = 40
+        n = 40
+        o = 40
+      Case "Cu"
+        m = 10
+        n = 10
+        o = 10
+      Case "I"
+        m = 0.5
+        n = 0.25
+        o = 0.25
+      Case "Co"
+        m = 0.11
+        n = 0.1
+        o = 0.1
+      Case "Se"
+        m = 0.3
+        n = 0.3
+        o = 0.3
+      Case "Vit A"
+        m = 9
+        n = 4
+        o = 4
+      Case "Vit D"
+        m = 0.6
+        n = 0.6
+        o = 0.6
+      Case "Vit E"
+        m = 50
+        n = 25
+        o = 25
+    End Select
+    
+    If TotalDMFed > 0 Then
+      .RDReq = ((MilkFeeds * m) + (CalfStarter * n) + (RegFeeds * o)) / TotalDMFed
+    Else
+      .RDReq = 0
+    End If
+    
+  End If
+  
+  
+ 
+  End With
+
+Next C
+
+End Sub
+
+
+
+
+Private Sub DietEvalOneComputations()
+
+Dim X As Integer
+
+' The EvalFactors are calculated here as follows :
+'
+' NE Diet, NE Required, NE Differ, MP Diet, MP Required, MP Differ
+' Mcal/d     Mcal/d      Mcal/d      g/d         g/d        g/d
+ 
+If AnimalType <> "Replacement Heifer" Then
+  EvalFactor(1).Name = "NE Supplied"
+  EvalFactor(2).Name = "NE Required"
+  EvalFactor(3).Name = "NE (Diet - Req.)"
+  EvalFactor(4).Name = "MP Diet"
+  EvalFactor(5).Name = "MP Required"
+  EvalFactor(6).Name = "MP (Diet - Req.)"
+Else
+  EvalFactor(1).Name = "ME Supplied"
+  EvalFactor(2).Name = "ME Required"
+  EvalFactor(3).Name = "ME (Diet - Req.)"
+  EvalFactor(4).Name = "MP Diet"
+  EvalFactor(5).Name = "MP Required"
+  EvalFactor(6).Name = "MP (Diet - Req.)"
+End If
+ 
+ 
+For X = 1 To 6
+  If X < 4 Then
+    EvalFactor(X).Units = "Mcal/day"
+  Else
+    EvalFactor(X).Units = "g/day"
+  End If
+Next X
+ 
+ 
+If AnimalType <> "Replacement Heifer" Then
+  EvalFactor(1).Total = NEl_Total
+Else
+  EvalFactor(1).Total = MEng_Total
+End If
+ 
+EvalFactor(1).Maint = EvalFactor(1).Total
+ 
+If AnimalType <> "Replacement Heifer" Then
+  EvalFactor(2).Maint = NEMaint
+Else
+  If NEmOverMEng > 0 Then
+    EvalFactor(2).Maint = NEMaint / NEmOverMEng
+  Else
+    EvalFactor(2).Maint = 0
+  End If
+End If
+
+EvalFactor(3).Maint = EvalFactor(1).Maint - EvalFactor(2).Maint
+ 
+EvalFactor(1).Preg = EvalFactor(3).Maint
+ 
+If AnimalType <> "Replacement Heifer" Then
+  EvalFactor(2).Preg = NEPreg
+Else
+  EvalFactor(2).Preg = MEPreg
+End If
+
+EvalFactor(3).Preg = EvalFactor(1).Preg - EvalFactor(2).Preg
+ 
+EvalFactor(1).Lact = EvalFactor(3).Preg
+ 
+If AnimalType <> "Replacement Heifer" Then
+  EvalFactor(2).Lact = NELact
+Else
+  EvalFactor(2).Lact = 0
+End If
+
+ 
+EvalFactor(3).Lact = EvalFactor(1).Lact - EvalFactor(2).Lact
+ 
+ 
+EvalFactor(1).Gain = EvalFactor(3).Lact
+ 
+ 
+If AnimalType = "Replacement Heifer" Then
+  EvalFactor(2).Gain = EvalFactor(1).Gain
+Else
+  If EQEBG > 0 Then
+    EvalFactor(2).Gain = NEGrowth
+  Else
+    EvalFactor(2).Gain = 0
+  End If
+End If
+
+EvalFactor(3).Gain = EvalFactor(1).Gain - EvalFactor(2).Gain
+ 
+EvalFactor(1).Reserves = EvalFactor(3).Gain
+
+EvalFactor(2).Reserves = NEReserves
+
+ 
+With EvalFactor(2)
+    .Total = .Maint + .Preg + .Lact + .Gain + .Reserves
+End With
+
+EvalFactor(3).Total = EvalFactor(1).Total - EvalFactor(2).Total
+
+
+MPBact = MCP_Total * 0.64
+
+MPFeed = TotalDigestedRUP
+
+
+EvalFactor(4).Total = MPBact + MPFeed
+
+EvalFactor(4).Maint = EvalFactor(4).Total
+
+EvalFactor(5).Maint = MPMaint
+
+EvalFactor(6).Maint = EvalFactor(4).Maint - EvalFactor(5).Maint
+
+EvalFactor(4).Preg = EvalFactor(6).Maint
+
+EvalFactor(5).Preg = MPPreg
+
+EvalFactor(6).Preg = EvalFactor(4).Preg - EvalFactor(5).Preg
+
+EvalFactor(4).Lact = EvalFactor(6).Preg
+
+EvalFactor(5).Lact = MPLact
+
+EvalFactor(6).Lact = EvalFactor(4).Lact - EvalFactor(5).Lact
+
+EvalFactor(4).Gain = EvalFactor(6).Lact
+
+
+If Age > FirstCalf Then
+  If EQEBG > 0 Then
+    EvalFactor(5).Gain = MPGrowth
+  Else
+    EvalFactor(5).Gain = 0
+  End If
+Else
+  If SWG > 0 Then
+    If EffMP_NPg > 0 Then
+      If WG > 0 Then
+        EvalFactor(5).Gain = (((268 - (29.4 * (RE / WG))) * WG) / EffMP_NPg)
+      Else
+        EvalFactor(5).Gain = 0
+      End If
+    Else
+      EvalFactor(5).Gain = 0
+    End If
+  Else
+    EvalFactor(5).Gain = 0
+  End If
+End If
+
+
+EvalFactor(6).Gain = EvalFactor(4).Gain - EvalFactor(5).Gain
+
+EvalFactor(4).Reserves = EvalFactor(6).Gain
+
+With EvalFactor(5)
+  .Total = .Maint + .Preg + .Lact + .Gain
+End With
+
+EvalFactor(6).Total = EvalFactor(4).Total - EvalFactor(5).Total
+
+DMIPred = DryMatterIntake
+
+DMIActual = TotalDMFed
+
+If TotalDMFed > 0 Then
+  DietCP = CP_Total / (TotalDMFed * 1000)
+Else
+  DietCP = 0
+End If
+
+
+If CP_Total > 0 Then
+  CP_RDP = (RDP_Total * 1000) / CP_Total
+  CP_RUP = (CP_Total - (RDP_Total * 1000)) / CP_Total
+Else
+  CP_RDP = 0
+  CP_RUP = 0
+End If
+
+
+RDPReq = 0.15294 * TDN_Act_Total
+
+RDPSup = TotalDMFed * 1000 * DietCP * CP_RDP
+
+RDPBal = RDPSup - RDPReq
+
+RUPSup = CP_Total - RDPSup
+
+
+If DietRUPDigest > 0 Then
+  RUPReq = (EvalFactor(5).Total - (MPBact + MPEndo)) / DietRUPDigest
+Else
+  RUPReq = 0
+End If
+
+RUPBal = RUPSup - RUPReq
+
+
+
+MPBalance = (((MPFeed * 1000) + MPBact + MPEndo) _
+                - (MPMaint + MPPreg + MPLact + MPGrowth))
+
+
+If SWG > 0 Then
+  ProteinInGain = (268 - (29.4 * (NEGrowthDiet / SWG)))
+Else
+  ProteinInGain = 0
+End If
+
+
+
+Dim MPBalwoGrowth As Single
+
+MPBalwoGrowth = (((MPFeed * 1000) + MPBact + MPEndo) _
+                        - (MPMaint + MPPreg + MPLact))
+
+If ProteinInGain > 0 Then
+  MPAllowGain = ((MPBalwoGrowth * EffMP_NPg) / ProteinInGain) / 0.96
+Else
+  MPAllowGain = 0
+End If
+
+
+MPAllowGainPreg = MPAllowGain + (ADGPreg / 1000)
+
+
+
+
+End Sub
+
+
+
+
+Private Sub ReservesComputations()
+
+Dim EnergyBal As Single                 ' Equal to EvalFactor(3).Gain
+Dim X As Integer
+
+EnergyBal = EvalFactor(3).Gain
+
+CS_F(1) = 0.726
+CS_F(2) = 0.794
+CS_F(3) = 0.863
+CS_F(4) = 0.931
+CS_F(5) = 1
+CS_F(6) = 1.069
+CS_F(7) = 1.137
+CS_F(8) = 1.206
+CS_F(9) = 1.274
+
+
+CS5EBW = (SBW * 0.851) / CS_F(CS9)
+
+For X = 1 To 9
+  EBW(X) = CS_F(X) * CS5EBW
+  AF(X) = 0.037683 * X
+  TF(X) = AF(X) * EBW(X)
+  AP(X) = 0.200886 - (0.0066762 * X)
+  TP(X) = AP(X) * EBW(X)
+  ER(X) = (9.4 * TF(X)) + (5.55 * TP(X))
+Next X
+
+If CS9 >= 3 Then
+  Lose1CS = ER(CS9) - ER(CS9 - 2)
+Else
+  Lose1CS = 1000000
+End If
+
+If CS9 <= 7 Then
+  Gain1CS = ER(CS9 + 2) - ER(CS9)
+Else
+  Gain1CS = 1000000
+End If
+
+If CS9 >= 3 Then
+  NElSub = 0.82 * Lose1CS
+Else
+  NElSub = 0.82 * (ER(CS9) - ER(1))
+End If
+  
+If CS9 <= 7 Then
+  NElReq = (0.644 / 0.75) * Gain1CS
+Else
+  NElReq = (0.644 / 0.75) * (ER(9) - ER(CS9))
+End If
+
+If EnergyBal > 0 Then
+  deltaER = NElReq
+Else
+  deltaER = NElSub
+End If
+
+If AnimalType = "Replacement Heifer" Then
+  DaysToChange = 0
+Else
+  DaysToChange = deltaER / EnergyBal
+End If
+
+End Sub
+
+
+
+Private Sub DietEvalTwoComputations()
+
+Dim X As Integer
+
+If AnimalType = "Replacement Heifer" Then
+  CondMessage = "No changes in condition score for heifers."
+Else
+  If EvalFactor(3).Total >= 0 Then
+    If Abs(DaysToChange) <= 305 Then
+      CondMessage = "Days to gain one condition score :  " & Str(CInt(Abs(DaysToChange)))
+    Else
+      CondMessage = "Days to gain one condition score :  > 305"
+    End If
+  Else
+    If Abs(DaysToChange) <= 305 Then
+      CondMessage = "Days to lose one condition score :  " & Str(CInt(Abs(DaysToChange)))
+    Else
+      CondMessage = "Days to lose one condition score :  > 305"
+    End If
+  End If
+End If
+
+
+If TotalDMFed > 0 Then
+  DietNDF = NDF_Total / TotalDMFed
+  DietADF = ADF_Total / TotalDMFed
+Else
+  DietNDF = 0
+  DietADF = 0
+End If
+
+
+ForageNDF = 0
+
+For X = 1 To NumFeeds
+  If Feed(X).EnergyEqClass = "Forage" Then
+    ForageNDF = ForageNDF + ((Feed(X).NDF / 100) * Feed(X).DMFed)
+  End If
+Next X
+
+
+If TotalDMFed > 0 Then
+  DietME = MEng_Total / TotalDMFed
+  DietNEl = NEl_Total / TotalDMFed
+  DietNEg = NEg_Total / TotalDMFed
+Else
+  DietME = 0
+  DietNEl = 0
+  DietNEg = 0
+End If
+
+
+Const kgPerMetricTon = 996.9
+
+
+If AnimalType = "Lactating Cow" Then
+  DailyMilk = MilkProd
+Else
+  DailyMilk = 0
+End If
+
+
+Dim NEBalance As Single
+Dim MEBalance As Single
+Dim EnergyFactor As Single
+Dim NE_per_kg As Single
+
+
+If AnimalType <> "Replacement Heifer" Then
+  NEBalance = (NEl_Total - (NEMaint + NEPreg + NELact + NEGrowth))
+  MEBalance = 0
+Else
+  NEBalance = 0
+  MEBalance = (MEng_Total - (MEMaint + MEPreg + MEGrowth))
+End If
+
+
+
+If AnimalType = "Lactating Cow" Then
+  If NEBalance < 0 Then
+    Reserves_WG = NEBalance / 4.92
+  Else
+    Reserves_WG = NEBalance / 5.12
+  End If
+ElseIf AnimalType = "Dry Cow" Then
+  If NEBalance < 0 Then
+    Reserves_WG = NEBalance / 4.92
+  Else
+    Reserves_WG = NEBalance / 6.4
+  End If
+Else
+  Reserves_WG = 0
+End If
+
+
+If NEBalance > 0 Then
+  MPReqReserves = (Reserves_WG * ProteinInGain) / 0.492
+  MPProvReserves = 0
+  
+  If DietRUPDigest > 0 Then
+    RUPReqReserves = MPReqReserves / DietRUPDigest
+  Else
+    RUPReqReserves = 0
+  End If
+  
+  RUPProvReserves = 0
+Else
+  MPReqReserves = 0
+  MPProvReserves = (-1 * Reserves_WG) * ProteinInGain * 0.67
+  RUPReqReserves = 0
+  
+  If DietRUPDigest > 0 Then
+    RUPProvReserves = MPProvReserves / DietRUPDigest
+  Else
+    RUPProvReserves = 0
+  End If
+End If
+
+
+TargetADGwoPreg = ADG
+TargetADGPreg = ADG + (ADGPreg / 1000)
+
+
+If MilkProd > 0 Then
+  If (NEl_Total - NEMaint - NEPreg) > 0 Then
+    If NELact > 0 Then
+      EnergyAllowableMilk = MilkProd * ((NEl_Total - NEMaint - NEPreg - NEGrowth) / NELact)
+    Else
+      EnergyAllowableMilk = 0
+    End If
+  Else
+    EnergyAllowableMilk = 0
+  End If
+  
+  If (((MPFeed * 1000) + MPBact + MPEndo) - MPMaint - MPPreg) > 0 Then
+    If MPLact > 0 Then
+      ProteinAllowableMilk = MilkProd * ((((MPFeed * 1000) + MPBact + MPEndo) - MPMaint - MPPreg - MPGrowth) / MPLact)
+    Else
+      ProteinAllowableMilk = 0
+    End If
+  Else
+    ProteinAllowableMilk = 0
+  End If
+Else
+  EnergyAllowableMilk = 0
+  ProteinAllowableMilk = 0
+End If
+
+
+
+If DryMatterIntake > 0 Then
+  If ((AnimalType <> "Replacement Heifer") Or (DaysPreg > 259)) Then
+    Energy_TargetDietConc = (NEMaint + NEPreg + NELact + NEGrowth) / DryMatterIntake
+  Else
+    Energy_TargetDietConc = (MEMaint + MEPreg + MEGrowth) / DryMatterIntake
+  End If
+  
+  MP_TargetDietConc = (MPMaint + MPPreg + MPLact + MPGrowth) / DryMatterIntake
+
+  Ca_TargetDietConc = Mineral(1).Total / DryMatterIntake
+
+  P_TargetDietConc = Mineral(2).Total / DryMatterIntake
+Else
+  Energy_TargetDietConc = 0
+  MP_TargetDietConc = 0
+  Ca_TargetDietConc = 0
+  P_TargetDietConc = 0
+End If
+
+
+DCAD = (((Mineral(6).RD * 100) * 435) + ((Mineral(5).RD * 100) * 256)) _
+          - (((Mineral(4).RD * 100) * 282) + ((Mineral(7).RD * 100) * 624))
+
+
+
+End Sub
+
+
+
+Public Sub CalfComputations()
+
+Dim X As Integer
+
+Dim TotalNEm As Single
+Dim TotalNEg As Single
+Dim TotalME As Single
+Dim TotalCP As Single
+Dim TotalDCP As Single
+Dim TotalMilkADP As Single
+Dim TotalStarterADP As Single
+Dim TotalMilkCP As Single
+Dim TotalStarterCP As Single
+Dim TotalADP As Single
+Dim ADP_to_CP As Single
+Dim MilkME As Single
+Dim StarterME As Single
+Dim Fat As Single
+
+
+' Energy computations
+MilkDMI = 0
+StarterDMI = 0
+TotalNEm = 0
+TotalNEg = 0
+TotalME = 0
+TotalCP = 0
+TotalDCP = 0
+
+TotalMilkADP = 0
+TotalStarterADP = 0
+TotalMilkCP = 0
+TotalStarterCP = 0
+DietNEmCalf = 0
+DietNEgCalf = 0
+DietMECalf = 0
+
+MilkME = 0
+StarterME = 0
+Fat = 0
+
+
+' If there are no feeds then there can be no ration, so the computations cannot be run
+If NumFeeds = 0 Then
+  Exit Sub
+End If
+
+
+' If the Calf is not fed anything, then the computations cannot be run
+' NB: Both regular and calf feeds have a .DMFed property, so this is okay as-is
+TotalDMFed = 0
+
+For X = 1 To NumFeeds
+  TotalDMFed = TotalDMFed + Feed(X).DMFed
+Next X
+
+
+If TotalDMFed = 0 Then
+  Exit Sub
+End If
+
+
+
+Call ComputeEnergyValues
+
+
+
+For X = 1 To NumFeeds
+  With Feed(X)
+    If (.Category = "Calf Feed - Starter") _
+            Or (.Category = "Calf Feed - Milk") _
+              Or (.Category = "Calf Feed - Vitamin/Mineral") Then
+      ' The feed is a calf feed
+      
+      TotalNEm = TotalNEm + (.DMFed * .cNEm)
+      TotalNEg = TotalNEg + (.DMFed * .cNEg)
+      TotalME = TotalME + (.DMFed * .cMEng)
+      TotalCP = TotalCP + (.DMFed * (.cCP / 100))
+      TotalDCP = TotalDCP + (.DMFed * (.cDCP / 100))
+      Fat = Fat + (.DMFed * (.cEE / 100))
+      
+      If .Category = "Calf Feed - Milk" Then
+        MilkDMI = MilkDMI + .DMFed
+        MilkME = MilkME + (.DMFed * .cMEng)
+        TotalMilkADP = TotalMilkADP + (.DMFed * (.cDCP / 100))
+        TotalMilkCP = TotalMilkCP + (.DMFed * (.cCP / 100))
+      Else
+        StarterDMI = StarterDMI + .DMFed
+        StarterME = StarterME + (.DMFed * .cMEng)
+        TotalStarterADP = TotalStarterADP + (.DMFed * (.cDCP / 100))
+        TotalStarterCP = TotalStarterCP + (.DMFed * (.cCP / 100))
+      End If
+    
+    Else
+      ' The feed is a regular feed.
+      ' All regular feeds in a calf diet are considered starter feeds
+      StarterDMI = StarterDMI + .DMFed
+      
+      ' Convert regular feed CP values to calf feed CP values
+      .cCP = .CP
+      
+      ' Since regular feeds are automatically starter feeds in a calf
+      ' diet, the DCP must be 0.75 * CP
+      .cDCP = 0.75 * .cCP
+      
+      ' Once CP and DCP are determined for these regular feeds,
+      ' Total values are computed the same way
+      TotalCP = TotalCP + (.DMFed * (.cCP / 100))
+      TotalDCP = TotalDCP + (.DMFed * (.cDCP / 100))
+      TotalStarterADP = TotalStarterADP + (.DMFed * (.cDCP / 100))
+      TotalStarterCP = TotalStarterCP + (.DMFed * (.cCP / 100))
+    End If
+  End With
+Next X
+
+
+
+
+
+
+
+
+
+' These values are only used for output, so define them
+' on a percentage basis (eg 83% instead of 0.83)
+If TotalDMFed > 0 Then
+  DietCPCalf = (TotalCP / TotalDMFed) * 100
+  DietDCPCalf = (TotalDCP / TotalDMFed) * 100
+Else
+  DietCPCalf = 0
+  DietDCPCalf = 0
+End If
+
+
+' ME requirement for maintenance with no stress
+NEmCalf = 0.086 * (CalfBW ^ 0.75)
+
+
+
+' These instruction are used to compute a weighted average of
+' efficiencies to convert NEm to ME and NEg to ME
+Dim NonMineralFeeds As Single
+
+CalfKm = 0
+CalfKg = 0
+NonMineralFeeds = 0
+NEg_Total = 0
+NEm_Total = 0
+
+
+
+For X = 1 To NumFeeds
+  With Feed(X)
+    If (.Category = "Calf Feed - Starter") _
+            Or (.Category = "Calf Feed - Milk") _
+              Or (.Category = "Calf Feed - Vitamin/Mineral") Then
+      If .cMEng <> 0 Then
+        CalfKm = CalfKm + (0.86 * (Feed(X).DMFed * Feed(X).cMEng))
+        CalfKg = CalfKg + (0.69 * (Feed(X).DMFed * Feed(X).cMEng))
+        NonMineralFeeds = NonMineralFeeds + (Feed(X).DMFed * Feed(X).cMEng)
+      End If
+    Else
+      If .MEng <> 0 Then
+        CalfKm = CalfKm + (0.75 * (Feed(X).DMFed * Feed(X).MEng))
+        CalfKg = CalfKg + (0.57 * (Feed(X).DMFed * Feed(X).MEng))
+        
+        .NEm = (0.75 * (Feed(X).DMFed * Feed(X).MEng))
+        .NEg = (0.57 * (Feed(X).DMFed * Feed(X).MEng))
+        
+        NonMineralFeeds = NonMineralFeeds + (Feed(X).DMFed * Feed(X).MEng)
+        
+        NEg_Total = NEg_Total + .NEg
+        NEm_Total = NEm_Total + .NEm
+      End If
+    End If
+  End With
+Next X
+
+If NonMineralFeeds > 0 Then
+  CalfKm = CalfKm / NonMineralFeeds
+  CalfKg = CalfKg / NonMineralFeeds
+Else
+  CalfKm = 0
+  CalfKg = 0
+End If
+
+
+
+
+
+' Note that energy values for regular feeds are computed based on the total diet.
+' That is, in the ComputeEnergyValues sub-model, NEm, NEg and ME values
+' are computed for the entire ration, not on a feed-by-feed basis.
+' These total energy values are added to those computed for the calf feeds.
+TotalNEm = TotalNEm + NEm_Total
+TotalNEg = TotalNEg + NEg_Total
+TotalME = TotalME + MEng_Total
+
+
+
+' Note that, to get the dietary energy concentrations, the TotalDMFed
+' value is used.  This is correct, because the total energy values
+' used in these equations are Calf + Regular feed totals
+If TotalDMFed > 0 Then
+  DietNEmCalf = TotalNEm / TotalDMFed
+  DietNEgCalf = TotalNEg / TotalDMFed
+  DietMECalf = TotalME / TotalDMFed
+Else
+  DietNEmCalf = 0
+  DietNEgCalf = 0
+  DietMECalf = 0
+End If
+
+
+' Factor in lower critical temperature stress
+If Age > 2 Then
+
+  Select Case CalfTemp
+    Case Is > 5
+      TempFactor = 0
+    Case Is > 0
+      TempFactor = 0.13
+    Case Is > -5
+      TempFactor = 0.27
+    Case Is > -10
+      TempFactor = 0.4
+    Case Is > -15
+      TempFactor = 0.54
+    Case Is > -20
+      TempFactor = 0.68
+    Case Is > -25
+      TempFactor = 0.81
+    Case Is > -30
+      TempFactor = 0.94
+    Case Else
+      TempFactor = 1.07
+  End Select
+
+Else
+
+  Select Case CalfTemp
+    Case Is > 15
+      TempFactor = 0
+    Case Is > 10
+      TempFactor = 0.13
+    Case Is > 5
+      TempFactor = 0.27
+    Case Is > 0
+      TempFactor = 0.4
+    Case Is > -5
+      TempFactor = 0.54
+    Case Is > -10
+      TempFactor = 0.68
+    Case Is > -15
+      TempFactor = 0.86
+    Case Is > -20
+      TempFactor = 0.94
+    Case Is > -25
+      TempFactor = 1.08
+    Case Is > -30
+      TempFactor = 1.21
+    Case Else
+      TempFactor = 1.34
+  End Select
+
+End If
+
+
+
+' Apply temperature factor to compute NEm requirement (with stress)
+NEmCalf = (NEmCalf * (1 + TempFactor))
+
+
+
+' Recalculate ME for maintenance, since the NEm has been adjusted for temperature effects
+If CalfKm <> 0 Then
+  MEMaint = NEmCalf / CalfKm
+Else
+  MEMaint = 0
+End If
+
+
+If DietNEmCalf <> 0 Then
+  DMIForNEmCalf = NEmCalf / DietNEmCalf
+Else
+  DMIForNEmCalf = 0
+End If
+
+
+DMIForGrowth = (TotalDMFed - DMIForNEmCalf)
+
+NEFGCalf = DMIForGrowth * DietNEgCalf
+
+
+If CalfKg <> 0 Then
+  MEFGCalf = NEFGCalf / CalfKg
+Else
+  MEFGCalf = 0
+End If
+
+
+
+If NEFGCalf > 0 Then
+
+  ' The energy allowable ADG equation was derived from the following equation:
+  '
+  ' NEgReq = 0.69 * (0.84 * CalfBW ^.355) * (LWG ^ 1.2)
+  '
+  '
+  ' I can re-write the equation in terms of LWG as follows:
+  '
+  ' (LWG ^ 1.2) = NEgReq / (0.69 * (0.84 * CalfBW ^ .355))
+  ' (LWG ^ 1.2) = (1.45 * NEgReq) / (0.84 * CalfBW ^ .355)
+  '
+  '
+  ' Now take the log of both sides of the equation to get:
+  ' log ((LWG ^ 1.2)) = log((1.45 * NEgReq) / (0.84 * CalfBW ^ .355))
+  ' log ((LWG ^ 1.2)) = log((1.73 * NEgReq) / (CalfBW ^ .355))
+  '
+  '
+  ' Since log A^x = x * (log A), the equation can now be re-written as:
+  '
+  ' 1.2 * (log LWG) = log((1.73 * NEgReq) / (CalfBW ^ .355))
+  ' log LWG = 0.8333 * (log((1.73 * NEgReq) / (CalfBW ^ .355)))
+  '
+  '
+  ' Finally, by using the fact that exp(log(A)) = A, we can re-write the original
+  ' equation as follows:
+  '
+  ' LWG = exp(0.8333 * (log((1.73 * NEgReq) / (CalfBW ^ .355))))
+  
+  EnergyADGCalf = Exp((0.8333 * (Log((1.19 * NEFGCalf) / (0.69 * (CalfBW ^ 0.355))))))
+Else
+  EnergyADGCalf = -9999
+End If
+
+
+If EnergyADGCalf > 0 Then
+  CalfADG = EnergyADGCalf
+Else
+  CalfADG = 0
+End If
+
+
+' There is 30 g Nitrogen/kg gain ==> (30 g N)(6.25) = 187.5 g Net Protein/kg gain
+ProteinReqCalf = CalfADG * 0.188
+
+
+
+' Protein Supply
+TotalADP = ((TotalMilkCP * 0.93) + (TotalStarterCP * 0.75)) * 1000
+
+
+If (TotalMilkCP + TotalStarterCP) > 0 Then
+  ADP_to_CP = TotalADP / ((TotalMilkCP + TotalStarterCP) * 1000)
+Else
+  ADP_to_CP = 1
+End If
+
+
+' Protein maintenance requirements
+EUN = 0.2 * (CalfBW ^ 0.75)
+MFN = (MilkDMI * 1.9) + (StarterDMI * 3.3)
+
+If TotalCP > 0 Then
+  BV = (0.8 * (TotalMilkCP / TotalCP)) _
+              + (0.7 * (TotalStarterCP / TotalCP))
+Else
+  BV = 1
+End If
+
+
+If BV <= 0 Then
+  BV = 1
+End If
+
+ADPmaint = 6.25 * (((1 / BV) * (EUN + MFN)) - MFN)
+
+
+If ADP_to_CP > 0 Then
+  CPmCalf = ADPmaint / ADP_to_CP
+Else
+  CPmCalf = 0
+End If
+
+ADPgrowth = (ProteinReqCalf * 1000) / BV
+
+If ADP_to_CP > 0 Then
+  CPgCalf = ADPgrowth / ADP_to_CP
+Else
+  CPgCalf = 0
+End If
+
+
+CalfADPBal = TotalADP - ADPmaint - ADPgrowth
+CalfCPBal = (TotalCP * 1000) - CPmCalf - CPgCalf
+
+ADPAllowGain = ((TotalADP - ADPmaint) * BV) / 0.188
+
+
+CalfFat = Fat + ((Fat_Total / 100) * TotalRegDMFed)
+
+If TotalDMFed > 0 Then
+  DietFatCalf = CalfFat / TotalDMFed
+Else
+  DietFatCalf = 0
+End If
+
+
+End Sub
+
+
+
+Private Sub GrowthComputations()
+
+If MW > 0 Then
+  SRW_to_MSBW = 478 / (0.96 * MW)
+Else
+  SRW_to_MSBW = 478 / (0.96 * (MW_From_Breed(Breed)))
+End If
+
+EQSBW = (SBW - CW) * SRW_to_MSBW
+
+SWG = 13.91 * (NEGrowthDiet ^ 0.9116) * (EQSBW ^ -0.6837)
+
+
+MEAllowGain = (SWG / 0.96)
+
+
+If Age < FirstCalf Then
+  MEAllowGainPreg = MEAllowGain + (ADGPreg / 1000)
+Else
+  MEAllowGainPreg = (EQEBG / 0.956) + (ADGPreg / 1000)
+End If
+
+
+If UseTargetADG = False Then
+  WG = 0.96 * (DesiredADG / 1000)
+  DLWReq = 0
+Else
+  WG = 0.96 * ADG
+  DLWReq = 0
+End If
+  
+
+
+
+EQEBW = 0.891 * EQSBW
+
+EQEBG = 0.956 * WG
+
+RE = 0.0635 * (EQEBW ^ 0.75) * (EQEBG ^ 1.097)
+
+If NEg_Total > 0 Then
+  If AnimalType <> "Replacement Heifer" Then
+    NEGrowth = (NEm_Total / NEg_Total) * RE
+  Else
+    NEGrowth = RE
+  End If
+Else
+  NEGrowth = 0
+End If
+
+If WG = 0 Then
+  NPg = 0
+Else
+  NPg = WG * (268 - (29.4 * (RE / WG)))
+End If
+
+
+
+If (EQSBW <= 478) Then
+  EffMP_NPg = (83.4 - (0.114 * EQSBW)) / 100
+Else
+  EffMP_NPg = 0.28908
+End If
+
+
+MPGrowth = NPg / EffMP_NPg
+
+
+If (DLWReq > 0) Then
+  NEReserves = DLWReq * 5.12
+Else
+  NEReserves = DLWReq * 4.92
+End If
+
+
+If AnimalType = "Replacement Heifer" Then
+  DMIAvailGrowth = TotalDMFed - DMIMaint - DMIPreg
+Else
+  DMIAvailGrowth = TotalDMFed - DMIMaint - DMIPreg - DMILact
+End If
+
+
+
+
+' This value is used only for Replacement Heifers
+If NEgOverMEng > 0 Then
+  MEGrowth = NEGrowth / NEgOverMEng
+Else
+  MEGrowth = 0
+End If
+
+
+End Sub
+
+
+Private Sub MaintenanceComputations()
+
+If (AnimalType = "Lactating Cow") Or (AnimalType = "Dry Cow") Then
+  a1 = 0.08
+Else
+  a1 = 0.086
+End If
+
+CS9 = ((CS - 1) * 2) + 1
+
+If AnimalType = "Replacement Heifer" Then
+  COMP = 0.8 + ((CS9 - 1) * 0.05)
+  a2 = 0.0007 * (20 - PrevTemp)
+Else
+  COMP = 1
+  a2 = 0
+End If
+
+
+
+If Grazing = False Then
+  NEmact = 0
+Else
+  If AnimalType = "Replacement Heifer" Then
+    NEmact = ((0.0009 * BW) + (0.0016 * BW))
+    
+    If Topography = "Hilly" Then
+      NEmact = NEmact + (0.006 * BW)
+    End If
+    
+  Else
+  
+    ' These activity equations derived by NRC committee members on
+    ' a full (not shrunk) body weight basis
+    NEmact = ((((Distance / 1000) * Trips) * (0.00045 * BW)) + (0.0012 * BW))
+    
+    If Topography = "Hilly" Then
+      NEmact = NEmact + (0.006 * BW)
+    End If
+
+  End If
+End If
+
+
+
+If AnimalType = "Replacement Heifer" Then
+  NEMaintNS = (((SBW - CW) ^ 0.75) * ((a1 * COMP) + a2)) + NEmact
+Else
+  NEMaintNS = (((BW - CW) ^ 0.75) * (a1 * COMP)) + NEmact
+End If
+
+
+If TotalDMFed > 0 Then
+  If AnimalType <> "Replacement Heifer" Then
+    NEDietConc = NEl_Total / TotalDMFed
+  Else
+    NEDietConc = NEm_Total / TotalDMFed
+  End If
+Else
+  NEDietConc = 0
+End If
+
+
+If NEDietConc > 0 Then
+  FeedMaint = NEMaintNS / NEDietConc
+Else
+  FeedMaint = 0
+End If
+
+
+If TotalDMFed > 0 Then
+  NEGrowthDietNS = (TotalDMFed - FeedMaint) * (NEg_Total / TotalDMFed)
+Else
+  NEGrowthDietNS = 0
+End If
+
+
+If AnimalType = "Replacement Heifer" Then
+  NEFP = NEGrowthDietNS
+Else
+  If TotalDMFed > 0 Then
+    NEFP = (TotalDMFed - FeedMaint) * (NEl_Total / TotalDMFed) * 0.65
+  Else
+    NEFP = 0
+  End If
+End If
+
+
+MEI = MEng_Total
+
+SA = 0.09 * (SBW ^ 0.67)
+
+If SA > 0 Then
+  HP = (MEI - NEFP) / SA
+Else
+  HP = 0
+End If
+
+
+T = Age * 30.4
+
+Select Case T
+  Case Is <= 30
+    TI = 2.5
+  Case Is < 183
+    TI = 6.5
+  Case Is < 363
+    TI = 5.1875 + (0.3125 * CS9)
+  Case Is >= 363
+    TI = 5.25 + (0.75 * CS9)
+End Select
+
+
+Select Case CoatCond
+  Case "Clean/Dry"
+    Coat = 1
+  Case "Some Mud"
+    Coat = 0.8
+  Case "Wet/Matted"
+    Coat = 0.5
+  Case "Covered with Snow/Mud"
+    Coat = 0.2
+End Select
+
+
+EI = ((7.36 - (0.296 * WindSpeed) + (2.55 * HairDepth)) * Coat) * 0.8
+
+If (EI < 0) Then
+  EI = 0
+End If
+
+INS = TI + EI
+
+LCT = 39 - (INS * HP * 0.85)
+
+If (LCT > Temp) Then
+  MEcs = SA * (LCT - Temp) / INS
+Else
+  MEcs = 0
+End If
+
+If ((MEng_Total > 0) And (TotalDMFed > 0)) Then
+  ColdStr = ((NEDietConc / (MEng_Total / TotalDMFed)) * MEcs)
+Else
+  ColdStr = 0
+End If
+
+
+If ((HeatStress = "None") Or (Temp < 30)) Then
+  HeatStr = 1
+ElseIf (HeatStress = "Rapid/Shallow") Then
+  HeatStr = 1.07
+ElseIf (HeatStress = "Open Mouth") Then
+  HeatStr = 1.18
+End If
+
+
+NEMaint = ((NEMaintNS + ColdStr) * HeatStr) + NEmact
+
+
+If NEDietConc > 0 Then
+  DMIMaint = NEMaint / NEDietConc
+Else
+  DMIMaint = 0
+End If
+
+
+If DaysPreg > 0 Then
+  If ((MEng_Total > 0) And (TotalDMFed > 0)) Then
+    DMIPreg = MEPreg / (MEng_Total / TotalDMFed)
+  Else
+    DMIPreg = 0
+  End If
+Else
+  DMIPreg = 0
+End If
+
+
+If TotalDMFed > 0 Then
+  NEGrowthDiet = (TotalDMFed - DMIMaint - DMIPreg) * (NEg_Total / TotalDMFed)
+Else
+  NEGrowthDiet = 0
+End If
+
+
+
+' Net energy for growth available in the diet cannot be negative
+If NEGrowthDiet < 0 Then
+  NEGrowthDiet = 0
+End If
+
+
+
+MPMaint = (0.3 * ((BW - CW) ^ 0.6)) + (4.1 * ((BW - CW) ^ 0.5)) _
+                    + ((TotalDMFed * 1000 * 0.03) - (0.5 * ((MPBact / 0.8) - (MPBact)))) + MPEndoReq
+
+
+ScurfMP = 0.3 * ((BW - CW) ^ 0.6)
+UrineMP = 4.1 * ((BW - CW) ^ 0.5)
+FecalMP = ((TotalDMFed * 1000 * 0.03) - (0.5 * ((MPBact / 0.8) - (MPBact))))
+
+
+
+' Used only for Replacement Heifers
+If NEmOverMEng > 0 Then
+  MEMaint = NEMaint / NEmOverMEng
+Else
+  MEMaint = 0
+End If
+
+End Sub
+
+
+Private Sub DryMatterIntakeComputations()
+
+Dim WOL As Single           ' Week of Lactation = 7 * Days In Milk
+Dim Lag As Single           ' week of lactation correction -
+                            ' used in Default and Roseler equations
+
+Select Case CoatCond
+  Case "Clean/Dry"
+    CCFact = 1
+  Case "Some Mud"
+    CCFact = 1
+  Case "Wet/Matted"
+    CCFact = 0.85
+  Case "Covered with Snow/Mud"
+    CCFact = 0.7
+End Select
+
+CCFact = 1
+
+
+Select Case Temp
+   Case Is < -15
+    TempFact = 1.16
+  Case Is < -5
+    TempFact = 1.07
+  Case Is < 5
+    TempFact = 1.05
+  Case Is < 15
+    TempFact = 1.03
+  Case Is < 25
+    TempFact = 1
+  Case Is < 35
+    TempFact = 0.9
+  Case Is > 35
+    If (NightCooling = False) Then
+      TempFact = 0.65
+    Else
+      TempFact = 0.9
+    End If
+End Select
+
+
+If Age > 12 Then
+  SubFact = 0.0869
+Else
+  SubFact = 0.1128
+End If
+
+
+
+' These equations really belong in the Maintenance computations section,
+' but are put here since the DivFact variable requires the NEDietConc
+If TotalDMFed > 0 Then
+  If AnimalType <> "Replacement Heifer" Then
+    NEDietConc = NEl_Total / TotalDMFed
+  Else
+    NEDietConc = NEm_Total / TotalDMFed
+  End If
+Else
+  NEDietConc = 0
+End If
+
+
+If (NEDietConc < 1) Then
+  DivFact = 0.95
+Else
+  DivFact = NEDietConc
+End If
+
+
+If DaysPreg < 259 Then
+  If DivFact > 0 Then
+    DMI_RH = ((BW ^ 0.75) * (((0.2435 * NEDietConc) - (0.0466 _
+          * (NEDietConc ^ 2)) - SubFact) / DivFact)) _
+             * TempFact * CCFact
+  Else
+    DMI_RH = 0
+  End If
+Else
+  DMI_RH = ((1.71 - (0.69 * Exp(0.35 * (DaysPreg - 280)))) / 100) * BW
+End If
+
+
+Dim DMIRH_Factor As Single
+
+
+If ((DaysPreg > 210) And (DaysPreg < 259)) Then
+  DMIRH_Factor = (1 + ((210 - DaysPreg) * 0.0025))
+Else
+  DMIRH_Factor = 1
+End If
+
+DMI_RH = DMI_RH * DMIRH_Factor
+
+
+
+WOL = DaysInMilk / 7
+Lag = 1 - (Exp(-1 * 0.192 * (WOL + 3.67)))
+DMILact = (((BW ^ 0.75) * 0.0968) + (0.372 * FCM) - 0.293) * Lag
+
+
+DMIDry = ((1.97 - (0.75 * Exp(0.16 * (DaysPreg - 280)))) / 100) * BW
+
+
+
+Select Case AnimalType
+  Case "Lactating Cow"
+    DryMatterIntake = DMILact
+  Case "Dry Cow"
+    DryMatterIntake = DMIDry
+  Case "Replacement Heifer"
+    DryMatterIntake = DMI_RH
+  Case "Young Calf"
+    DryMatterIntake = DMI_RH
+End Select
+
+
+If DryMatterIntake <= TotalDMFed Then
+  Pasture = 0
+Else
+  If DryMatterIntake > 0 Then
+    Pasture = (DryMatterIntake - TotalDMFed) / DryMatterIntake
+  Else
+    Pasture = 0
+  End If
+End If
+
+
+End Sub
+
+
+
+Private Sub AminoAcidComputations()
+
+Dim DMFed As Single
+Dim NF As Integer
+Dim X As Integer
+
+
+
+If NumFeeds > 0 Then
+  NF = NumFeeds
+Else
+  Exit Sub
+End If
+
+
+
+Dim TArg As Single
+Dim THis As Single
+Dim TIle As Single
+Dim TLeu As Single
+Dim TLys As Single
+Dim TMet As Single
+Dim TPhe As Single
+Dim TThr As Single
+Dim TTrp As Single
+Dim TVal As Single
+
+Dim Dig_TArg As Single
+Dim Dig_THis As Single
+Dim Dig_TIle As Single
+Dim Dig_TLeu As Single
+Dim Dig_TLys As Single
+Dim Dig_TMet As Single
+Dim Dig_TPhe As Single
+Dim Dig_TThr As Single
+Dim Dig_TTrp As Single
+Dim Dig_TVal As Single
+
+
+TArg = 0
+THis = 0
+TIle = 0
+TLeu = 0
+TLys = 0
+TMet = 0
+TPhe = 0
+TThr = 0
+TTrp = 0
+TVal = 0
+
+Dig_TArg = 0
+Dig_THis = 0
+Dig_TIle = 0
+Dig_TLeu = 0
+Dig_TLys = 0
+Dig_TMet = 0
+Dig_TPhe = 0
+Dig_TThr = 0
+Dig_TTrp = 0
+Dig_TVal = 0
+
+
+For X = 1 To NF
+  
+  With Feed(X)
+  
+    DMFed = .DMFed
+    
+    If ((DMFed > 0) And (.CP > 0) And (CP(X) > 0)) Then
+    
+      TArg = TArg + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Arg / 100) * TotalDMFed) * 1000)
+    
+      THis = THis + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.His / 100) * TotalDMFed) * 1000)
+    
+      TIle = TIle + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Ile / 100) * TotalDMFed) * 1000)
+    
+      TLeu = TLeu + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Leu / 100) * TotalDMFed) * 1000)
+    
+      TLys = TLys + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Lys / 100) * TotalDMFed) * 1000)
+    
+      TMet = TMet + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Met / 100) * TotalDMFed) * 1000)
+    
+      TPhe = TPhe + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Phe / 100) * TotalDMFed) * 1000)
+     
+      TThr = TThr + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Thr / 100) * TotalDMFed) * 1000)
+    
+      TTrp = TTrp + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Trp / 100) * TotalDMFed) * 1000)
+    
+      TVal = TVal + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (.Val / 100) * TotalDMFed) * 1000)
+      
+      
+      
+      Dig_TArg = Dig_TArg + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                       * (Feed(X).RUPDigest / 100) * (.Arg / 100) * TotalDMFed) * 1000)
+    
+      Dig_THis = Dig_THis + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.His / 100) * TotalDMFed) * 1000)
+    
+      Dig_TIle = Dig_TIle + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Ile / 100) * TotalDMFed) * 1000)
+    
+      Dig_TLeu = Dig_TLeu + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Leu / 100) * TotalDMFed) * 1000)
+    
+      Dig_TLys = Dig_TLys + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Lys / 100) * TotalDMFed) * 1000)
+    
+      Dig_TMet = Dig_TMet + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Met / 100) * TotalDMFed) * 1000)
+    
+      Dig_TPhe = Dig_TPhe + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Phe / 100) * TotalDMFed) * 1000)
+     
+      Dig_TThr = Dig_TThr + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Thr / 100) * TotalDMFed) * 1000)
+    
+      Dig_TTrp = Dig_TTrp + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Trp / 100) * TotalDMFed) * 1000)
+    
+      Dig_TVal = Dig_TVal + (((DMFed / TotalDMFed) * (.CP / 100) * ((RUP(X) * 1000) / CP(X)) _
+                      * (Feed(X).RUPDigest / 100) * (.Val / 100) * TotalDMFed) * 1000)
+
+  
+    End If
+  
+  End With
+
+Next X
+
+
+Dim EAATotalBeforeMP As Single
+Dim x1 As Single
+Dim x2 As Single
+Dim TotalArg As Single
+Dim TotalHis As Single
+Dim TotalIle As Single
+Dim TotalLeu As Single
+Dim TotalLys As Single
+Dim TotalMet As Single
+Dim TotalPhe As Single
+Dim TotalThr As Single
+Dim TotalVal As Single
+
+
+EAATotalBeforeMP = (TArg + THis + TIle + TLeu _
+                        + TLys + TMet + TPhe + TThr + TTrp + TVal)
+                        
+If ((RUP_Total * 1000) + EndCP + MCP_Total) > 0 Then
+  x2 = ((RUP_Total * 1000) / ((RUP_Total * 1000) + EndCP + MCP_Total)) * 100
+Else
+  x2 = 0
+End If
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TArg / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalArg = 7.31 + (0.251 * x1)
+
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((THis / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalHis = 2.07 + (0.393 * x1) + (0.0122 * x2)
+
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TIle / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalIle = 7.59 + (0.391 * x1) - (0.0123 * x2)
+
+                        
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TLeu / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalLeu = 8.53 + (0.41 * x1) + (0.0746 * x2)
+
+                        
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TLys / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalLys = 13.66 + (0.3276 * x1) - (0.07497 * x2)
+
+                        
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TMet / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalMet = 2.9 + (0.391 * x1) - (0.00742 * x2)
+
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TPhe / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalPhe = 7.32 + (0.244 * x1) + (0.029 * x2)
+
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TThr / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalThr = 7.55 + (0.45 * x1) - (0.0212 * x2)
+
+
+If EAATotalBeforeMP > 0 Then
+  x1 = ((TVal / EAATotalBeforeMP) * 100)
+Else
+  x1 = 0
+End If
+
+TotalVal = 8.68 + (0.314 * x1)
+
+
+
+TotalEAA = 30.9 + (0.863 * EAATotalBeforeMP) + (0.433 * MCP_Total)
+
+
+
+
+Dim TotalRUPArgFlow As Single
+Dim TotalRUPHisFlow As Single
+Dim TotalRUPIleFlow As Single
+Dim TotalRUPLeuFlow As Single
+Dim TotalRUPLysFlow As Single
+Dim TotalRUPMetFlow As Single
+Dim TotalRUPPheFlow As Single
+Dim TotalRUPThrFlow As Single
+Dim TotalRUPTrpFlow As Single
+Dim TotalRUPValFlow As Single
+
+
+TotalRUPArgFlow = 0.863 * TArg
+TotalRUPHisFlow = 0.863 * THis
+TotalRUPIleFlow = 0.863 * TIle
+TotalRUPLeuFlow = 0.863 * TLeu
+TotalRUPLysFlow = 0.863 * TLys
+TotalRUPMetFlow = 0.863 * TMet
+TotalRUPPheFlow = 0.863 * TPhe
+TotalRUPThrFlow = 0.863 * TThr
+TotalRUPTrpFlow = 0.863 * TTrp
+TotalRUPValFlow = 0.863 * TVal
+
+
+
+
+' Duodenal Flow (g/d)
+Arg_Flow = (TotalArg / 100) * TotalEAA
+
+His_Flow = (TotalHis / 100) * TotalEAA
+
+Ile_Flow = (TotalIle / 100) * TotalEAA
+
+Leu_Flow = (TotalLeu / 100) * TotalEAA
+
+Lys_Flow = (TotalLys / 100) * TotalEAA
+
+Met_Flow = (TotalMet / 100) * TotalEAA
+
+Phe_Flow = (TotalPhe / 100) * TotalEAA
+
+Thr_Flow = (TotalThr / 100) * TotalEAA
+
+Val_Flow = (TotalVal / 100) * TotalEAA
+
+
+
+
+Dim TotalMCPEndArgFlow As Single
+Dim TotalMCPEndHisFlow As Single
+Dim TotalMCPEndIleFlow As Single
+Dim TotalMCPEndLeuFlow As Single
+Dim TotalMCPEndLysFlow As Single
+Dim TotalMCPEndMetFlow As Single
+Dim TotalMCPEndPheFlow As Single
+Dim TotalMCPEndThrFlow As Single
+Dim TotalMCPEndValFlow As Single
+
+TotalMCPEndArgFlow = Arg_Flow - TotalRUPArgFlow
+TotalMCPEndHisFlow = His_Flow - TotalRUPHisFlow
+TotalMCPEndIleFlow = Ile_Flow - TotalRUPIleFlow
+TotalMCPEndLeuFlow = Leu_Flow - TotalRUPLeuFlow
+TotalMCPEndLysFlow = Lys_Flow - TotalRUPLysFlow
+TotalMCPEndMetFlow = Met_Flow - TotalRUPMetFlow
+TotalMCPEndPheFlow = Phe_Flow - TotalRUPPheFlow
+TotalMCPEndThrFlow = Thr_Flow - TotalRUPThrFlow
+TotalMCPEndValFlow = Val_Flow - TotalRUPValFlow
+
+
+
+Dim dTotalRUPArg As Single
+Dim dTotalRUPHis As Single
+Dim dTotalRUPIle As Single
+Dim dTotalRUPLeu As Single
+Dim dTotalRUPLys As Single
+Dim dTotalRUPMet As Single
+Dim dTotalRUPPhe As Single
+Dim dTotalRUPThr As Single
+Dim dTotalRUPVal As Single
+
+Dim dTotalMCPEndArg As Single
+Dim dTotalMCPEndHis As Single
+Dim dTotalMCPEndIle As Single
+Dim dTotalMCPEndLeu As Single
+Dim dTotalMCPEndLys As Single
+Dim dTotalMCPEndMet As Single
+Dim dTotalMCPEndPhe As Single
+Dim dTotalMCPEndThr As Single
+Dim dTotalMCPEndVal As Single
+
+If TArg > 0 Then
+  dTotalRUPArg = TotalRUPArgFlow * (Dig_TArg / TArg)
+Else
+  dTotalRUPArg = 0
+End If
+
+If THis > 0 Then
+  dTotalRUPHis = TotalRUPHisFlow * (Dig_THis / THis)
+Else
+  dTotalRUPHis = 0
+End If
+
+If TIle > 0 Then
+  dTotalRUPIle = TotalRUPIleFlow * (Dig_TIle / TIle)
+Else
+  dTotalRUPIle = 0
+End If
+
+If TLeu > 0 Then
+  dTotalRUPLeu = TotalRUPLeuFlow * (Dig_TLeu / TLeu)
+Else
+  dTotalRUPLeu = 0
+End If
+
+If TLys > 0 Then
+  dTotalRUPLys = TotalRUPLysFlow * (Dig_TLys / TLys)
+Else
+  dTotalRUPLys = 0
+End If
+
+If TMet > 0 Then
+  dTotalRUPMet = TotalRUPMetFlow * (Dig_TMet / TMet)
+Else
+  dTotalRUPMet = 0
+End If
+
+If TPhe > 0 Then
+  dTotalRUPPhe = TotalRUPPheFlow * (Dig_TPhe / TPhe)
+Else
+  dTotalRUPPhe = 0
+End If
+
+If TThr > 0 Then
+  dTotalRUPThr = TotalRUPThrFlow * (Dig_TThr / TThr)
+Else
+  dTotalRUPThr = 0
+End If
+
+If TVal > 0 Then
+  dTotalRUPVal = TotalRUPValFlow * (Dig_TVal / TVal)
+Else
+  dTotalRUPVal = 0
+End If
+
+
+dTotalMCPEndArg = 0.8 * TotalMCPEndArgFlow
+dTotalMCPEndHis = 0.8 * TotalMCPEndHisFlow
+dTotalMCPEndIle = 0.8 * TotalMCPEndIleFlow
+dTotalMCPEndLeu = 0.8 * TotalMCPEndLeuFlow
+dTotalMCPEndLys = 0.8 * TotalMCPEndLysFlow
+dTotalMCPEndMet = 0.8 * TotalMCPEndMetFlow
+dTotalMCPEndPhe = 0.8 * TotalMCPEndPheFlow
+dTotalMCPEndThr = 0.8 * TotalMCPEndThrFlow
+dTotalMCPEndVal = 0.8 * TotalMCPEndValFlow
+
+
+Dig_Arg_Flow = dTotalRUPArg + dTotalMCPEndArg
+Dig_His_Flow = dTotalRUPHis + dTotalMCPEndHis
+Dig_Ile_Flow = dTotalRUPIle + dTotalMCPEndIle
+Dig_Leu_Flow = dTotalRUPLeu + dTotalMCPEndLeu
+Dig_Lys_Flow = dTotalRUPLys + dTotalMCPEndLys
+Dig_Met_Flow = dTotalRUPMet + dTotalMCPEndMet
+Dig_Phe_Flow = dTotalRUPPhe + dTotalMCPEndPhe
+Dig_Thr_Flow = dTotalRUPThr + dTotalMCPEndThr
+Dig_Val_Flow = dTotalRUPVal + dTotalMCPEndVal
+
+
+MPBact = 0.64 * MCP_Total
+MPFeed = TotalDigestedRUP
+
+
+
+If (MPBact + (MPFeed * 1000) + MPEndo) > 0 Then
+  ArgPctMP = 100 * (Dig_Arg_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  HisPctMP = 100 * (Dig_His_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  IlePctMP = 100 * (Dig_Ile_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  LeuPctMP = 100 * (Dig_Leu_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  LysPctMP = 100 * (Dig_Lys_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  MetPctMP = 100 * (Dig_Met_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  PhePctMP = 100 * (Dig_Phe_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  ThrPctMP = 100 * (Dig_Thr_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+  ValPctMP = 100 * (Dig_Val_Flow / (MPBact + (MPFeed * 1000) + MPEndo))
+Else
+  ArgPctMP = 0
+  HisPctMP = 0
+  IlePctMP = 0
+  LeuPctMP = 0
+  LysPctMP = 0
+  MetPctMP = 0
+  PhePctMP = 0
+  ThrPctMP = 0
+  ValPctMP = 0
+End If
+
+
+End Sub
+
+
+
+
+
+Private Sub EnergyAndProteinSupplyComputations()
+
+Dim DMFed As Single
+Dim NF As Integer
+Dim X As Integer
+
+Dim Kp As Single
+Dim BW_DMI As Single
+Dim ConcSum As Single
+Dim PercentConc As Single
+
+
+If NumFeeds > 0 Then
+  NF = NumFeeds
+Else
+  Exit Sub
+End If
+
+ReDim DMI(1 To NF) As Single
+ReDim TDN(1 To NF) As Single
+ReDim TDN_Act(1 To NF) As Single
+ReDim CP(1 To NF) As Single
+ReDim RUP(1 To NF) As Single
+ReDim RDP(1 To NF) As Single
+ReDim NDF(1 To NF) As Single
+ReDim ADF(1 To NF) As Single
+ReDim PsgRate(1 To NF) As Single
+
+
+Call ComputeEnergyValues
+  
+
+If BW > 0 Then
+  BW_DMI = (TotalDMFed / BW) * 100
+Else
+  BW_DMI = 0
+End If
+
+
+ConcSum = 0
+
+For X = 1 To NumFeeds
+  If Feed(X).ForageDescrp = "Concentrate" Then
+    ConcSum = ConcSum + Feed(X).DMFed
+  End If
+Next X
+
+
+If TotalDMFed > 0 Then
+  PercentConc = (ConcSum / TotalDMFed) * 100
+Else
+  PercentConc = 0
+End If
+
+
+For X = 1 To NumFeeds
+  
+   DMFed = Feed(X).DMFed
+   DMI(X) = DMFed
+  
+   If Feed(X).Category <> "Vitamin/Mineral" Then
+     TDN(X) = (Feed(X).TDN / 100) * (DMFed * 1000)
+     TDN_Act(X) = (Feed(X).TDN_ActX / 100) * (DMFed * 1000)
+   Else
+     TDN(X) = 0
+     TDN_Act(X) = 0
+   End If
+    
+     
+   CP(X) = (Feed(X).CP / 100) * (DMFed * 1000)
+
+
+   ' Passage rate equations
+   Select Case Feed(X).ForageDescrp
+     Case "Concentrate"
+       Kp = 2.904 + (1.375 * BW_DMI) - (0.02 * PercentConc)
+     Case "Dry"
+       Kp = 3.362 + (0.479 * BW_DMI) - (0.017 * Feed(X).NDF) - (0.007 * PercentConc)
+     Case "Wet"
+       Kp = 3.054 + (0.614 * BW_DMI)
+     Case Else
+       Kp = 0
+   End Select
+   
+   
+   ' Passage rate cannot be negative
+   If Kp < 0 Then
+     Kp = 0
+   End If
+   
+   
+   PsgRate(X) = Kp
+   
+
+   If (Feed(X).Kd + Kp) > 0 Then
+     RDP(X) = ((Feed(X).Kd / (Feed(X).Kd + Kp)) * _
+                  ((((Feed(X).PrtB / 100) * (Feed(X).CP / 100)) * Feed(X).DMFed))) _
+                      + (((Feed(X).PrtA / 100) * (Feed(X).CP / 100)) * Feed(X).DMFed)
+   Else
+     RDP(X) = 0
+   End If
+   
+   
+   ' RDP cannot exceed the total CP
+   If (RDP(X) * 1000) > CP(X) Then
+     RDP(X) = CP(X) / 1000
+   End If
+     
+  
+   RUP(X) = (CP(X) - (RDP(X) * 1000)) / 1000
+    
+   NDF(X) = (Feed(X).NDF / 100) * DMFed
+   ADF(X) = (Feed(X).ADF / 100) * DMFed
+  
+ Next X
+ 
+  
+ DMI_Total = 0
+ TDN_Total = 0
+ TDN_Act_Total = 0
+ CP_Total = 0
+ RUP_Total = 0
+ TotalDigestedRUP = 0
+ RDP_Total = 0
+ NDF_Total = 0
+ ADF_Total = 0
+ 
+ 
+ For X = 1 To NumFeeds
+ 
+  DMI_Total = DMI_Total + DMI(X)
+  TDN_Total = TDN_Total + TDN(X)
+  TDN_Act_Total = TDN_Act_Total + TDN_Act(X)
+  CP_Total = CP_Total + CP(X)
+  RUP_Total = RUP_Total + RUP(X)
+  TotalDigestedRUP = TotalDigestedRUP + (RUP(X) * (Feed(X).RUPDigest / 100))
+  RDP_Total = RDP_Total + RDP(X)
+  NDF_Total = NDF_Total + NDF(X)
+  ADF_Total = ADF_Total + ADF(X)
+  
+ Next X
+ 
+ 
+ If RUP_Total > 0 Then
+   DietRUPDigest = TotalDigestedRUP / RUP_Total
+ Else
+   DietRUPDigest = 0
+ End If
+ 
+ 
+ MCP_Total = 0.13 * TDN_Act_Total
+ 
+ 
+
+ ' This condition assumes that microbial crude protein production cannot
+ ' exceed 0.85 (efficiency of protein uptake of bacteria) of the ruminal degraded protein
+ If MCP_Total > (0.85 * (RDP_Total * 1000)) Then
+   MCP_Total = (0.85 * (RDP_Total * 1000))
+ End If
+ 
+ If MCP_Total < 0 Then
+   MCP_Total = 0
+ End If
+ 
+ 
+ DietTDN = (TDN_Total / 1000) / TotalDMFed
+
+
+If MEng_Total > 0 Then
+  NEgOverMEng = NEg_Total / MEng_Total
+  NElOverMEng = NEl_Total / MEng_Total
+  NEmOverMEng = NEm_Total / MEng_Total
+Else
+  NEgOverMEng = 0
+  NElOverMEng = 0
+  NEmOverMEng = 0
+End If
+
+
+EndCP = 11.8 * TotalDMFed
+MPEndo = 0.4 * EndCP
+MPEndoReq = MPEndo / 0.67
+
+
+End Sub
+
+
+Private Sub TargetWeightsComputations()
+
+SBW = 0.96 * BW
+
+Age1st = FirstCalf
+Age2nd = Age1st + CalfInt
+Age3rd = Age2nd + CalfInt
+Age1stBred = Age1st - (280 / 30.4)
+  
+Wt1stBred = MW * 0.55
+Wt1st = MW * 0.82
+Wt2nd = MW * 0.92
+Wt3rd = MW
+    
+    
+If (Age1stBred - Age) > 0 Then
+  ADG1stBred = (Wt1stBred - BW) / ((Age1stBred - Age) * 30.4)
+End If
+
+If (Age1st - Age) > 0 Then
+  ADG1st = (Wt1st - (BW - CW)) / ((Age1st - Age) * 30.4)
+End If
+
+If CalfInt > 0 Then
+  ADG2nd = (Wt2nd - Wt1st) / (CalfInt * 30.4)
+  ADG3rd = (Wt3rd - Wt2nd) / (CalfInt * 30.4)
+End If
+
+  
+If AnimalType = "Replacement Heifer" Then
+  If Age < Age1stBred Then
+    ADGNonBred = (Wt1stBred - BW) / ((Age1stBred - Age) * 30.4)
+  Else
+    ADGNonBred = 0
+  End If
+Else
+  ADGNonBred = 0
+End If
+
+If ADGNonBred < 0 Then
+  ADGNonBred = 0
+End If
+  
+  
+If AnimalType = "Replacement Heifer" Then
+  If (DaysPreg > 0) Then
+    ADG = ADG1st
+  Else
+    ADG = ADG1stBred
+  End If
+Else
+  If (Age >= Age3rd) Then
+    ADG = 0
+  ElseIf ((Age2nd <= Age) And (Age < Age3rd)) Then
+    ADG = ADG3rd
+  ElseIf ((Age1st <= Age) And (Age < Age2nd)) Then
+    ADG = ADG2nd
+  ElseIf ((Age1stBred <= Age) And (Age < Age1st)) Then
+    ADG = ADG1st
+  End If
+End If
+
+If ADG < 0 Then
+  ADG = 0
+End If
+
+End Sub
+
+
+
+Private Sub LactationComputations()
+ 
+If MilkProd = 0 Then
+  MilkEn = 0
+  NELact = 0
+  YProtn = 0
+  YFatn = 0
+  MPLact = 0
+  FCM = 0
+  
+  Exit Sub
+End If
+ 
+ 
+If (Lactose = 0) Then
+  MilkEn = (0.0929 * MilkFat) + (0.0547 * (MilkTrueProtein / 0.93)) + 0.192
+Else
+  MilkEn = (0.0929 * MilkFat) + (0.0547 * (MilkTrueProtein / 0.93)) + (0.0395 * Lactose)
+End If
+    
+    
+YEn = MilkEn * MilkProd
+  
+NELact = YEn
+  
+YProtn = MilkProd * (MilkTrueProtein / 100)
+  
+YFatn = MilkProd * (MilkFat / 100)
+  
+MPLact = (YProtn / 0.67) * 1000
+ 
+FCM = (0.4 * MilkProd) + (15 * (MilkFat / 100) * MilkProd)
+
+End Sub
+
+
+
+
+Private Sub PregnancyComputations()
+  
+  
+  Const Km = 0.64       ' Changed from 0.576 (Beef NRC value) on June 5, 2000
+  Const EffMEPreg = 0.14
+  Const EffMPPreg = 0.33
+
+    
+  If DaysPreg < 190 Then
+    CW = 0
+    ADGPreg = 0
+    MEPreg = 0
+    MPPreg = 0
+  Else
+    
+    If DaysPreg > 279 Then
+      DaysPreg = 279
+    End If
+    
+    CW = (18 + ((DaysPreg - 190) * 0.665)) * (CBW / 45)
+    ADGPreg = 665 * (CBW / 45)
+    MEPreg = (((2 * 0.00159 * DaysPreg) - 0.0352) * (CBW / 45)) / EffMEPreg
+    MPPreg = (((0.69 * DaysPreg) - 69.2) * (CBW / 45)) / EffMPPreg
+  End If
+
+  
+  NEPreg = MEPreg * Km
+  
+
+  If DaysPreg = 0 Then
+    MEPreg = 0
+    MPPreg = 0
+    ADGPreg = 0
+    CW = 0
+  End If
+
+End Sub
+
+
+
+Public Sub ComputeEnergyValues()
+
+Dim tdNFC As Single                 ' truly digestible NFC
+Dim tdCP As Single                  ' truly digestible CP
+Dim tdFat As Single                 ' truly digestible Fat
+Dim dNDF As Single                  ' digestible NDF
+Dim DiscountVariable As Single      ' used to determine discount
+  
+  
+Dim C As Byte
+Dim DMFed As Single
+Dim NF As Integer
+Dim X As Integer
+Dim SBW As Single
+
+
+
+
+' Reset total energy values
+MEng_Total = 0
+NEl_Total = 0
+NEg_Total = 0
+NEm_Total = 0
+
+
+
+
+If NumFeeds > 0 Then
+  NF = NumFeeds
+Else
+  Exit Sub
+End If
+
+
+
+' Regular (i.e. non-calf) feeds can be used in a calf ration, so it
+' is necessary to differentitate between the TotalDMFed, which accouts
+' for all of the dry matter fed to the animal, and the Total Regular DMFed.
+' It is necessary to do this, since the total energy values computed in this
+' section are done so by first computing total energy concentration values,
+' then multiplying them by the total quantity values.  Thus there must be
+' a total regular feed fed value, since multiplying TotalDMFed * concentration
+' would (if calf feeds were present) over-estimate the computed total energy
+TotalRegDMFed = 0
+
+For X = 1 To NF
+  If InStr(Feed(X).Category, "Calf Feed") = 0 Then
+    TotalRegDMFed = TotalRegDMFed + Feed(X).DMFed
+  End If
+Next X
+
+
+' If there are no regular feeds, exit the procedure
+If ((TotalRegDMFed = 0) And (AnimalType = "Young Calf")) Then
+  Exit Sub
+End If
+
+
+
+
+SBW = 0.96 * BW
+
+
+DietaryNFC = 0
+
+
+
+
+
+
+
+' Exit procedure if there are no feeds selected
+If NumFeeds = 0 Then Exit Sub
+
+
+For C = 1 To NumFeeds
+  With Feed(C)
+  
+    If InStr(.Category, "Calf Feed") = 0 Then
+
+      .NFCDigest = 0.98
+
+      tdNFC = .NFCDigest * (100 - .NDF - .CP - .Fat - .Ash + .NDFIP) * .PAF
+      DietaryNFC = DietaryNFC + (((100 - .NDF - .CP - .Fat - .Ash + .NDFIP) / 100) * .DMFed)
+  
+      If .CP > 0 Then
+        If .EnergyEqClass = "Forage" Then
+          tdCP = Exp((-1.2 * (.ADFIP / .CP))) * .CP
+        Else
+          If .Category = "Animal Protein" Then
+            tdCP = (.CPDigest * .CP)
+          Else
+            tdCP = (1 - (0.4 * (.ADFIP / .CP))) * .CP
+          End If
+        End If
+      Else
+        tdCP = 0
+      End If
+  
+  
+      If .Fat < 1 Then
+        tdFat = 0
+      Else
+        tdFat = (.Fat - 1) * 2.25
+      End If
+  
+      
+      If .NDF > .NDFIP Then
+        dNDF = .NDFDigest * .NDF
+      Else
+        dNDF = 0
+      End If
+  
+     
+      If .Category = "Fat" Then
+        If .EnergyEqClass = "Fatty Acid" Then
+          .TDN = (.Fat * .FatDigest * 2.25)
+          .DE = 0.094 * .FatDigest * .Fat
+        Else
+          .TDN = 10 + ((.Fat - 10) * .FatDigest * 2.25)
+          .DE = (.FatDigest * (.Fat - 10) * 0.094) + 0.43
+        End If
+      Else
+        If .Category = "Animal Protein" Then
+          .TDN = (.CPDigest * .CP) + ((.Fat - 1) * 2.25) + ((.NFCDigest * (100 - .CP - .Ash - .Fat)) - 7)
+          .DE = (tdNFC * 0.042) + (tdCP * 0.056) + (0.094 * (tdFat / 2.25)) - 0.3
+        Else
+          If dNDF > 0 Then
+            .TDN = tdNFC + tdCP + tdFat + dNDF - 7
+            .DE = (tdNFC * 0.042) + (dNDF * 0.042) + (tdCP * 0.056) + (0.094 * (tdFat / 2.25)) - 0.3
+          Else
+            If .CP > 0 Then
+              .TDN = ((0.98 * .PAF) * (100 - .CP - .Fat - .Ash)) + (.CP * (1 - (0.4 * (.ADFIP / .CP)))) + ((2.25 * (.Fat - 1) - 7))
+              .DE = (0.98 * .PAF) * (0.042 * (100 - .CP - .Fat - .Ash)) + (.CP * (0.056 * (1 - (0.4 * (.ADFIP / .CP))))) + (0.094 * (.Fat - 1)) - 0.3
+            Else
+              .TDN = ((0.98 * .PAF) * (100 - .Fat - .Ash)) + ((2.25 * (.Fat - 1) - 7))
+              .DE = (0.98 * .PAF) * (0.042 * (100 - .Fat - .Ash)) + (0.094 * (.Fat - 1)) - 0.3
+            End If
+          End If
+        End If
+      End If
+         
+      
+    
+      ' Don't generate energy values for vitamin/minerals
+      If .Category = "Vitamin/Mineral" Then
+        .TDN = 0
+        .DE = 0
+      End If
+    
+    End If
+  End With
+Next C
+
+  
+   
+
+  
+' These variables hold the values of DE and ME before a discount
+' is applied since the NEg equation used (from the 1996 Beef NRC)
+' uses an un-discounted ME in its equations
+Dim UndiscountedME As Single
+  
+Dim TotalTDN As Single
+Dim TDNConc As Single
+  
+  
+TotalTDN = 0
+  
+For X = 1 To NumFeeds
+  With Feed(X)
+    If InStr(.Category, "Calf Feed") = 0 Then
+      TotalTDN = TotalTDN + ((.TDN / 100) * .DMFed)
+    End If
+  End With
+Next X
+  
+  
+If AnimalType <> "Young Calf" Then
+  If AnimalType = "Replacement Heifer" Then
+    DMI_to_DMIMaint = TotalTDN / (0.035 * (SBW ^ 0.75))
+  Else
+    ' Note that this equation uses BW instead of SBW since it
+    ' is for a mature animal
+    DMI_to_DMIMaint = TotalTDN / (0.035 * (BW ^ 0.75))
+  End If
+Else
+  ' The DMI for maintenance for a young calf is downstream
+  ' from the energy computations, which require that the
+  ' DMI/DMI_Maint value be estimated first.  This is a circular
+  ' path which cannot be resolved, so instead this ratio is
+  ' estimated using the equation for mature animals, given above.
+  DMI_to_DMIMaint = TotalTDN / (0.035 * (CalfBW ^ 0.75))
+End If
+   
+If TotalRegDMFed > 0 Then
+  TDNConc = (TotalTDN / TotalRegDMFed) * 100
+Else
+  TDNConc = 0
+End If
+  
+  
+' Compute total fat in diet
+Fat_Total = 0
+  
+For C = 1 To NumFeeds
+  If InStr(Feed(C).Category, "Calf Feed") = 0 Then
+    Fat_Total = Fat_Total + ((Feed(C).Fat / 100) * Feed(C).DMFed)
+  End If
+Next C
+
+Dim TotalFat As Single    ' This is the total fat in whole number units (e.g. 5% instead of 0.05)
+
+If TotalRegDMFed > 0 Then
+  TotalFat = (Fat_Total / TotalRegDMFed) * 100
+Else
+  TotalFat = 0
+End If
+
+
+Dim TotalDigestibleFat As Single
+Dim DigestibleFat As Single
+
+TotalDigestibleFat = 0
+
+For C = 1 To NumFeeds
+  With Feed(C)
+    If .Category = "Fat" Then
+      If .EnergyEqClass = "Fat" Then
+        DigestibleFat = 10 + ((.Fat - 10) * .FatDigest)
+      Else
+        DigestibleFat = .Fat * .FatDigest
+      End If
+    Else
+      DigestibleFat = .Fat - 1
+    End If
+    
+    
+    DigestibleFat = DigestibleFat * .DMFed
+    
+    TotalDigestibleFat = TotalDigestibleFat + DigestibleFat
+  
+  End With
+Next C
+
+
+If TotalDMFed > 0 Then
+  TotalDigestibleFat = TotalDigestibleFat / TotalDMFed
+Else
+  TotalDigestibleFat = 0
+End If
+
+
+
+Dim Adj_TDN As Single
+
+If TotalRegDMFed > 0 Then
+  If (Fat_Total / TotalRegDMFed) > 0.03 Then
+  
+    If TotalFat > 0 Then
+      Adj_TDN = TDNConc - (((TotalFat) - 3) * (TotalDigestibleFat / TotalFat) * 2.25)
+    Else
+      Adj_TDN = 0
+    End If
+    
+    TDNConc = Adj_TDN / ((100 - (TotalFat - 3)) / 100)
+  End If
+End If
+
+  
+DiscountVariable = ((0.18 * TDNConc) - 10.3) * (DMI_to_DMIMaint - 1)
+
+If DiscountVariable < 0 Then
+  DiscountVariable = 0
+End If
+
+  
+If TDNConc < 60 Then
+  Discount = 1
+ElseIf ((TDNConc > 60) And ((TDNConc - DiscountVariable) < 60)) Then
+  Discount = 60 / TDNConc
+ElseIf TDNConc > 0 Then
+  Discount = (TDNConc - DiscountVariable) / TDNConc
+Else
+  Discount = 1
+End If
+
+  
+' TDN Discount cannot be negative
+If Discount < 0 Then
+  Discount = 1
+End If
+  
+  
+  
+
+' Discount the TDN
+For C = 1 To NumFeeds
+    
+  With Feed(C)
+         
+    If InStr(.Category, "Calf Feed") = 0 Then
+      .TDN_ActX = .TDN * Discount
+    End If
+  End With
+    
+Next C
+  
+  
+  
+  
+
+
+' Note :  This value has units of %DM
+If TotalRegDMFed > 0 Then
+  Fat_Total = (Fat_Total / TotalRegDMFed) * 100
+Else
+  Fat_Total = 0
+End If
+
+
+
+
+
+For C = 1 To NumFeeds
+  With Feed(C)
+    .DiscDE = Discount * .DE
+    
+    If .Fat >= 3 Then
+      If (AnimalType <> "Replacement Heifer") Then
+        .MEng = (1.01 * .DiscDE) - 0.45 + (0.0046 * (.Fat - 3))
+      Else
+        .MEng = 0.82 * .DE
+      End If
+      
+      .NEl = (0.703 * .MEng) - 0.19 + ((((0.097 * .MEng) + 0.19) / 97) * (.Fat - 3))
+    Else
+      If ((AnimalType <> "Young Calf") And (AnimalType <> "Replacement Heifer")) Then
+        .MEng = (1.01 * .DiscDE) - 0.45
+      Else
+        .MEng = 0.82 * .DE
+      End If
+      
+      .NEl = (0.703 * .MEng) - 0.19
+    End If
+    
+    
+    If .Category <> "Fat" Then
+      .MEforNEg = 0.82 * .DE
+    
+      .NEg = ((1.42 * .MEforNEg) - (0.174 * (.MEforNEg ^ 2)) _
+                        + (0.0122 * (.MEforNEg ^ 3)) - 1.65)
+                        
+      If .NEg < 0 Then
+        .NEg = 0
+      End If
+    
+    
+      .NEm = ((1.37 * .MEforNEg) - (0.138 * (.MEforNEg ^ 2)) _
+                          + (0.0105 * (.MEforNEg ^ 3)) - 1.12)
+    Else
+      .MEng = .DiscDE
+      .NEl = 0.8 * .DiscDE
+      .NEm = 0.8 * .MEng
+      .NEg = 0.55 * .MEng
+    End If
+    
+    
+    ' Non-negativity constraints
+    If .MEng < 0 Then
+      .MEng = 0
+    End If
+    
+    If .NEl < 0 Then
+      .NEl = 0
+    End If
+    
+    If .NEm < 0 Then
+      .NEm = 0
+    End If
+    
+    If .NEg < 0 Then
+      .NEg = 0
+    End If
+         
+    
+    MEng_Total = MEng_Total + (.MEng * .DMFed)
+    NEl_Total = NEl_Total + (.NEl * .DMFed)
+    NEg_Total = NEg_Total + (.NEg * .DMFed)
+    NEm_Total = NEm_Total + (.NEm * .DMFed)
+  End With
+Next C
+
+
+
+' These variables are total concentration values (Mcal/kg)
+Dim TotalDEConc As Single
+Dim TotalMEConc As Single
+Dim TotalNEmConc As Single
+Dim TotalNElConc As Single
+Dim TotalNEgConc As Single
+
+
+If TotalRegDMFed > 0 Then
+  TotalMEConc = MEng_Total / TotalRegDMFed
+  TotalNElConc = NEl_Total / TotalRegDMFed
+  TotalNEgConc = NEg_Total / TotalRegDMFed
+  TotalNEmConc = NEm_Total / TotalRegDMFed
+Else
+  TotalMEConc = 0
+  TotalNElConc = 0
+  TotalNEgConc = 0
+  TotalNEmConc = 0
+End If
+  
+  
+If AnimalType <> "Replacement Heifer" Then
+  If TotalRegDMFed > 0 Then
+    NEDietConc = NEl_Total / TotalRegDMFed
+  Else
+    NEDietConc = 0
+  End If
+Else
+  If TotalRegDMFed > 0 Then
+    NEDietConc = NEm_Total / TotalRegDMFed
+  Else
+    NEDietConc = 0
+  End If
+End If
+  
+  
+    
+End Sub
+
+
+
+Public Function MW_From_Breed(Br As String) As Integer
+
+Select Case Br
+  Case "Ayrshire"
+    MW_From_Breed = 545
+  Case "Brown Swiss"
+    MW_From_Breed = 682
+  Case "Guernsey"
+    MW_From_Breed = 500
+  Case "Holstein"
+    MW_From_Breed = 682
+  Case "Jersey"
+    MW_From_Breed = 454
+  Case "Milking Shorthorn"
+    MW_From_Breed = 568
+End Select
+
+End Function
+
+
+
+Public Function CBW_From_MW() As Single
+
+  CBW_From_MW = 0.06275 * MW
+
+End Function
+
