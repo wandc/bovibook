@@ -1,7 +1,6 @@
 <?php 
 
 //adding deleting users, etc.
-require_once "HTML/QuickForm.php";
 
 
 

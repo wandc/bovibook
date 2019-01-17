@@ -1,10 +1,5 @@
 <?php 
-require_once "HTML/QuickForm.php";
 
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/dataGridHelper.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';  
-;
 
 //super hack, we use this class alot and for the error notifier to work
 //we need to have it as a unique name, this is so it skips loading this.

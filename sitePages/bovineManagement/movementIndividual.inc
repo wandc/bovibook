@@ -1,9 +1,5 @@
 <?php 
-require_once "HTML/QuickForm.php";
 
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-;
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc'; 
 //This relies on alrpo cron running successfully for alpro sync.
 class MovementIndividual extends BasePage {
 

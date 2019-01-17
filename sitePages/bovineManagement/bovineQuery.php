@@ -1,22 +1,7 @@
 <?php
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/basePage.php');
-require_once ('HTML/QuickForm.php');
-// there is a bug in teh google charts file that causes loading to hang.
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/googleCharts.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/accordionSub.php');
 
-
-include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaHelper.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/queryPageHelper.inc');
  include_once('functions/googleVisualization.inc');
 
-/*
- * require_once($_SERVER['DOCUMENT_ROOT'].'db/bovineManagement.inc');
- * 
- * require_once($_SERVER['DOCUMENT_ROOT'].'functions/misc.inc');
- * require_once($_SERVER['DOCUMENT_ROOT'].'functions/googleCharts.inc');
- */
 
 /**
  * ********************************************

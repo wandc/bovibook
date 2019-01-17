@@ -1,8 +1,4 @@
 <?php 
-require_once "HTML/QuickForm.php";
-
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/dataGridHelper.php');
-
 
 
 class ProfitProfiler extends BasePage {

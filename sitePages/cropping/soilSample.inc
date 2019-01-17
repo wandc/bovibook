@@ -1,9 +1,5 @@
 <?php 
-require_once ('HTML/QuickForm.php');
-require_once ($_SERVER ['DOCUMENT_ROOT'] . '/functions/misc.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
 
-;
 
 /**
  * Lists soil samples for fields and allows us to enter new ones *

@@ -1,9 +1,6 @@
 <?php 
 
-require_once "HTML/QuickForm.php";
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/googleCharts.inc');
-;
 
 class ValactaLatestTest extends BasePage {
 

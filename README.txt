@@ -1,4 +1,3 @@
-Install Instructions for Amazon EC2 Ubuntu
 install on EC2 instance:
 
 #sudo apt-get install php7.0 apache2
@@ -35,5 +34,5 @@ If everything went well you can go to your URL and should see bovibook login.
 
 If you do not, go check less /var/log/apache2/error.log for errors
 
-#needed, but I wish it wasnt:
+#needed, but I wish it wasnt
 sudo pear install HTML_QuickForm

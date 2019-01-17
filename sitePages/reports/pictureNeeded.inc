@@ -1,11 +1,5 @@
 <?php
 
-require_once "HTML/QuickForm.php";
-
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-include_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
 class PictureNeeded extends TabPage {
 
     public function defaultDisplay() {

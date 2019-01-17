@@ -1,11 +1,5 @@
 <?php 
 
-require_once "HTML/QuickForm.php";
-
-require_once ($_SERVER ['DOCUMENT_ROOT'] . '/functions/misc.inc');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/croppingHelper.inc');
-
-     
 
 class CroppingNutrientRequirements {
 

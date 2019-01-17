@@ -1,12 +1,5 @@
 <?php 
 
-//adding deleting users, etc.
-require_once "HTML/QuickForm.php";
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/dataGridHelper.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-//
-;
-
 class UserAdmin extends BasePage {
 
   

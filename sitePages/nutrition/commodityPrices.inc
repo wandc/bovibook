@@ -1,10 +1,5 @@
 <?php 
 // Lists straws of semen in our inventory
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/debug.php');
-require_once ('HTML/QuickForm.php');
-require_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/misc.inc');
-
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/basePage.php');
 
 
 class CommodityPrices extends BasePage {

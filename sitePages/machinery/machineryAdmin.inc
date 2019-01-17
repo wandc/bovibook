@@ -1,10 +1,5 @@
 <?php 
 
-require_once "HTML/QuickForm.php";
-
-
-
-
 class machineryAdmin extends BasePage {
 
 

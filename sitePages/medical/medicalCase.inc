@@ -1,18 +1,5 @@
 <?php 
 
-require_once ('HTML/QuickForm.php');
-require_once ($_SERVER ['DOCUMENT_ROOT'] . '/functions/misc.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
-// Lists cows who have been bred,etc.
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/debug.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/accordionSub.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/medical/medicineScheduled.inc');
-     ;
-     require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc'; 
-
-
 class MedicalCase extends TabPage {
 
     static public $medicalSummaryLastUpdateArray; //holds the cache

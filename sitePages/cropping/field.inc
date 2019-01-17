@@ -2,14 +2,7 @@
 /*
  * SELECT gis.ST_Difference((SELECT geom FROM cropping.datum WHERE id=4157),(SELECT geom FROM cropping.datum WHERE id=3246))
  */
-require_once "HTML/QuickForm.php";
 
-require_once ($_SERVER ['DOCUMENT_ROOT'] . '/functions/misc.inc');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/croppingHelper.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';
-;
 
 class Field extends TabPage {
 
