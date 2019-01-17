@@ -6,10 +6,11 @@
  * 
  * 
  */
-if (defined('STDIN')) { //when called from cli, command line
-$_SERVER['DOCUMENT_ROOT']='/var/www/int/'; 
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
 }
-require_once('../global.php');
+
+require_once($_SERVER['DOCUMENT_ROOT'].'global.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'functions/alproCommands.php');
 
 /**

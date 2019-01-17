@@ -1,10 +1,8 @@
 <?php 
-
-if (defined('STDIN')) { //when called from cli, command line
-    include_once('../global.php');
-} else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
 }
+include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);

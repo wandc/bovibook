@@ -1,11 +1,9 @@
 <?php 
 //show errors.
 error_reporting(E_ERROR | E_PARSE);
-if (defined('STDIN')) { //when called from cli, command line
-include_once('../global.php');
- print("dsadsa\n\r");
-include_once('../functions/misc.inc');
-$_SERVER['DOCUMENT_ROOT']='/var/www/int/'; //hack so when it loads classes they work
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
+    include_once( $_SERVER['DOCUMENT_ROOT'].'global.php');
 }
 else { //when called any other way
 print("Can't be called from the web.<br>");

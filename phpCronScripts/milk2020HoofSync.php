@@ -4,12 +4,11 @@
  * This class contacts milk2020 and downlaod hoof data
  * 
  */
-if (defined('STDIN')) { //when called from cli, command line
-    include_once('../global.php');
-    include_once('../functions/misc.inc');
-} else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
 }
+include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
+
 
 class Milk2020HoofSync {
 

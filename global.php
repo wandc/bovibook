@@ -3,12 +3,19 @@
  * All Classes use this code...
  * 
  */
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=(__DIR__).'/';
+}
 
 $iniFile = 'local/config/config.ini'; //load custom config
 
 
+
 require_once('HTML/QuickForm.php'); //one off loader for old deprecated pear class. remove forms then delete this. FIXME
 require_once 'HTML/QuickForm/Renderer/Tableless.php'; //one off loader for old deprecated pear class. remove forms then delete this. FIXME
+
+
+//autoloader
 new IntAutoLoader(); //bovibook loader
 require_once('vendor/autoload.php'); // autoloads all composer files.
 
@@ -16,13 +23,7 @@ require_once('vendor/autoload.php'); // autoloads all composer files.
  * Initiate Misc Class and make global
  * Used for helper functions across the site.
  */
-
-if (defined('STDIN')) { //when called from cli, command line
-  require_once(dirname(__FILE__).'/functions/misc.inc');
-} else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
-    include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-}
+require_once('functions/misc.inc');
 $GLOBALS['MiscObj']= new Misc();
 
 ////
@@ -80,6 +81,7 @@ else {
 //CLI
 else {
     // no autentication used for cli scripts
+    $GLOBALS['auth_scheme']=null;
 }
 
 

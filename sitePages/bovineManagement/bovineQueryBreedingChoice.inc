@@ -1,33 +1,5 @@
 <?php 
 
-if (defined('STDIN')) { //when called from cli, command line
-    include_once('../functions/dataGridHelper.php');
-} else { //when called any other way
-    include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-    ;
-}
-
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) {
-
-    //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            if ($row['straw_count'] <= 1) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
 
 class BovineQueryBreedingChoice {
 

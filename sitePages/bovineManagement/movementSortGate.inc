@@ -1,21 +1,4 @@
 <?php 
-if (defined('STDIN')) {
-//running from CLI (for sync).
-    echo(dirname(__FILE__));
-    $_SERVER['DOCUMENT_ROOT'] = '/var/www/int/';
-} else {
-//running in browser
-}
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
-
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/alproSortHelper.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc'; 
-
-
 /**
  * Sets cows to be sorted out at certain times via the sort gate.
  */

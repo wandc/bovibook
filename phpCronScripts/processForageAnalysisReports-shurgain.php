@@ -4,13 +4,10 @@
   File to read shurgain feed analysis reports and store in db
   Just copy the pdfs from shurgain into the forageAnalysis directory and go. This will ignore valacta and other reports.
  */
-if (defined('STDIN')) { //when called from cli, command line
-    include_once('../global.php');
-    include_once('../functions/misc.inc');
-} else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
 }
+    include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
 
 /*
  * reads files from shurgain directory of forage sanple results. modified in 2018, nut used since 2015 or so before. changed so that

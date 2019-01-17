@@ -4,12 +4,11 @@
  * This class will execute DB queries run by a cron script to do the filtering of the data. Should be run every hour or so.
  * 
  */
-
-
-if (defined('STDIN')) { //when called from cli, command line
-    $_SERVER['DOCUMENT_ROOT'] = '/var/www/int/';
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
 }
-require_once('../global.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'global.php');
+
 /*
  * Takes information from google calendar and put into a datble.
  */
