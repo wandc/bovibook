@@ -143,6 +143,13 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                 curl_setopt($login, CURLOPT_USERPWD, "$username:$password");
                 curl_setopt($login, CURLOPT_POSTFIELDS, $extra.'grant_type=client_credentials');
                 $loginStr = curl_exec($login);
+                 
+                //without this curl silently fails.
+                if($loginStr === false)
+                {
+                    throw new Exceiption('LOGIN Curl error: ' . curl_error($login));
+                }
+                
                 curl_close($login);
 
                 if (self::isJson($loginStr)) {

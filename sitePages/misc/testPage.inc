@@ -389,54 +389,6 @@ $('#HoldListener').on('clickHold', function() {
   
     
     
-      public function bovineSelectQuickForm5($mode = 'default') {
-        
-        
-        
-        if ($mode=='default') {
-           $style='bovineSelectPage';
-            $aniNumber = Misc::createListOfAllAliveCows(false);
-        }
-        else {
-           $style='bovineSelect';  
-           $aniNumber = Misc::createListOfAllAliveCows(true);
-        }
-    
-        $pageid=6;
-     
-        //javascript to allow submission on change of select element.
-        $attrs = array('id' => "$style", 'onchange' => "javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid=$pageid';$('#example > ul').tabs('select', 0);");
-
-        //javascript to allow submission when enter is pressed within select form
-        //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
-
-        $form = new HTML_QuickForm("animalBovineQuickSelect", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-     
-        
-        //$form->addElement('header', 'hdrQuickfrmbovineQuickSelect','Select a bovine');
-        $form->addElement('select', 'bovineNumber', '', $aniNumber, $attrs);
-        $form->addElement('hidden', 'pageid', $pageid);
-
-        //defaults
-        if ((isset( $this->bovine_id) ) && ($this->bovine_id != null)) {
-            $form->setDefaults(array('bovineNumber' => $this->bovine_id)); //set to current bovine
-        } else {
-            $form->setDefaults(array('bovineNumber' => 0)); //set default to no.  
-        }
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get value
-            $this->bovine_id = $form->exportValue('bovineNumber');
-            $this->pageid = $form->exportValue('pageid');
-        } //end validation
-     
-        $form->accept($renderer);
-        return $renderer->toHtml();
-    }
-    
     
     function select() {
         

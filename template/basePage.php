@@ -349,29 +349,8 @@ abstract Class BasePage {
         print(cssLinkGenerate('/css/print.css', 'print'));
     }
 
-    /*
-     * Detect if we have an iPhone or iPod touch. returns true if so.
-     */
-
-    public static function iPhoneDetection() {
-        if ((strpos($_SERVER['HTTP_USER_AGENT'], "iPhone") == true ) || (strpos($_SERVER['HTTP_USER_AGENT'], "iPod") == true )) {
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
-
-    /*
-     * Detect if we have an iPad. returns true if so.
-     */
-
-    public static function iPadDetection() {
-        if (strpos($_SERVER['HTTP_USER_AGENT'], "iPad") == true) {
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
+  
+   
 
     private function allPageJavascript() {
        

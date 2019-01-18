@@ -275,50 +275,7 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
         }
     }
 
-    /**
-     * Small form that selects the field.
-     */
-    public function fieldSelectQuickForm($mode = 'default') {
-
-        if ($mode == 'default') {
-            $style = 'fieldSelectPage';
-        } else {
-            $style = 'fieldSelect';
-        }
-
-        $fieldNumber = CroppingHelper::listOfCurrentFields($mode); //input compact here to see small version
-        //javascript to allow submission on change of select element.
-        $attrs = array('id' => "$style", 'onchange' => "javascript:location.href='?field_id='+this.options[this.selectedIndex].value+'&pageid={$GLOBALS['config']['static_page_location']['fieldQuery']}';$('#example > ul').tabs('select', 0);");
-
-        //javascript to allow submission when enter is pressed within select form
-        //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
-
-        $form = new HTML_QuickForm("frmFieldQuickSelect", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-       
-
-        //$form->addElement('header', 'hdrQuickfrmFieldQuickSelect','Select a Field');
-        $form->addElement('select', 'fieldNumber', '', $fieldNumber, $attrs);
-        $form->addElement('hidden', 'pageid', $GLOBALS['config']['static_page_location']['fieldQuery']);
-
-        //defaults
-        if ($this->field_id != null) {
-            $form->setDefaults(array('fieldNumber' => $this->field_id)); //set to current field
-        } else {
-            $form->setDefaults(array('fieldNumber' => 0)); //set default to no.  
-        }
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get value
-            $this->field_id = $form->exportValue('fieldNumber');
-            $this->pageid = $form->exportValue('pageid');
-        } //end validation
-        $form->accept($renderer);
-        return $renderer->toHtml();
-    }
-
+    
     //////////////////////////////////////////////////////
 
     /**

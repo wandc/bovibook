@@ -124,7 +124,7 @@ INSERT INTO wcauthentication.groups VALUES (14, 'secure_basic                   
 /* add admin user */
 INSERT INTO wcauthentication.oauth_clients (client_id,client_secret,redirect_uri,scope,user_id) VALUES ('admin','f5f0d2bc73d70b8356b54e584661a44d','null','null','null');
 INSERT INTO wcauthentication.users (firstname,lastname,userid,email,active,onfarm)VALUES ('admin','user','admin','admin@example.com','true','true');
-
+INSERT INTO wcauthentication.users_in_groups (userid,groupid) VALUES ('admin','admin');
 
 
 

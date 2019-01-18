@@ -144,10 +144,10 @@ class BovineQueryMedicalLog {
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row['magnet']=='t') {
-            return "<b>Rumen Magnet:</b> Yes";
+            return "<b>Reticulum Magnet:</b> Yes";
         }
         else {
-             return "<b>Rumen Magnet:</b> No";
+             return "<b>Reticulum Magnet:</b> No";
         }
         
     }

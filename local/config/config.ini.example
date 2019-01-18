@@ -79,7 +79,7 @@ path='vendor/almasaeed2010/adminlte/';
 [static_page_location]
 bovineQuery = 6
 fieldQuery = 107
-machineQuery = 49
+machineQuery = 95
 
 [MEDICAL]
 prostaglandin_id = 11

@@ -27,3 +27,9 @@ SSL needs to be enabled on apache2. self sign cert
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
 sudo a2enmod ssl
 
+move sertificate out of privcate dir becasue of permissions issue. need to fix this.
+sudo cp /etc/ssl/private/apache-selfsigned.key /etc/ssl/apache-selfsigned.key
+
+
+login needs default search path to wcauthentication for c3po , would be better
+ALTER USER user SET search_path TO accountschema;

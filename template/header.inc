@@ -40,27 +40,24 @@ class Header {
         <span class="sr-only">Toggle navigation</span>
       </a>
        <?php
-             $str ='';
-            $str = $str . ('<div class="headerOneLine">');
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQuery.php');
-                $bovineQ = new BovineQuery();
-                $str = $str .$bovineQ->bovineSelectQuickForm('compact');
-                $str = $str . ('</span>');
-
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/cropping/fieldQuery.inc');
-                $fieldQ = new FieldQuery();
-                $str = $str .$fieldQ->fieldSelectQuickForm('compact');
-                $str = $str . ('</span>');
-
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/machinery/machineQuery.inc');
-                $machineQ = new MachineQuery();
-                $str = $str .$machineQ->machineSelectQuickForm('compact');
-                $str = $str . ('</span>');
+       
+         $hf=new HeaderForm();
+         $animals=$hf->animals();
+         $fields=$hf->fields();
+         $machines=$hf->machines();
          
-                print($str);
+                 $html = <<<HTML
+<div class="headerOneLine">
+                        <span>
+                        $animals
+                        $fields
+                        $machines
+                        </span>
+<!-- close div later -->
+HTML;
+         
+         
+                print($html);
             ?>
       <!-- Navbar Right Menu -->
       <div class="navbar-custom-menu">
@@ -238,19 +235,7 @@ class Header {
     
 
      public function main($pageTitleStr) {
-        $str = '';
-
-        if (BasePage::iPhoneDetection() == true) {
-            $str = $str . self::mobileDisplay($pageTitleStr);
-        } else {
-            $str = $str . self::desktopDisplay($pageTitleStr);
-        }
-        
-        return $str;
-    }
-    
-    
-    public function mobileDisplay($pageTitleStr) {
+       
         $str = '';
 
         //when mobile device logs in directly with key, this isn't set, so error thrown. FIXME.
@@ -447,4 +432,54 @@ class Header {
     
 }
 
+/*
+ * custom forms for the top of the page header
+ * for animals, crops, machinery
+ */
+Class HeaderForm {
+
+   private function createSelectOption($arr) {
+
+        foreach ($arr as $key => $value) {
+            $out[] = '<option value="' . $key . '">' . $value . '</option>';
+        }
+        return implode($out);
+    }
+
+    public function animals() {
+        $aniNumber = Misc::createListOfAllAliveCows(false);
+        $options = $this->createSelectOption($aniNumber);
+
+        $html = <<<HTML
+  <select  class="form-control" id="bovineSelect" onchange="javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid={$GLOBALS['config']['static_page_location']['bovineQuery']}';">
+     $options
+    </select>
+HTML;
+        return $html;
+    }
+
+    public function fields() {
+        $aniNumber = CroppingHelper::listOfCurrentFields();
+        $options = $this->createSelectOption($aniNumber);
+
+        $html = <<<HTML
+  <select  class="form-control" id="fieldSelect"  onchange="javascript:location.href='?field_id='+this.options[this.selectedIndex].value+'&amp;pageid={$GLOBALS['config']['static_page_location']['fieldQuery']}';">
+     $options
+    </select>
+HTML;
+        return $html;
+    }
+    
+    public function machines() {
+        $aniNumber = MachineQuery::createListOfAllActiveMachines('default');
+        $options = $this->createSelectOption($aniNumber);
+
+        $html = <<<HTML
+  <select  class="form-control" id="machineSelect" onchange="javascript:location.href='?machine_id='+this.options[this.selectedIndex].value+'&amp;pageid={$GLOBALS['config']['static_page_location']['machineQuery']}';">
+     $options
+    </select>
+HTML;
+        return $html;
+    }
+}
 //end class

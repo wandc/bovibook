@@ -10,7 +10,7 @@
 }
 
 .globalTopContainer {
-    
+
     height: 40px;
     margin: 0px;
     padding: 0px;
@@ -18,7 +18,7 @@
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 10px;   
     overflow:hidden; /* key to having the inline div's not flow down the page, they instead flow within this container, which they should not??? */
-   
+
 }
 
 .globalTopContainerCrest {
@@ -48,7 +48,7 @@
     margin-left: 4em;
     margin-right: 0em;
     margin-top: 5px;
-   /* min-width: 11em;*/
+    /* min-width: 11em;*/
 }
 
 .globalTopContainer h4 {
@@ -56,12 +56,12 @@
     padding: 0px;
     margin: 0px;
     color:#fff;
-    
+
 
 }
 
 
-
+.headerOneLine span { display: inline-block; padding-top: .5em; white-space: nowrap;  }
 .headerOneLine div { white-space: nowrap;  }
 .headerOneLine p { display: inline }
 .headerOneLine img { display: inline }
@@ -106,11 +106,11 @@
 
 /* shows users name */
 h2.loginNameBox {
-   display:inline-block;
-   vertical-align: top;
+    display:inline-block;
+    vertical-align: top;
     padding: 0;
     margin: 0;
-     padding-top:7px;
+    padding-top:7px;
     font-family: courier, "courier new", monospace;
     font-size: 1.25em;
     font-weight: 500;
@@ -139,62 +139,65 @@ h2.loginNameBox {
 
 
 #bovineSelect {
+    display:inline;
     padding:0;
     margin:0;   
     appearance:none;
-   -webkit-appearance: none;
-   -moz-appearance:none;
-   border: 0;
-   border-radius: 0;
-   width: 30px;
-   height: 30px;
-   cursor:pointer; 
-   background:url(/images/iconCowHead_hover.svg) no-repeat;  
-   padding-right:48px;
- 
+    -webkit-appearance: none;
+    -moz-appearance:none;
+    border: 0;
+    border-radius: 0;
+    width: 30px;
+    height: 30px;
+    cursor:pointer; 
+    background:url(/images/iconCowHead_hover.svg) no-repeat;  
+    padding-right:48px;
+
 }
 #bovineSelect:hover
 { 
     background:url(/images/iconCowHead_hover.svg) no-repeat; 
-       padding-right:48px;
+    background-color: #555299;
 }
 
 
 
 #bovineSelect:focus {
-outline: 0;
+    outline: 0;
 }
 
 select#bovineSelect
 {
-padding-right:48px;
+    padding-right:48px;
 }
 
 
 
 
 #fieldSelect {
+    display:inline;
     padding:0;
     margin:0;
     appearance:none;
-   -webkit-appearance: none;
+    -webkit-appearance: none;
     -moz-appearance:none;  
-   border: 0;
-   border-radius: 0;
-   margin-left:8px;  
-   width: 25px;
-   height: 30px;
-   cursor:pointer;
+    border: 0;
+    border-radius: 0;
+    margin-left:8px;  
+    width: 25px;
+    height: 30px;
+    cursor:pointer;
     padding-right:48px;
-   background:url(/images/iconCorn_hover.svg) no-repeat;  
+    background:url(/images/iconCorn_hover.svg) no-repeat;  
 }
 #fieldSelect:hover
 { 
     background:url(/images/iconCorn_hover.svg) no-repeat; 
+    background-color: #555299;
 }
 
 #fieldSelect:focus {
-outline: 0;
+    outline: 0;
 }
 
 select#fieldSelect  
@@ -205,27 +208,29 @@ select#fieldSelect
 
 
 #machineSelect {
+    display:inline;
     padding:0;
     margin:0;   
-      appearance:none;
-   -webkit-appearance: none;
+    appearance:none;
+    -webkit-appearance: none;
     -moz-appearance:none;
-   border: 0;
-   border-radius: 0;
-   width: 40px;
-   height: 30px;
-   cursor:pointer;
-   background:url(/images/iconTractor_hover.svg) no-repeat;  
-   padding-right:48px;
-   margin-left:-6px;
+    border: 0;
+    border-radius: 0;
+    width: 40px;
+    height: 30px;
+    cursor:pointer;
+    background:url(/images/iconTractor_hover.svg) no-repeat;  
+    padding-right:48px;
+    margin-left:-6px;
 }
 #machineSelect:hover
 { 
     background:url(/images/iconTractor_hover.svg) no-repeat; 
+    background-color: #555299;
 }
 
 #machineSelect:focus {
-outline: 0;
+    outline: 0;
 }
 
 select#machineSelect
@@ -262,7 +267,7 @@ select#machineSelect
 
 .googleMailNewCount {
     display: inline-block; 
-     font-family: courier, "courier new", monospace;
+    font-family: courier, "courier new", monospace;
     font-size: 1.25em;
     font-weight: 500;
     text-align: left;
@@ -285,7 +290,7 @@ select#machineSelect
 
 
 .iconSpacer {
-    
+
     width: 0px;
     height: 26px;  
     border: 1.5px solid #E6E6E6;
@@ -296,15 +301,15 @@ select#machineSelect
 
 #searchForm
 {
-   display:inline-block;
-   vertical-align: top;
+    display:inline-block;
+    vertical-align: top;
     padding: 1px;
     margin: 8px;
-   width: 200px;
-   height: 20px;  
+    width: 200px;
+    height: 20px;  
 }
 
 #timeUntilLogout {
     position:absolute;
-   background-color: #fbd850;
+    background-color: #fbd850;
 }
