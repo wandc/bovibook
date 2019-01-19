@@ -73,8 +73,6 @@ google_client_secret = 'PASSWORD';
 google_redirect_url = 'https://YOURDOMAIN.COM/index.php';
 google_developer_key = 'GOOGLE_NUMBER@developer.gserviceaccount.com';
 
-[ADMINLTE]
-path='vendor/almasaeed2010/adminlte/';
 
 [static_page_location]
 bovineQuery = 6

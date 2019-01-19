@@ -2,30 +2,11 @@
 /* makes it easier to use google visulization line charts. */
 
 
-
-
-/**
- * Used by basepage to load any needed visulaization for all pages.  
- * must be called at top of page, so not within jquery tab for callbacks to work.
- */
-class GoogleVisGlobal {
-
-    static public function loadVisualization() {
-        return "
-             <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
-        <script type='text/javascript'>
-         google.charts.load('current', {packages: ['calendar','corechart','orgchart','table']});
-        </script>	
-        ";
-    }
-
-}
-
 /**
  * Google Visualization base common class other extend form this.
  *  
  */
-class GoogleVisCommon {
+class GoogleVisualization {
 
     public $uuid; //so charts are uniquely identified and seperated.
     protected $headerStrArr; //need by data method and header
@@ -40,6 +21,20 @@ class GoogleVisCommon {
         return $this->output;
     }
 
+    //used to load google charts on every page (usually).
+    /**
+ * Used by basepage to load any needed visulaization for all pages.  
+ * must be called at top of page, so not within jquery tab for callbacks to work.
+ */
+    static public function loadVisualization() {
+        return "
+             <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+        <script type='text/javascript'>
+         google.charts.load('current', {packages: ['calendar','corechart','orgchart','table']});
+        </script>	
+        ";
+    }
+    
     /**
      * Main method called by constructor.
      * 
@@ -86,7 +81,7 @@ class GoogleVisCommon {
     }
 
     /**
-     * not used anymore, called at top of every page with GoogleVisCommon in basepage
+     * not used anymore, called at top of every page with GoogleVisualization in basepage
      */
     public function headerJS() {
         $str = '';
@@ -298,7 +293,7 @@ class GoogleVisCommon {
   print($x->toString());
  * 
  */
-class GoogleVisPie extends GoogleVisCommon {
+class GoogleVisPie extends GoogleVisualization {
 
     public function __construct($options = null, $headerStrArr, $dimArray, $dimArray2, $dimArray3 = null, $dimArray4 = null) {
         $this->uuid = uniqid();
@@ -313,7 +308,7 @@ class GoogleVisPie extends GoogleVisCommon {
 
 }
 
-class GoogleVisLine extends GoogleVisCommon {
+class GoogleVisLine extends GoogleVisualization {
 
     public function __construct($options = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
         $this->uuid = uniqid();
@@ -323,7 +318,7 @@ class GoogleVisLine extends GoogleVisCommon {
 
 }
 
-class GoogleVisBar extends GoogleVisCommon {
+class GoogleVisBar extends GoogleVisualization {
 
     public function __construct($options = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
         $this->uuid = uniqid();
@@ -333,7 +328,7 @@ class GoogleVisBar extends GoogleVisCommon {
 
 }
 
-class GoogleVisColumn extends GoogleVisCommon {
+class GoogleVisColumn extends GoogleVisualization {
 
     public function __construct($options = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
         $this->uuid = uniqid();
@@ -343,8 +338,8 @@ class GoogleVisColumn extends GoogleVisCommon {
 
 }
 
-//this class is custom and doesn't use much of GoogleVisCommon except uuid.
-class GoogleVisSparkLine2 extends GoogleVisCommon {
+//this class is custom and doesn't use much of GoogleVisualization except uuid.
+class GoogleVisSparkLine2 extends GoogleVisualization {
 
     //uses google visulization library, ie not picture, but JS.
     public function sparklineContainerVis($text, $dataArr, $number) {

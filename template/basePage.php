@@ -238,7 +238,7 @@ abstract Class BasePage {
 
 
         <!-- AdminLTE App -->
-        <script src="<?php echo($GLOBALS['config']['ADMINLTE']['path']); ?>dist/js/adminlte.min.js"></script>
+        <script src="/vendor/almasaeed2010/adminlte/dist/js/adminlte.min.js"></script>
 
         <!-- Optionally, you can add Slimscroll and FastClick plugins.
              Both of these plugins are recommended to enhance the
@@ -336,8 +336,8 @@ abstract Class BasePage {
         print(cssLinkGenerate('/vendor/driftyco/ionicons/css/ionicons.min.css', 'all')); // <!-- Ionicons -->
         
 
-        print(cssLinkGenerate($GLOBALS['config']['ADMINLTE']['path'] . 'dist/css/AdminLTE.min.css', 'all'));
-        print(cssLinkGenerate($GLOBALS['config']['ADMINLTE']['path'] . 'dist/css/skins/skin-purple.min.css', 'all'));
+        print(cssLinkGenerate('/vendor/almasaeed2010/adminlte/dist/css/AdminLTE.min.css', 'all'));
+        print(cssLinkGenerate('/vendor/almasaeed2010/adminlte/dist/css/skins/skin-purple.min.css', 'all'));
 
         //legacy
         print(cssLinkGenerate('/css/quickformTableless.css', 'all'));
@@ -354,21 +354,21 @@ abstract Class BasePage {
 
     private function allPageJavascript() {
        
-      print('<script type="text/javascript" src="vendor/components/jquery/jquery.min.js"></script>' . "\n");
-      print('<script type="text/javascript" src="vendor/components/jqueryui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
-      print('<script type="text/javascript" src="vendor/datatables/datatables/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
-      print('<script type="text/javascript" src="vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
+      print('<script type="text/javascript" src="/vendor/components/jquery/jquery.min.js"></script>' . "\n");
+      print('<script type="text/javascript" src="/vendor/components/jqueryui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
+      print('<script type="text/javascript" src="/vendor/datatables/datatables/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
+      print('<script type="text/javascript" src="/vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
        
         //NOTE: adminLTE is loaded in header. 
-        print('<script type="text/javascript" src="jscript/dataTables.select.min.js"</script>' . "\n"); //used on TMR recipe new page.
-        print('<script type="text/javascript" src="vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
-        print('<script type="text/javascript" src="vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
-        print('<script type="text/javascript" src="vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
-        print('<script type="text/javascript" src="vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
-        print('<script type="text/javascript" src="vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
-        //load for all pages, because it is easier
-        include_once('functions/googleVisualization.inc');
-        print(GoogleVisGlobal::loadVisualization());
+        print('<script type="text/javascript" src="/jscript/dataTables.select.min.js"</script>' . "\n"); //used on TMR recipe new page.
+        print('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
+        print('<script type="text/javascript" src="/vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
+        print('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
+        print('<script type="text/javascript" src="/vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
+        print('<script type="text/javascript" src="/vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
+        
+       //load charts for all pages, because it is easier
+       print(GoogleVisualization::loadVisualization());
 
      
     }

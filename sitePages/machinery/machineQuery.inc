@@ -170,51 +170,7 @@ return $html;
     
     
     
-    /**
-     * Small form that selects the machine.
-     */
-    public function machineSelectQuickForm($mode = 'default') {
-
-        if ($mode == 'default') {
-            $style = 'machineSelectPage';
-        } else {
-            $style = 'machineSelect';
-        }
-
-        $machineNumber = self::createListOfAllActiveMachines($mode); //input compact here to see small version
-        //javascript to allow submission on change of select element.
-        $attrs = array('id' => "$style", 'onchange' => "javascript:location.href='?machine_id='+this.options[this.selectedIndex].value+'&pageid={$this->pageid}';$('#example > ul').tabs('select', 0);");
-
-        //javascript to allow submission when enter is pressed within select form
-        //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
-
-
-
-        $form = new HTML_QuickForm("frmMachineQuickSelect", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-
-        $form->addElement('select', 'machineNumber', '', $machineNumber, $attrs);
-        $form->addElement('hidden', 'pageid', $this->pageid);
-
-        //defaults
-        if ($this->machine_id != null) {
-            $form->setDefaults(array('machineNumber' => $this->machine_id)); //set to current machine
-        } else {
-            $form->setDefaults(array('machineNumber' => 0)); //set default to no.  
-        }
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get value
-            $this->machine_id = $form->exportValue('machineNumber');
-            $this->pageid = $form->exportValue('pageid');
-        } //end validation
-        $form->accept($renderer);
-        return $renderer->toHtml();
-    }
+   
 
     public function createListOfAllActiveMachines($mode = 'default') {
         $machineNumber[null] = "Please Select one..."; //dummy value
