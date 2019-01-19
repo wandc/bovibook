@@ -27,7 +27,8 @@
         "moment/moment": "^2.21",
         "phpoffice/phpspreadsheet": "^1.4",
 	"phpstan/phpstan": "^0.9",
-        "pear/html_quickform2": "^2.0"
+        "pear/html_quickform2": "^2.0",
+        "openpsa/quickform":  "^3.3.5.1"
     },
     "require-dev": {
         "php": "^7.0.3",
@@ -47,7 +48,9 @@
         "moment/moment": "^2.21",
         "phpoffice/phpspreadsheet": "^1.4",
         "phpstan/phpstan": "^0.9",
-        "pear/html_quickform2": "^2.0"    },
+        "pear/html_quickform2": "^2.0",
+        "openpsa/quickform":  "^3.3.5.1"
+    },
 
     "minimum-stability": "dev",
     "prefer-stable": true
