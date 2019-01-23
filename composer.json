@@ -49,24 +49,8 @@
         "phpoffice/phpspreadsheet": "^1.4",
         "phpstan/phpstan": "^0.9",
         "pear/html_quickform2": "^2.0",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        "openpsa/quickform":  "^3.3.5.1"
-    },
-
-=======
         "openpsa/quickform":  "^3.3.5.1"    
     },
->>>>>>> Stashed changes
-=======
-        "openpsa/quickform":  "^3.3.5.1"    
-    },
->>>>>>> Stashed changes
-=======
-        "openpsa/quickform":  "^3.3.5.1"    
-    },
->>>>>>> Stashed changes
     "minimum-stability": "dev",
     "prefer-stable": true
 }
