@@ -130,13 +130,8 @@ ORDER BY actual_breeding_time DESC ,estimated_breeding_time ASC, local_number li
             //$row['action'] = 1;
             //
             //  
-            $row['action'] = $this->printActionButtons2($row['id'],$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
-
-            if (empty($row['actual_breeding_userid'])) {
-                $row['colour_row'] = 1;
-            } else {
-                $row['colour_row'] = 0;
-            }
+            $row['action'] = $this->printActionButtons2($row['id'],$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");  
+            $row['colour_row'] =  (empty($row['actual_breeding_userid']) ? 1 : 0);
             
         }
 
@@ -157,11 +152,11 @@ ORDER BY estimated_breeding_time DESC";
         $res = $GLOBALS['pdo']->query($sql);
         $rowCount = $res->rowCount();
         if ($rowCount >= 1) {
-            print("<br/><b>Note: $rowCount future breedings scheduled.</b><br/>");
+            print((new BootStrap)->infoSpan("$rowCount Future Breedings Scheduled"));  
         }
     }
 
-
+    
 
   
 
@@ -204,7 +199,7 @@ ORDER BY estimated_breeding_time DESC";
         extract($params);
 
         //create a link to CDN website, so when user clicks they go there for the sire
-        $linkStr = Misc::createListOfAllCowsMilking($record['sire_full_reg_number']);
+        $linkStr = $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['sire_full_reg_number']);
 
         if ($record['sexed_semen'] == 't') {
             $returnValue = "<a href=\"$linkStr\">{$record['service_sire_full_name']} - sexed</a>";
@@ -484,7 +479,7 @@ Class QF2_EstrusBreedingsChooseSemen extends Quickform2Helper {
             //parse for last word of name and then make an array for the select list.
             $t=preg_split("/[\s,]+/", $row['full_name']);
             $aniNumber[$row['id']] = $row['local_number'] . " - " . end($t) . "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" . date("l @ H:00", strtotime($row['estimated_breeding_time']));
-            //$aniNumber[$row['id']] = $row['local_number'] ." - " .Misc::femaleShortName($row['full_name'])."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;". date("M d, Y", strtotime($row['estimated_breeding_time']));
+            //$aniNumber[$row['id']] = $row['local_number'] ." - " .$GLOBALS['MiscObj']->femaleShortName($row['full_name'])."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;". date("M d, Y", strtotime($row['estimated_breeding_time']));
         }
 
         //use semen code as index, allocate actual straw when we do the insert. will cause an error if straw is already taken, but that is better then allocating a straw we don't have?
@@ -551,14 +546,14 @@ Class QF2_EstrusBreedingsMarkBred extends Quickform2Helper {
        
 
         
-        $dateArray = Misc::createHourlyDatesForLastTwoDays(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastTwoDays(); //hourly array, with unix timestamp as index.
         //grab a list of cows who have been chosen to be bred and have semen chosen.
         //doesn't allow you to mark cows who are bred until they are within 2 days of there scheduled breeding.
         $res = $GLOBALS['pdo']->query("SELECT breeding_event.id,breeding_event.estimated_breeding_time,breeding_event.bovine_id,bovine.local_number, bovine.full_name FROM bovinemanagement.breeding_event LEFT JOIN bovinemanagement.bovine ON breeding_event.bovine_id = bovine.id WHERE breeding_event.actual_breeding_time is null AND semen_straw_id is not null AND estimated_breeding_time::timestamp without time zone <= (current_timestamp + interval '2 day')::timestamp without time zone");
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row['id']] = $row['local_number'] . " - " . Misc::femaleShortName($row['full_name']). "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" . date("l @ H:00", strtotime($row['estimated_breeding_time']));
+            $aniNumber[$row['id']] = $row['local_number'] . " - " . $GLOBALS['MiscObj']->femaleShortName($row['full_name']). "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" . date("l @ H:00", strtotime($row['estimated_breeding_time']));
         }
 
         //grab a list of  comments
@@ -605,9 +600,9 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
 
     function definition($form) {
       
-        $dateArray = Misc::createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
 
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
         if ($this->mode == 'group') {
@@ -643,7 +638,7 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
             if ( $value['autoselect'] == 1) {
 
                // require_once ($_SERVER ['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
-                $ret = BovineQueryBreedingChoice::testBullOrProvenAlgorithm($value['bovine_id']);
+                $ret = (new BovineQueryBreedingChoice)->testBullOrProvenAlgorithm($value['bovine_id']);
 
                 //when there is no error.
                 if (($ret['text'] == null) AND ( $ret['semen_code'] != null)) {

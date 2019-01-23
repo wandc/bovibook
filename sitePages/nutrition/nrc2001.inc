@@ -1,12 +1,5 @@
 <?php
 
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/nrc2001/nrcdcpc.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/accordionSub.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reports/milkingStats.inc');
-;
-
 //Test cases:
 //$this->processNRC2001Output($this->testCase1());
 // $this->processNRC2001Output($this->testCase2());
@@ -276,7 +269,7 @@ $str='';
         $headerStrArr['Died'] = 'number';
 
         $opt = ' hAxis: { title: "+/- % of Required" },  width: 300,  height: 600, legend:"none"';
-        $x = new GoogleVisBar($opt, $headerStrArr, $arrayDied);
+        $x = new GoogleVisualizationBar($opt, $headerStrArr, $arrayDied);
 
                  return $this->bootstrapBox('Balance Chart (fixme)',$x->toString());
         
@@ -473,6 +466,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
     
     //adds latest forage tests to staging recipe
     //NOTE: as of Oct 2017, the sql code to find the closest forage analysis is pretty basic will only pick the closest test, even if we are in a different field.
+    //after we pick the closest test we need to update feed locations
     function addLatestBagConsumptionForageTestToStagingRecipes() {
         $form = new HTML_QuickForm("addLatestBagConsumptionForageTestToStagingRecipes", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -501,8 +495,24 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
 ON CONFLICT DO NOTHING ;
 ";
                 $res2 = $GLOBALS['pdo']->exec($sql2);
+                
+/* //FIXME, this seems to change yeast, not working??
+                //this gives us a feedcurr_id by linking via feed name. 
+                $sql3 = <<<SQL
+SELECT feed_library_name,bag_id,'bagf|'||bag_id as feedcurr_id from nutrition.nrc_recipe_active_staging 
+LEFT JOIN nutrition.bag_analysis_overlay_feed_library() on "Feed Name"=feed_library_name
+LEFT JOIN nutrition.bag_analysis ON id="IFN"::integer
+where feedcurr_id is null and nrc_recipe={$row['nrc_recipe']} AND bag_id is not null
+SQL;
+                //update the feed_curr_id automatically
+                $res3 = $GLOBALS['pdo']->query($sql3);
+                while ($row3 = $res3->fetch(PDO::FETCH_ASSOC)) {
+                    $query4 = "UPDATE nutrition.nrc_recipe_item SET  feedcurr_id = '{$row3['feedcurr_id']}' WHERE nrc_recipe_item.feed_library_name='{$row3['feed_library_name']}' and nrc_recipe={$row['nrc_recipe']}";
+                    $upd4 = $GLOBALS['pdo']->exec($query4);
+                }
+            
+*/
             }
-
             header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
@@ -2194,7 +2204,7 @@ EX;
     }
 
     /**
-     * flips a 2d array, usually used with a datagrid array display.
+     * flips a 2d array
      * @param type $arr
      * @return type 
      */

@@ -2,13 +2,6 @@
 //keeps track of quota changes.
 
 
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-include_once($_SERVER['DOCUMENT_ROOT']. 'functions/googleCharts.inc');
-include_once($_SERVER['DOCUMENT_ROOT']. 'functions/googleVisualization.inc');
-
-
 class Quota extends TabPage {
 
     public function defaultDisplay() {
@@ -71,7 +64,7 @@ class Quota extends TabPage {
          $opt = "               
                         height: '600'
                        ";
-        $x = new GoogleVisLine($opt, $headerStrArr, self::calculateBlendPrice(4.3),self::calculateBlendPrice(4), self::calculateBlendPrice(3.7));
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, self::calculateBlendPrice(4.3),self::calculateBlendPrice(4), self::calculateBlendPrice(3.7));
         print($x->toString());
         //
         $this->displayLast24MonthsMilkRevenue();
@@ -108,7 +101,7 @@ class Quota extends TabPage {
     function incentiveDayQuickform() {
 
         //get 1st of the month dates
-        $dateArray = Misc::createMonthlyDatesForNextAndPrev12Months();
+        $dateArray = $GLOBALS['MiscObj']->createMonthlyDatesForNextAndPrev12Months();
 
         $form = new HTML_QuickForm("incentiveDayQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'incentiveDayQuickform', "Enter Incentive Days");
@@ -449,7 +442,7 @@ SQL;
         $headerStrArr = array();
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Credit Clearing Price ($)'] = 'number';
-        $x = new GoogleVisLine(null, $headerStrArr, $priceArr);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $priceArr);
         print($x->toString());
 
         print ('</div> <!-- end chart -->');
@@ -472,7 +465,7 @@ from batch.credit order by event_time DESC";
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Credits (kg)'] = 'number';
         $options=' pointSize: 8';
-        $x = new GoogleVisLine($options, $headerStrArr, $priceArr);
+        $x = new GoogleVisualizationLine($options, $headerStrArr, $priceArr);
         print($x->toString());
 
         print ('</div> <!-- end chart -->');
@@ -496,7 +489,7 @@ from batch.credit order by event_time DESC";
     function histoicalCreditExchangePriceQuickform() {
 
         //get 1st of the month dates
-        $dateArray = Misc::createMonthlyDatesForPrev12Months();
+        $dateArray = $GLOBALS['MiscObj']->createMonthlyDatesForPrev12Months();
 
         $form = new HTML_QuickForm("milkCreditExchangeQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'milkCreditExchangeQuickform', "Enter Milk Credit Exchange");
@@ -1030,7 +1023,7 @@ from batch.credit order by event_time DESC";
 
         $priceArr[strtotime($row['date'])] = $row['price'];
 
-        $x = new GoogleVisLine($opt, $headerStrArr, $daily_cred_arrEpoch);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $daily_cred_arrEpoch);
         print($x->toString());
     }
 
@@ -1094,7 +1087,7 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
 
 
         //get 1st of the month dates
-        $dateArray = Misc::createMonthlyDatesForPrev12Months();
+        $dateArray = $GLOBALS['MiscObj']->createMonthlyDatesForPrev12Months();
 
         $form = new HTML_QuickForm("milkStatementQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'milkStatementQuickform', "Enter Milk Statement");
@@ -1213,7 +1206,7 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
         /*         * ******************************* */
 
         //get 1st of the month dates
-        $dateArray = Misc::createMonthlyDatesForNextAndPrevFewMonths();
+        $dateArray = $GLOBALS['MiscObj']->createMonthlyDatesForNextAndPrevFewMonths();
 
         $quotaEvents = array(null => 'Please Select one...', 'buy_sell' => 'Bought / Sold', 'board_adjustment' => 'Board Adjustment');
 
@@ -1292,7 +1285,7 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
 
 
         //get 1st of the month dates
-        $dateArray = Misc::createMonthlyDatesLastDayMonthForNextAndPrevManyMonths();
+        $dateArray = $GLOBALS['MiscObj']->createMonthlyDatesLastDayMonthForNextAndPrevManyMonths();
 
         $creditEvents = array(null => 'Please Select one...', 'buy_sell' => '(Bought) / Sold', 'over_under' => 'Over / (Under) for Month', 'above_below' => '(Above) / Below Quota Limit', 'incentive' => '(Incentives) used','over_quota' => '(Over) Quota');
 
@@ -1371,7 +1364,7 @@ SELECT date_series::date,quota,perm_quota, COALESCE (pickup_day1,pickup_day2) as
 SELECT event_time,trim(event_type) as event_type,butterfat_change,userid,(SELECT sum(butterfat_change) FROM batch.quota WHERE event_time<= main.event_time) as to_date_butterfat_holdings
 FROM batch.quota as main ORDER BY event_time DESC
 SQL;
-         print( (new JQueryDataTable)->startBasicSql($sql,''));
+         print( (new JQueryDataTable)->startBasicSql($sql,'order:false'));
     }
 
     function printFormattedTime($params) {
@@ -1427,7 +1420,7 @@ SQL;
         $headerStrArr = array();
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['BF Quota (kg)'] = 'number';
-        $x = new GoogleVisLine($opt='', $headerStrArr, $bfQuotaArr);
+        $x = new GoogleVisualizationLine($opt='', $headerStrArr, $bfQuotaArr);
         print($x->toString());
     }
 
@@ -1452,7 +1445,7 @@ SQL;
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['BF Quota+Incentive (kg)'] = 'number';
         $opt = null;
-        $x = new GoogleVisLine($opt, $headerStrArr, $bfQuotaArr);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $bfQuotaArr);
         print($x->toString());
     }
 

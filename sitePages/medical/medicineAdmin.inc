@@ -1,30 +1,32 @@
 <?php 
 
 
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicineScheduled.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicalCase.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/dataGridHelper.php');
-
 class MedicineAdmin extends BasePage {
 
     public function defaultDisplay() {
-        $this->addMedicineQuickform();
-        $this->displayMedicineList();
+        
+         $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>
+            {$this->addMedicineQuickform()}
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'> 
+            {$this->displayMedicineList()}
+        </div>
+    </div>    
+HTML;
+     
+         print($html);
+       
     }
 
     /**     * **************************** */
     /**    Display medicine list    * */
     /**     * **************************** */
     function displayMedicineList($mode = 'default') {
-        $numberPerPage = 30;
-
         $sql = "SELECT * FROM bovinemanagement.medicine ORDER BY trade_name ASC";
-        $dg = new DataGridLR($sql, 1000);
+       return( (new JQueryDataTable)->startBasicSql($sql,'order: false')); 
 
-        print($dg->render('datagrid'));
-        if ($mode == 'default') {
-            $dg->pager();
-        }
     }
 
     /**     * **************************** */
@@ -124,7 +126,7 @@ class MedicineAdmin extends BasePage {
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
 }//end class

@@ -44,7 +44,7 @@ class BovineQueryReproductionLog {
            
            $time=strtotime($row['event_time']);
            $ftime = date('M j, Y', $time);
-           $str = "<b>{$row['type']}:</b> " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['text']} $extra<br /> ";
+           $str = "<b>{$row['type']}:</b> " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['text']} $extra<br /> ";
            $outArray = makeTimeString($outArray, $time, $str);
           
        }

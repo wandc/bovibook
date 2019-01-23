@@ -2,10 +2,6 @@
 
 /** Header at top of every normal secure page
  */
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //need to include here for javascript refresh.
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'template/basePage.php');
-
 class SideBarRight {
     
  public function SideBarRightContent() {
@@ -23,6 +19,9 @@ class SideBarRight {
       <div class="tab-pane active" id="control-sidebar-home-tab">
         <h3 class="control-sidebar-heading">Recent Activity</h3>
         <ul class="control-sidebar-menu">
+            
+   <div class="toggle-group"><label class="btn btn-default active toggle-off">Off</label><span class="toggle-handle btn btn-default"></span></div>
+            
           <li>
             <a href="javascript:;">
               <i class="menu-icon fa fa-birthday-cake bg-red"></i>

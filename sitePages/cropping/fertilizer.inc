@@ -155,7 +155,7 @@ class Fertilizer  extends TabPage {
         } else {
             $form->addElement('hidden', 'field', $field_id);
         }
-           $form->addElement('select', 'date_start', 'Date of Report', Misc::createDailyDatesForLastYearAtNoon());
+           $form->addElement('select', 'date_start', 'Date of Report', $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon());
                     $form->addElement('select', 'fertilizer_type', 'Fertilizer Type', $fertilizerType);
 
         $form->addElement('select', 'fertilizer_amount', 'Fertilizer Total Amount Put On Field (kg)', $fertilizerAmount);
@@ -380,7 +380,7 @@ LEFT JOIN cropping.fertilizer_application_method ON fertilizer_application_metho
                  $row['event_time_raw']=strtotime($row['event_time']);
                   $row['fertilizer_amount']=round($row['amount']);
                    $row['fertilizer_amount_total']=round($row['amount']*$row['area']);
-           $row['alpha_numeric_id'] ="<a href=\"". Misc::hrefToFieldPage($row['field_id'])."\"> <b>{$row['alpha_numeric_id']}</b> - ". $row['common_name'] ."</a>";     
+           $row['alpha_numeric_id'] ="<a href=\"". $GLOBALS['MiscObj']->hrefToFieldPage($row['field_id'])."\"> <b>{$row['alpha_numeric_id']}</b> - ". $row['common_name'] ."</a>";     
            $row['event_time']= date("l, M d Y",strtotime($row['event_time']));  //has to be at end.
            $row['action'] = $this->printActionButtons2($row['fertilizer_event_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$row['field_id']}");
         }

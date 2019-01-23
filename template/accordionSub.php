@@ -54,29 +54,26 @@ abstract class AccordionSub {
 
 
         /* ACCORDIAN */
-        ?>     
-
-        <script type="text/javascript" language="javascript">
+        
+$js = <<<JS
+ <script type="text/javascript" language="javascript">
             function runAccordion() {
 
-                $("#accordion_<?php  print($this->uuid); ?>").accordion({
+                $("#accordion_$this->uuid").accordion({
                     collapsible: true,
                     heightStyle: "content",
                     beforeActivate: function (event, ui) {
                     },
                     /* get from local storage and make the active index. */
-                     active: parseInt(localStorage.getItem("accIndex_<?php  print($this->uuid); ?>")),
+                     active: parseInt(localStorage.getItem("accIndex_$this->uuid")),
                                          
                     /* store the accordion index in local storage */
                     activate: function (event, ui) {
-                        localStorage.setItem("accIndex_<?php  print($this->uuid); ?>", $(this).accordion("option", "active"));
+                        localStorage.setItem("accIndex_$this->uuid", $(this).accordion("option", "active"));
                       
-                    }
-                   
+                    }                  
                 });
-
             }
-
             /* assumes o is within tab, document.ready is not run on tab click*/
             $('#jquery_tabs').bind('tabsload', function (event, ui) {
                 runAccordion();
@@ -88,7 +85,10 @@ abstract class AccordionSub {
             });
 
         </script>  
-        <?php 
+JS;
+
+    print($js);
+    
         $this->numberOfTabs = count($accordionArray);
 
 

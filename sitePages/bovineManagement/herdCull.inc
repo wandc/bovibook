@@ -50,7 +50,7 @@ class HerdCull extends BasePage {
         $headerStrArr['Beefed'] = 'number';
         $headerStrArr['Sold'] = 'number';
          $opt='';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $arrayDied, $arrayBeefed, $arraySold);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $arrayDied, $arrayBeefed, $arraySold);
         print($x->toString());
     }
 
@@ -156,7 +156,7 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
            $row['event_time_raw']=strtotime($row['event_time']);
            $row['event_time']= date("M d, Y",strtotime($row['event_time'])); 
            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
-           $row['reg_num'] =JQueryDataTable::formattedShortRegNum($row['full_reg_number']);
+           $row['reg_num'] =(new JQueryDataTable)->formattedShortRegNum($row['full_reg_number']);
            $row['reason'] =  $row['reason'];
            $row['details'] =   $row['comment'];
         
@@ -167,25 +167,7 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
         $output['data'] = $results;
         return ($output);
         
-        
-        /*
-        $dg = new DataGridLR($sql, 100);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Reg #', null, '', array('' => ''), null, array('DataGridHelper', 'printShortRegNum()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Reason', 'reason', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Details', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', '', array('' => ''), null, null));
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('HerdCull', 'printActionButtons()')));
-        }
-        print("<h3>Culled Cows</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
-        
-         */
+    
     }
 
 //end function
@@ -276,12 +258,12 @@ Class QF2_HerdCullAnimal extends Quickform2Helper {
        
         //only show if userid is admin or owner group.
         if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $dateArray = Misc::createHourlyDatesForLastSevenDays(); //for admin only.   //Misc::createDailyDatesForLastYearAtNoon //use if needed.
+            $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastSevenDays(); //for admin only.   //$GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon //use if needed.
         }else {
-           $dateArray = Misc::createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.  
+           $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.  
         }
 
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         
         //list of cull reasons
         $cullReason = array(null => 'Please Select one...', 'Sold' => 'Sold (put who sold to)', 'Beefed' => 'Beefed  (put name of driver)', 'Died' => 'Died  (put cuase of death)');
@@ -334,7 +316,7 @@ JSCRIPT;
                 $bovine_id = $v;
 
                 //get random transaction id
-                $transaction_id = Misc::generatePseudoRandomTransactionInteger();
+                $transaction_id = $GLOBALS['MiscObj']->generatePseudoRandomTransactionInteger();
 
                 //get location id from reason.
                 $location_id = $this->offFarmLcoations($value['reason']);

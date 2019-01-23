@@ -1,40 +1,5 @@
 <?php
 
-//Lists straws of semen in our inventory
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/queryPageHelper.inc');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';
-
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) {
-
-    //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            if (strlen($row['last_service_time']) == 0) {
-                return true;
-            }
-            //if it hasn't been serviced in 6 months.
-            elseif (strtotime($row['last_service_time']) <= strtotime('now - 6 months')) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
 
 /**
   This class tracks machinery that needs serviced by number of hours */
@@ -66,11 +31,11 @@ class MachineQuery extends BasePage {
 
     public function defaultDisplay() {
 
+        //print($this->displayMachines());
+        
          print("<div class='row'>" . "\n\r");
          print($this->displayMachinePicture());
          
-         
-        require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/machinery/documents.inc');
         $docs=Documents::displayeListOfDocuments('machine', $this->machine_id); 
         print($this->machineryBootstrapBox('ion-ios-book-outline','bg-aqua',$docs));
           
@@ -84,32 +49,10 @@ class MachineQuery extends BasePage {
         print("<div class='row'>" . "\n\r");
         print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
 
-
-
-       
         print($this->serviceQuickform($this->machine_id, false));
 
-      
-        $this->displayMachineHours();
-        $this->displayServiceAdministeredForMachine();
+        print($this->displayServiceAdministeredForMachine());
         
-        
-        
-     
-         
-        
-        // only show hours log for equipment that supports it.
-        $sql = "SELECT hours_log FROM machinery.machine WHERE id={$this->machine_id} limit 1";
-        $res = $GLOBALS['pdo']->query($sql);
-        $row = $res->fetch();
-        
-        if ($row['hours_log'] == 1) {
-        $a=new QF2_MachineHours((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'machine_id'=>$_REQUEST['machine_id'])),'group',(object) array('machine_id'=>$this->machine_id));
-        $qf2=($a->renderBox('qf_machienHours','Record Machine Hours'));       
-          print($this->machineryBootstrapBox('ion-ios-book-outline','bg-aqua',$qf2));
-        }
-        
-
         print("</div>" . "\n\r");
 
         print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
@@ -145,27 +88,14 @@ return $html;
     
     
      function displayPartsList() {
-         $out=array();
-        $sql = "SELECT name,part_num,napa_part_num FROM machinery.service_item WHERE machine_id={$this->machine_id} ORDER BY name DESC";
-        $res = $GLOBALS['pdo']->query($sql);
-//some things don't have hours. 
-        if ($res->rowCount() > 0) {
-            
-       
-            
-            
-               $out[]=('<h2>Common Parts List</h2>');
-            $dg = new DataGridLR($sql, 1000);
-
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('name', 'name', 'name', array('' => ''), null, null));
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('part_num', 'part_num', 'part_num', array('' => ''), null, null));
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('napa_part_num', 'napa_part_num', 'napa_part_num', array('' => ''), null, null));
-
-        $out[]=($dg->render('datagrid datagridSummary'));
-
-        }
+   
+        $sql = "SELECT name a,part_num,napa_part_num FROM machinery.service_item WHERE machine_id={$this->machine_id} ORDER BY name DESC";
         
-        return $out;
+        $out[]=('<h2>Common Parts List</h2>');
+	$out[]=( (new JQueryDataTable)->startBasicSql($sql)); 
+         
+        return implode($out); 	
+      
     }
     
     
@@ -194,27 +124,7 @@ return $html;
 
    
 
-    function displayMachineHours($mode = 'default') {
-
-
-        $sql = "SELECT id,event_time,userid,extract(hour FROM hours) as hours FROM machinery.hours_log WHERE machine_id={$this->machine_id} ORDER BY event_time DESC";
-        $res = $GLOBALS['pdo']->query($sql);
-//some things don't have hours. 
-        if ($res->rowCount() > 0) {
-            print('<h2>Hours Log</h2>');
-            $dg = new DataGridLR($sql, 1000);
-
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Reserved', null, '', array('' => ''), null, array('DatagridHelper', 'printFormattedTime()')));
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hours', 'hours', 'hours', array('' => ''), null, null));
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', 'userid', array('' => ''), null, null));
-            if ($mode == 'default') {
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('MachineQuery', 'printActionButtons2()')));
-            }
-
-            print($dg->render('datagrid datagridSummary'));
-            $dg->pager();
-        }
-    }
+    
 
     /*     * *****************************************
      * Show Delete Button.
@@ -288,35 +198,54 @@ HTML;
 
     function displayServiceAdministeredForMachine($mode = 'default') {
 
-        print('<h2>Service Log</h2>');
-        $sql = "SELECT service_administered.id,service_administered.event_time,service_administered.userid,service_administered.comment,part_num,service_item.name,extract(hour FROM hours_log.hours) as hours "
-                . "FROM machinery.service_administered "
-                . "LEFT JOIN machinery.service_item ON service_item.id=service_administered.service_item_id "
-                . "LEFT JOIN machinery.machine ON machine.id=service_item.machine_id "
-                . "LEFT JOIN machinery.hours_log ON hours_log.id=hours_log_id "
-                . "WHERE machine.id={$this->machine_id} "
-                . "ORDER BY service_administered.event_time DESC";
+              
+                
+$sql = <<<SQL
+SELECT service_administered.id,service_administered.event_time,service_administered.userid,service_administered.comment,part_num,service_item.name,extract(hour FROM hours_log.hours) as hours
+FROM machinery.service_administered
+LEFT JOIN machinery.service_item ON service_item.id=service_administered.service_item_id
+LEFT JOIN machinery.machine ON machine.id=service_item.machine_id  
+LEFT JOIN machinery.hours_log ON hours_log.id=hours_log_id
+WHERE machine.id={$this->machine_id}  
+ORDER BY service_administered.event_time DESC
+SQL;
 
-        $dg = new DataGridLR($sql, 1000);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', 'event_time', 'event_time', array('' => ''), null, array('DatagridHelper', 'printFormattedTime()')));
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Item', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hours', 'hours', 'hours', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, array('MachineQuery', 'printComment()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', 'userid', array('' => ''), null, null));
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('MachineQuery', 'printActionButtons()')));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Item'] = ($row['name']);
+            $rowOut['Hours'] = ($row['hours']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
+            if ($mode == 'default') {
+                $rowOut['Action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            }
+          $resultsOut[]=$rowOut;  
         }
-        print($dg->render('datagrid datagridSummary'));
-        $dg->pager();
-    }
+
+       //output
+        $dataArr = $resultsOut;
+      
+         $out[]=('<h2>Service Log</h2>');
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'ordering: false')); 
+         return implode($out); 
+        
+        }     
+
+
+    
 
     /*     * *****************************************
      * Show Delete Button.
      * ******************************************* */
 
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+
         $currentUserid = $GLOBALS['auth']->getUsername();
         $returnButtonsAsString = '';
         //find the last entry for the current user and use that as a basais to display the delete button or not.
@@ -331,7 +260,7 @@ HTML;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 
             if (($record['id'] == $row['id'])) {
-                $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['tablename']); //show delete button, with Breeding table id as index for delete.
+                $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['tablename'],$callBackURL); //show delete button, with Breeding table id as index for delete.
             }
         }
 
@@ -345,7 +274,7 @@ HTML;
      * Delete Button Quickform
      * ******************************************** */
 
-    function deleteQuickForm($tableid, $tablename) {
+    function deleteQuickForm($tableid, $tablename,$callBackURL) {
 
         $form = new HTML_QuickForm("medSchedDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -381,7 +310,7 @@ HTML;
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&machine_id={$_REQUEST['machine_id']}");
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table
@@ -407,31 +336,43 @@ HTML;
 
     function machineryDetailed($machine_id) {
 
-
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-        $sql = "SELECT id,machine_id,name,part_num,extract(hour FROM hours)
+         $sql = <<<SQL
+SELECT id,machine_id,name,part_num,extract(hour FROM hours)
     ,(SELECT max(event_time)  FROM machinery.service_administered WHERE service_item_id=service_item.id) as last_service_time   
     ,(SELECT userid  FROM machinery.service_administered WHERE service_item_id=service_item.id AND event_time=(SELECT max(event_time)  FROM machinery.service_administered WHERE service_item_id=service_item.id)) as last_service_userid
     ,extract(hour FROM (SELECT hours_log.hours  FROM machinery.service_administered LEFT JOIN machinery.hours_log ON service_administered.hours_log_id = hours_log.id WHERE service_item_id=service_item.id AND service_administered.event_time=(SELECT max(service_administered.event_time)  FROM machinery.service_administered WHERE service_item_id=service_item.id))) as last_service_hours  
     ,(SELECT comment  FROM machinery.service_administered WHERE service_item_id=service_item.id AND event_time=(SELECT max(event_time)  FROM machinery.service_administered WHERE service_item_id=service_item.id)) as last_service_comment
-    FROM machinery.service_item WHERE machine_id=$machine_id ORDER BY name";
+    FROM machinery.service_item WHERE machine_id=$machine_id ORDER BY name
+SQL;
+   
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+     
+            $rowOut['Name'] = ($row['name']);
+            $rowOut['Part #'] = ($row['part_num']);
+            $rowOut['Hours'] = ($row['hours']);
+            $rowOut['Action'] = $this->printLastServiceInfo($row);
+         
+            $resultsOut[] = $rowOut;
+        }
 
-        $dg = new DataGridLR($sql, 100);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('name', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('part_num', 'part_num', 'part_num', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('hours', 'hours', 'hours', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Service Action', null, '', array('' => ''), null, array('MachineryService', 'printLastServiceInfo()')));
-
-        print($dg->render());
-        $dg->pager();
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Service Parts Detail</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
+      
     }
 
     function machineryHistoricalLog($machine_id) {
         $sql = "SELECT *,extract(hour FROM hours) as hours FROM machinery.service_administered LEFT JOIN machinery.service_item ON service_item.id=service_administered.service_item_id LEFT JOIN machinery.machine ON machine.id=service_item.machine_id WHERE machine_id=$machine_id ORDER BY service_administered.event_time DESC";
-        $dg = new DataGridLR($sql, 100);
-
-        print($dg->render());
-        $dg->pager();
+       return (new JQueryDataTable)->startBasicArray($sql);
     }
 
     /**
@@ -469,7 +410,7 @@ HTML;
     function serviceQuickform($machine_id, $inline = true) {
 
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray[null]); //remove null value.
 
         $sql = "SELECT id,name FROM machinery.service_item WHERE machine_id=$machine_id ORDER BY name";
@@ -508,10 +449,10 @@ HTML;
         $form->addElement('submit', 'btnCompleted', 'Completed');
 
         //rules
-        $form->addRule('service_item', 'Service Item is required', 'required');
+//        $form->addRule('checkGroup', 'Service Item is required', 'required');
         //check that the hours of the machine were recorded in the last 7 days or throw an error. 
-        $form->registerRule('checkHoursRecentlyRecordedRule', 'function', 'checkHoursRecentlyRecorded', 'MachineQuery');
-        $form->addRule(array('service_item', 'machine_id'), 'ERROR: Record the current hours on machine first, not been done in the last day.', 'checkHoursRecentlyRecordedRule', array('service_item', 'machine_id'));
+    //    $form->registerRule('checkHoursRecentlyRecordedRule', 'function', 'checkHoursRecentlyRecorded', 'MachineQuery');
+    //    $form->addRule(array('checkGroup', 'machine_id'), 'ERROR: Record the current hours on machine first, not been done in the last day.', 'checkHoursRecentlyRecordedRule', array('checkGroup', 'machine_id'));
 
 
         // Try to validate a form
@@ -570,7 +511,7 @@ HTML;
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid=$pageid&machine_id=$machine_id");
+            header($callbackURL);
             exit();
         }
 
@@ -582,10 +523,9 @@ HTML;
         }
     }
 
-    function printServiceActionForm($params) {
-        extract($params);
+    function printServiceActionForm($record,$callBackURL) {
         $machine_id = $record['machine_id'];
-        $this->serviceQuickform($machine_id);
+        $this->serviceQuickform($machine_id,null,$callBackURL);
     }
 
     //throw error if hours have not been recorded recently when we try and do a service administered insert.
@@ -618,28 +558,40 @@ HTML;
 
     function displayMachines() {
 
-        $numberPerPage = 20;
-
-        // Setup your database connection
-        $sql = "SELECT *,id as machine_id,extract(hour FROM (SELECT max(hours) FROM machinery.hours_log WHERE machine_id=machine.id)) as latest_hours
+      
+          $sql = <<<SQL
+SELECT *,id as machine_id,extract(hour FROM (SELECT max(hours) FROM machinery.hours_log WHERE machine_id=machine.id)) as latest_hours
 		,(SELECT event_time FROM machinery.hours_log WHERE machine_id=machine.id AND hours=(SELECT max(hours) FROM machinery.hours_log WHERE machine_id=machine.id)) as latest_hours_time
-		FROM machinery.machine WHERE active=true ORDER BY name";
-        $dg = new DataGridLR($sql, $numberPerPage);
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('ID', 'id', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', null, '', array('' => ''), null, array('MachineryService', 'printName()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Service Items', null, '', array('' => ''), null, array('MachineryService', 'printServiceItemsForMachine()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Service Action', null, '', array('' => ''), null, array('MachineryService', 'printServiceActionForm()')));
-
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+		FROM machinery.machine WHERE active=true ORDER BY name
+SQL;
+   
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+     
+            $rowOut['ID'] = ($row['id']);
+            $rowOut['Name'] = $this->printName($row);
+            $rowOut['Service Items'] =$this->printServiceItemsForMachine($row);
+            $rowOut['Service Action'] = $this->printServiceActionForm($row,"Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid=$pageid&machine_id=$machine_id");
+         
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Service Actions</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+     
     }
 
     /** NESTED  TABLE* */
-    function printServiceItemsForMachine($params) {
-        extract($params);
+    function printServiceItemsForMachine($record) {
+      
 
 
         $numberPerPage = 1000; //set stupid high so data is never clipped.
@@ -651,14 +603,29 @@ HTML;
     ,(SELECT comment  FROM machinery.service_administered WHERE service_item_id=service_item.id AND event_time=(SELECT max(event_time)  FROM machinery.service_administered WHERE service_item_id=service_item.id)) as last_service_comment
     FROM machinery.service_item WHERE machine_id={$record['id']} ORDER BY name";
 
-        $dg = new DataGridLR_Ext($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('name', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('part_num', 'part_num', 'part_num', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('hours', 'hours', 'hours', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Service Action', null, '', array('' => ''), null, array('MachineryService', 'printLastServiceInfo()')));
+      $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+     
+            $rowOut['Name'] = ($row['name']);
+            $rowOut['Part #'] = ($row['part_num']);
+             $rowOut['Hours'] = ($row['hours']);
+            $rowOut['Name'] = $this->printName($row);
+            $rowOut['Service Action'] = $this->printLastServiceInfo($row);
+         
+            $resultsOut[] = $rowOut;
+        }
 
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Service Actions</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
 
-        return ($dg->render('datagrid', true, $GLOBALS['config']['COLOUR']['attention']));
     }
 
     function colorRowsOlderThan6Months($datagrid, $tableBody) {
@@ -682,44 +649,10 @@ HTML;
     }
 
    
-    function displayHoursLog() {
 
-        $numberPerPage = 40;
 
-        // Setup your database connection
-        $sql = "SELECT *,hours_log.id as hours_id, extract(hour FROM hours) FROM machinery.hours_log LEFT JOIN machinery.machine ON machine.id=hours_log.machine_id ORDER BY event_time DESC,machine.name";
-        $dg = new DataGridLR($sql, $numberPerPage);
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''), null, array('MachineryService', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hours (or KM)', 'hours', 'hours', array('' => ''), null, array('MachineryService', 'printHours()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hours id', 'hours_id', 'hours_id', array('' => ''), null, null));
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('MachineQuery', 'printActionButtons2()')));
-        }
-
-        print("<h3>Machine Hours Log</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
-    }
-
-//datagrid customizations.....
-    function printHours($params) {
-        extract($params);
-        $number = substr($record['hours'], 0, strpos($record['hours'], ':00:00'));
-        return $number;
-    }
-
-    function printFormattedTime($params) {
-        extract($params);
-        return date("M d Y", strtotime($record['event_time']));
-    }
-
-    function printName($params) {
-        extract($params);
+    function printName($record) {
+     
         $ser = ''; //printer serial number if not null.
         if ($record['serial_num'] != null) {
             $ser = '<br/><br/>ser#: ' . $record['serial_num'];
@@ -728,8 +661,7 @@ HTML;
         return '<div id=\'largish\'>' . $record['name'] . '</div>' . '' . ($record['latest_hours']) . 'hrs @ ' . date("M d, Y", strtotime($record['latest_hours_time'])) . $ser;
     }
 
-    function printLastServiceInfo($params) {
-        extract($params);
+    function printLastServiceInfo($record) {
 
         $comment = '';
         if (($record['last_service_comment'] != null) && ($record['last_service_comment'] != 'null')) {
@@ -741,7 +673,7 @@ HTML;
         } else {
             $ftime = date("M d, Y", strtotime($record['last_service_time']));
             $time = strtotime($record['last_service_time']);
-            $str = "<b>Serviced</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$record['last_service_hours']} hours as done by {$record['last_service_userid']} &nbsp; &nbsp;$comment";
+            $str = "<b>Serviced</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$record['last_service_hours']} hours as done by {$record['last_service_userid']} &nbsp; &nbsp;$comment";
             return $str;
         }
     }
@@ -752,12 +684,11 @@ HTML;
 
         // Setup your database connection
         $sql = "SELECT *,extract(hour FROM hours) as hours FROM machinery.service_administered LEFT JOIN machinery.service_item ON service_item.id=service_administered.service_item_id LEFT JOIN machinery.machine ON machine.id=service_item.machine_id ORDER BY service_administered.event_time DESC";
-        $dg = new DataGridLR($sql, $numberPerPage);
-        print("<h3>Service Completion Log</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+        $out[]=("<h3>Service Completion Log</h3>");
+        $out[]=( (new JQueryDataTable)->startBasicSql($sql,'')); 
+        
+        return implode($out);
+        
     }
 
   
@@ -772,14 +703,14 @@ HTML;
 
         $a = new QF2_MachineryComment((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'machine_id' => $this->machine_id)), 'group');
         $form = ($a->render('qf_machineryEntry', ''));
-        // {$a->render('qf_machineryEntry','')}
-
+       
+        $useridUC= ucfirst($GLOBALS['auth']->getUsername());
         $outArr[(string) ( $this->timeEpochNow + 1 )] = <<< HTMLTOP
     <li>
         <i class="fa fa-laptop bg-aqua"></i>
         <div class="timeline-item">
             <span class="time"><i class="fa fa-clock-o"></i> now</span>
-            <h3 class="timeline-header no-border"><a href="#">{$GLOBALS['auth']->getUsername()}</a>$form</h3>
+            <h3 class="timeline-header no-border"><a href="#">$useridUC</a>$form</h3>
         </div>
     </li>
 HTMLTOP;
@@ -869,7 +800,7 @@ HTML;
 
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row['event_time']);
-            $ago = Misc::daysOrHoursAgo($time);
+            $ago = $GLOBALS['MiscObj']->daysOrHoursAgo($time);
             $userid = ucfirst($row['userid']);
 
             //bootstrap timeline
@@ -896,7 +827,7 @@ HTML;
 
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row['event_time']) + 1;
-            $ago = Misc::daysOrHoursAgo($time);
+            $ago = $GLOBALS['MiscObj']->daysOrHoursAgo($time);
             $userid = ucfirst($row['userid']);
             $pic = ("<img id='machinePic' style='max-height: 300px; max-width: 300px;' src='/functions/displayAnyPic.php?picture_id={$row['id']}'/>");
 
@@ -932,7 +863,7 @@ HTML;
 
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row['event_time']);
-            $ago = Misc::daysOrHoursAgo($time);
+            $ago = $GLOBALS['MiscObj']->daysOrHoursAgo($time);
             $userid = ucfirst($row['userid']);
 
             //show delete button for a week.
@@ -971,7 +902,7 @@ HTML;
 
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
-            $ago = Misc::daysOrHoursAgo($time);
+            $ago = $GLOBALS['MiscObj']->daysOrHoursAgo($time);
             $userid = ucfirst($row['userid']);
 
             //show delete button for a week.
@@ -1008,10 +939,30 @@ Class QF2_MachineryComment extends Quickform2Helper {
 
     function definition($form) {
 
-             $dateArray=Misc::createDailyDatesForLastYearAtMidnight();
+        //see if machine has hours log
+         // only show hours log for equipment that supports it.
+        $sql = "SELECT hours_log FROM machinery.machine WHERE id={$_REQUEST['machine_id']} limit 1";
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch();
+        $hoursLogShow=$row['hours_log'];
+        if ($hoursLogShow == 1) {
+               //hours array
+              $hoursArray = array(null => 'Please Select One');
+        for ($counter = 10; $counter <= 15000; $counter += 10) {
+            $hoursArray[$counter] = "$counter hours";
+        }
+        for ($counter = 15100; $counter <= 100000; $counter += 100) {
+            $hoursArray[$counter] = "$counter hours";
+        }
+        }
+        
+        
+        
+             $dateArray=$GLOBALS['MiscObj']->createDailyDatesForLastYearAtMidnight();
              unset($dateArray[null]);//remove deault so default is today.
              
-             //
+          
+        //
         // for file upload to work
         $form->setAttribute('enctype', 'multipart/form-data');
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
@@ -1020,7 +971,11 @@ Class QF2_MachineryComment extends Quickform2Helper {
          if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
           $form->addElement('select', 'event_time', null, array('options' => $dateArray, 'label' => 'Time of Event (optional)'));
          }
-         
+        
+          if ($hoursLogShow == 1) {
+        $form->addElement('select', 'hours', null, array('options' => $hoursArray, 'label' => 'Number of Hours (optional)'));
+          }
+          
         $upload = $form->addElement('file', 'imageName', array('style' => 'width: 300px')); // no longer using special 'uploadedfile' rule for uploads, allow client-side validation
         $upload->addRule('regex', 'Allowed extensions:  .jp(e)g', '/\\.(jpe?g)$/i', HTML_QuickForm2_Rule::ONBLUR_CLIENT_SERVER); // these don't work client-side, for obvious reasons
         $upload->addRule('mimetype', 'Your browser doesn\'t think that\'s an image', array('image/jpeg'));
@@ -1056,6 +1011,20 @@ Class QF2_MachineryComment extends Quickform2Helper {
                 $res->execute();
                
             }
+            
+       
+              if (!empty($value['hours'])) {
+                //we have hours entry so add it.   
+                $query = "INSERT INTO machinery.hours_log (machine_id,hours,event_time,userid) VALUES (:machine_id,:hours,:event_time,:userid)";
+                $res = $GLOBALS['pdo']->prepare($query);
+                $res->bindValue(':machine_id', $value['machine_id'], PDO::PARAM_INT);
+                $res->bindValue(':hours', $value['hours'].' hours', PDO::PARAM_STR);
+                $res->bindValue(':event_time', $value['event_time'],PDO::PARAM_STR);
+                $res->bindValue(':userid', $GLOBALS['auth']->getUsername(), PDO::PARAM_STR);
+                $res->execute();
+                  
+             }
+            
 
             if (is_uploaded_file($_FILES['imageName']['tmp_name'])) {
 
@@ -1071,68 +1040,21 @@ Class QF2_MachineryComment extends Quickform2Helper {
 
 
 
-
-
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
             echo "Failed: " . $e->getMessage();
         }
         // Close the transaction
+        
+        
     }
 
 }
 
 //end class
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_MachineHours extends Quickform2Helper {
 
-    function definition($form) {
-
-      
-         $sql = "SELECT id,name FROM machinery.machine WHERE id={$this->param->machine_id} ORDER BY name";
-        //grab a list of machines
-        $res = $GLOBALS['pdo']->query($sql);
-        $machineArray = array(null => 'Please Select One');
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $machineArray[$row['id']] = $row['name'];
-        }
-
-
-        $dateArray=Misc::createDailyDatesForLastFewDays();
-        
-        $hoursArray = array(null => 'Please Select One');
-        for ($counter = 10; $counter <= 15000; $counter += 10) {
-            $hoursArray[$counter] = "$counter hours";
-        }
-        for ($counter = 15100; $counter <= 100000; $counter += 100) {
-            $hoursArray[$counter] = "$counter hours";
-        }
-     
-
-
-       $fieldset = $form->addFieldset('header')->setLabel('Record Machine Hours Event');
-        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-       
-            $form->addElement('hidden', 'machine_id')->setValue($this->param->machine_id);
-       
-        $form->addElement('select', 'hours', null, array('options' => $hoursArray, 'label' => 'Number of Hours'))->addRule("required", "Please specify your number of hours.");
-        $form->addElement('select', 'dateEvent', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time of hours entry.");
-
-        return $form; //required       
-    }
-
-    function process($value) {
-        $value['event_time'] = date('Y-m-d H:i:sO', $value['dateEvent']);
-
-        //don't put id value, uses next one in DB.
-          $query = "INSERT INTO machinery.hours_log (machine_id,hours,event_time,userid) VALUES ({$value['machine_id']},'{$value['hours']} hours','{$value['event_time']}','{$GLOBALS['auth']->getUsername()}')";
-
-             $res = $GLOBALS['pdo']->exec($query);
-    }
-
-}//end class
 
 
 ?>

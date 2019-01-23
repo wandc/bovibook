@@ -96,14 +96,14 @@ ORDER BY dryoff_event.event_time DESC";
         /* dryoff Event Form */
         /*         * ******************************* */
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
         //grab a list of cows with fresh dates
         $sql = "SELECT id,bovinecurr.fresh_date,bovinecurr.local_number,bovinecurr.full_name, date_trunc('day',current_date-bovinecurr.fresh_date) as dim FROM bovinemanagement.bovinecurr WHERE fresh_date is not null ORDER by local_number";
         $res = $GLOBALS['pdo']->query($sql);
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row['id']] = $row['local_number'] . " - " . Misc::femaleShortName($row['full_name'])  . " (" . $row['dim'] . ")";
+            $aniNumber[$row['id']] = $row['local_number'] . " - " . $GLOBALS['MiscObj']->femaleShortName($row['full_name'])  . " (" . $row['dim'] . ")";
         }
 
         $form = new HTML_QuickForm("dryoffQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -295,14 +295,14 @@ ORDER BY dryoff_event.event_time DESC";
      */
     function markCowToBeDriedOffQuickForm($mode = 'group', $bovine_id = null) {
 
-        $dateArray = Misc::createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
         //grab a list of cows.
         $res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number from bovinemanagement.bovine WHERE death_date IS NULL ORDER BY local_number");
 
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
 

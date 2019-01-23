@@ -7,11 +7,6 @@
  * 
  * just initate and use as renderer for quickform2 to output a more bootstrap friendly renderer.
  */
-
-require_once 'HTML/QuickForm2.php';
-require_once 'HTML/QuickForm2/Renderer.php';
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
-
 class QuickForm2_Renderer_BootStrapV3 {
     
     /*
@@ -295,9 +290,7 @@ $renderer->setOption(array(
  * 
  */
 /*
-require_once('HTML/QuickForm2.php');
-require_once ('HTML/QuickForm2/Renderer.php');
-require_once ('HTML/QuickForm2/JavascriptBuilder.php');
+
 
 print("<h1>Hello</h1>");
 $form = new HTML_QuickForm2('uploads');

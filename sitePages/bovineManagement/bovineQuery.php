@@ -1,7 +1,5 @@
 <?php
 
- include_once('functions/googleVisualization.inc');
-
 
 /**
  * ********************************************
@@ -41,61 +39,10 @@ class BovineQuery extends TabPage {
         // nothing
     }
 
-     /**
-     * Small form that selects the field.
-     */
-    public function bovineSelectQuickForm($mode = 'default') {
-
-
-
-        if ($mode == 'default') {
-            $style = 'bovineSelectPage';
-            $aniNumber = Misc::createListOfAllAliveCows(false);
-        } else {
-            $style = 'bovineSelect';
-            $aniNumber = Misc::createListOfAllAliveCows(true);
-        }
-
-        $pageid = 6;
-
-        //javascript to allow submission on change of select element.
-        $attrs = array('id' => "$style", 'onchange' => "javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid=$pageid';$('#example > ul').tabs('select', 0);");
-
-        //javascript to allow submission when enter is pressed within select form
-        //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
-
-        $form = new HTML_QuickForm("animalBovineQuickSelect", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-
-        //$form->addElement('header', 'hdrQuickfrmbovineQuickSelect','Select a bovine');
-        $form->addElement('select', 'bovineNumber', '', $aniNumber, $attrs);
-        $form->addElement('hidden', 'pageid', $pageid);
-
-        //defaults
-        if ((isset($this->bovine_id) ) && ($this->bovine_id != null)) {
-            $form->setDefaults(array('bovineNumber' => $this->bovine_id)); //set to current bovine
-        } else {
-            $form->setDefaults(array('bovineNumber' => 0)); //set default to no.  
-        }
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get value
-            $this->bovine_id = $form->exportValue('bovineNumber');
-            $this->pageid = $form->exportValue('pageid');
-        } //end validation
-
-        $form->accept($renderer);
-        return $renderer->toHtml();
-    }
-    
     public function defaultDisplay() {
 
 
-       
+
 
         $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
 
@@ -148,14 +95,15 @@ class BovineQuery extends TabPage {
                 $tabArray[4]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
                 $tabArray[5]['name'] = 'Production';
                 $tabArray[5]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
-                $tabArray[6]['name'] = 'Family Tree';
+                $tabArray[6]['name'] = 'Genetics';
                 $tabArray[6]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
-                $tabArray[7]['name'] = 'Genetics';
+                //owner only tabs below
+                if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+                $tabArray[7]['name'] = 'Breeding Choice';
                 $tabArray[7]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
-                $tabArray[8]['name'] = 'Breeding Choice';
+                $tabArray[8]['name'] = 'Sale Price';
                 $tabArray[8]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
-                $tabArray[9]['name'] = 'Estrus Detector';
-                $tabArray[9]['extra_callback_param'] = "&amp;bovine_id={$this->bovineID}";
+                       }
             } else {
                 //un registered animal   
                 //setup for tabs.
@@ -175,7 +123,7 @@ class BovineQuery extends TabPage {
     }
 
     private function loadVars($bovine_id = null, $pageid, $local_number = null) {
- 
+
         if ($bovine_id != -1) {
             $this->bovineID = $bovine_id;
             $this->pageID = $pageid;
@@ -190,7 +138,7 @@ class BovineQuery extends TabPage {
             $this->bovineFullRegNumber = $row ['full_reg_number'];
             $this->bovineLocalNumber = $row ['local_number'];
             $this->bovineRfidNumber = $row ['rfid_number'];
-            $this->bovineShortName = Misc::femaleShortName($row['full_name']);
+            $this->bovineShortName = $GLOBALS['MiscObj']->femaleShortName($row['full_name']);
             /*
               //DEBUG
               print("BOVINE ID is: {$this->bovineID}.<br/>");
@@ -199,7 +147,7 @@ class BovineQuery extends TabPage {
               print("bovineLocalNumber ID is: {$this->bovineLocalNumber}.<br/>");
              */
         } elseif ($local_number != null) {
-           
+
             $this->pageID = $pageid;
             $this->bovineLocalNumber = $local_number;
 
@@ -225,103 +173,16 @@ class BovineQuery extends TabPage {
      */
     function renderTabsParent($tabArray) {
         // display picture of cow
-
-
         print ('<div id="bovineQueryTitle">');
-
-
-
 
         if ($_REQUEST ['bovine_id'] != null) {
             $this->displayName($this->bovineID);
         }
-
-
         print ('</div>');
-
-
         $this->renderTabs($tabArray);
     }
 
-    /*
-     * work around for breeding choice not being a real page for reference with ajax call to page 141 in display jquerydatatable.
-     */
-    function progenyBreedingChoiceForBovine($request) {
-     return (new BovineQueryBreedingChoice)->progenyBreedingChoiceForBovine($request) ;
-}
- function breedingChoicesHistorical($request) {
-     return (new BovineQueryBreedingChoice)->breedingChoicesHistorical($request) ;
-}
-
-    
-    //breeding choice
-    function tab8() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
-        $bovineQueryBreedingChoice = new BovineQueryBreedingChoice($this->bovineID, $this->bovineLocalNumber, $this->bovineShortName);
-        $bovineQueryBreedingChoice->main();
-    }
-
-    //summary
-    function tab1() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-        // print("<div id='twoColumnLayout'>");
-
-        $this->summaryMovement();
-        $this->summaryReproduction();
-        $this->summaryPrice();
-        $this->summaryPicture();
-        // print('</div>');
-    }
-
-    //reproduction
-    function tab4() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-        print("<div class='row'>" . "\n\r");
-        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
-        $this->showAccordionReproduction($this->bovineID);
-        print("</div>" . "\n\r");
-        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
-        $this->reproTabContent();
-        print("</div>" . "\n\r");
-        print("</div>" . "\n\r");
-    }
-
-    function reproTabContent() {
-
-        $res2 = $GLOBALS['pdo']->prepare('SELECT * from bovinemanagement.bovinecurr WHERE id=? LIMIT 1');
-        $res2->execute(array($this->bovineID));
-        $row2 = $res2->fetch(PDO::FETCH_ASSOC);
-        $local_number = $row2 ['local_number'];
-
-
-        print ('<div id="reproTabInfo">');
-
-
-        // do info list
-        $this->printPreSelectedSireChoices();
-        // breeding VWP
-        print ("<b>VWP:</b> " . $this->breedingVoluntaryWaitingPeriod($this->bovineID)) . "<br/>";
-        // due
-        $this->printDueDate();
-
-        print ('</div><!--End Repro Tab Info -->');
-        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusKamar.inc');
-
-        $estrusKamar = new EstrusKamar();
-        $estrusKamar->displayLastAllKamarEvents($this->bovineID);
-
-        print ('<div id="bovine_query_log">');
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryReproductionLog.inc');
-        $bovineQueryReproductionLog = new BovineQueryReproductionLog($this->bovineID, $this->bovineFullRegNumber);
-        print($bovineQueryReproductionLog->main());
-        print ('</div>');
-
-
-        print ("<hr />");
-    }
+   
 
     function showAccordionReproduction($bovine_id) {
 
@@ -350,6 +211,202 @@ class BovineQuery extends TabPage {
         $accordion->render($accordionArray);
     }
 
+    
+     //summary
+    function tab1() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+
+        // print("<div id='twoColumnLayout'>");
+
+        $this->summaryMovement();
+        $this->summaryReproduction();
+        $this->summaryPrice();
+        $this->summaryPicture();
+        // print('</div>');
+    }
+
+    //MOVEMENT TAB
+    function tab2() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+
+
+        print("<div class='row'>" . "\n\r");
+        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
+        $this->showAccordionMovement($this->bovineID);
+        print("</div>" . "\n\r");
+        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
+        //
+        //sort gate
+        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementSortGate.inc');
+        $ret = MovementSortGate::individualCowSortStatus($this->bovineID);
+        print(' <div class="col-lg-3 col-xs-6">');
+        $colour = 'purple';
+        print(BootStrap::bootstrapSmallBox('Sort Gate', $ret, null, $colour, 'ion ion-ios-arrow-thin-right'));
+        print('</div>');
+        print('</br>');
+
+
+
+
+        print("<h3> Tracking </h3>");
+        //show location map
+        try {
+
+            require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusDetector.inc');
+            $obj = new Trilateration();
+            $obj->oneCow($this->bovineID);
+        } catch (\Exception $e) {
+            // var_dump($e->getMessage());
+            //show nothing.
+        }
+
+        print("<h3> Location Log </h3>");
+        print($this->locationAll());
+
+
+        print("<h3> RFID Stats </h3>");
+        $this->showLatestRFIDStatsParlor($this->bovineID);
+        $this->showLatestRFIDStatsSortGate($this->bovineID);
+        //      
+        print("</div>" . "\n\r");
+        print("</div>" . "\n\r");
+    }
+
+    //medical
+    function tab3() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+
+
+        print("<div class='row'>" . "\n\r");
+        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
+        self::showMedicalQuickformAccordion($this->bovineID);
+        print("</div>" . "\n\r");
+        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryMedicalLog.inc');
+        $bovineQueryMedicalLog = new BovineQueryMedicalLog($this->bovineID, $this->bovineFullRegNumber);
+        print($bovineQueryMedicalLog->main());
+        print("</div>" . "\n\r");
+        print("</div>" . "\n\r");
+    }
+
+    //reproduction
+    function tab4() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+        print("<div class='row'>" . "\n\r");
+        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
+        $this->showAccordionReproduction($this->bovineID);
+        print("</div>" . "\n\r");
+        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
+        $this->reproTabContent();
+
+        //estrus detetctor charts
+        $obj = new EstrusDetector();
+        print (new BootStrap)->plainBoxCollapsed('EstrusDetector 1', $obj->oneCowLatestDataChartFilteredVar($this->bovineID));
+        print (new BootStrap)->plainBoxCollapsed('EstrusDetector 2', $obj->oneCowLatestDataChart($this->bovineID));
+        print("</div>" . "\n\r");
+        print("</div>" . "\n\r");
+    }
+
+    //tab production
+    function tab5() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+
+
+
+        //check she has a lactation, or don't show anything.
+        $sql = "SELECT id FROM bovinemanagement.lactation WHERE bovine_id=({$this->bovineID})";
+        $res = $GLOBALS['pdo']->query($sql);
+        if ($res->rowCount() > 0) {
+
+
+            print("<div class='row'>" . "\n\r");
+            print("<div class='col-md-6'>" . "\n\r");
+            $this->productionAll();
+            print("</div>" . "\n\r");
+            print("<div class='col-md-6'>" . "\n\r");
+            $this->previousLactationInfo($this->bovineFullRegNumber); //accordian
+            print("</div>" . "\n\r");
+            print("</div>" . "\n\r");
+        } else {
+            print('<h2>No Lactations.</h2>');
+        }
+    }
+
+    /**
+     * Genetics from Holstein Canada
+     */
+    function tab6() {
+
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+        $regNumber = substr($this->bovineFullRegNumber, 6, strlen($this->bovineFullRegNumber));
+
+        $haplotype = BovineQueryBreedingChoice::showHaplotypeInfo($this->bovineID);
+
+        $html_tab6 = <<<HTML
+<div class="row">
+  <div class="col-md-8">
+        <div class="col-md-4">
+        {$this->geneticIndexChangeOverTime($regNumber)}
+        </div>
+        <div class="col-md-4">
+        {$haplotype}
+        </div>
+        <div class="col-md-4">
+        {$this->showFamilyTree()}
+        </div>
+  </div>
+  <div class="col-md-4">
+      {$this->typeClassificationChart($regNumber)}
+  </div>
+</div>
+ <div class="row">     
+      <div class="col-md-8">
+      {$this->draw4GenFamilyTree()}
+       </div> 
+ </div>  
+HTML;
+
+        print ($html_tab6);
+    }
+
+    //breeding choice
+    function tab7() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
+        $bovineQueryBreedingChoice = new BovineQueryBreedingChoice($this->bovineID, $this->bovineLocalNumber, $this->bovineShortName);
+        $bovineQueryBreedingChoice->main();
+    }
+
+    //sale pricing
+    function tab8() {
+        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
+        
+          //draw holstein canada iframe.
+          include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaPageParser.php');
+          $holCan=new HolsteinCanadaPageParser(850,900); //reg,iframe,width,height.
+          //
+          $salePrice= new SalePrice();
+
+        $html = <<<HTML
+          <div class="row">
+          <div class="col-md-8">
+          {$holCan->generateIframe($this->bovineFullRegNumber)}
+          </div>
+          <div class="col-md-4">
+          {$salePrice->salePriceCowQuickForm($this->bovineID)}
+          {$salePrice->displayPreviousPricesForChosenCow($this->bovineID)}
+          </div>
+          </div>
+HTML;
+          
+
+          print($html); 
+    }
+    
+    
+    
+    
+    
     function printPreSelectedSireChoices() {
 
 
@@ -363,45 +420,46 @@ class BovineQuery extends TabPage {
         //change blanks to question marks
         if (isset($row['p1_name'])) {
             $row['p1_name'] = self::changeNulltoQueestionMark($row['p1_name']);
-            if (($row['p1_name'] != null) AND ($row['p1_avail']==null)) {
-              $row['p1_name'] =   '<s>'.$row['p1_name'].'</s>';
+            if (($row['p1_name'] != null) AND ( $row['p1_avail'] == null)) {
+                $row['p1_name'] = '<s>' . $row['p1_name'] . '</s>';
             }
         }
         if (isset($row['p2_name'])) {
             $row['p2_name'] = self::changeNulltoQueestionMark($row['p2_name']);
-            if (($row['p2_name'] != null) AND ($row['p2_avail']==null)) {
-              $row['p2_name'] =   '<s>'.$row['p2_name'].'</s>';
+            if (($row['p2_name'] != null) AND ( $row['p2_avail'] == null)) {
+                $row['p2_name'] = '<s>' . $row['p2_name'] . '</s>';
             }
         }
         if (isset($row['p3_name'])) {
             $row['p3_name'] = self::changeNulltoQueestionMark($row['p3_name']);
-            if (($row['p3_name'] != null) AND ($row['p3_avail']==null)) {
-              $row['p3_name'] =   '<s>'.$row['p3_name'].'</s>';
+            if (($row['p3_name'] != null) AND ( $row['p3_avail'] == null)) {
+                $row['p3_name'] = '<s>' . $row['p3_name'] . '</s>';
             }
         }
         if (isset($row['s1_name'])) {
             $row['s1_name'] = self::changeNulltoQueestionMark($row['s1_name']);
-            if (($row['s1_name'] != null) AND ($row['s1_avail']==null)) {
-              $row['s1_name'] =   '<s>'.$row['s1_name'].'</s>';
+            if (($row['s1_name'] != null) AND ( $row['s1_avail'] == null)) {
+                $row['s1_name'] = '<s>' . $row['s1_name'] . '</s>';
             }
         }
         if (isset($row['s2_name'])) {
             $row['s2_name'] = self::changeNulltoQueestionMark($row['s2_name']);
-            if (($row['s2_name'] != null) AND ($row['s2_avail']==null)) {
-              $row['s2_name'] =   '<s>'.$row['s2_name'].'</s>';
+            if (($row['s2_name'] != null) AND ( $row['s2_avail'] == null)) {
+                $row['s2_name'] = '<s>' . $row['s2_name'] . '</s>';
             }
         }
         if (isset($row['s3_name'])) {
             $row['s3_name'] = self::changeNulltoQueestionMark($row['s3_name']);
-            if (($row['s3_name'] != null) AND ($row['s3_avail']==null)) {
-              $row['s3_name'] =   '<s>'.$row['s3_name'].'</s>';
+            if (($row['s3_name'] != null) AND ( $row['s3_avail'] == null)) {
+                $row['s3_name'] = '<s>' . $row['s3_name'] . '</s>';
             }
         }
 
 
-        print ("Next Repro Action: <span class='large1_1'>{$retArr['nextActionTxt']}</span><br/>");
-        
-        print ("Service Sire Choices: 1<sup>st</sup>:"). str_replace(',,','',"{$row['p1_name']},{$row['p2_name']},{$row['p3_name']}, Later: {$row['s1_name']},{$row['s2_name']},{$row['s3_name']}<br/>");
+        $out[] = ("Next Repro Action: <span class='large1_1'>{$retArr['nextActionTxt']}</span><br/>");
+
+        $out[] = ("Service Sire Choices: 1<sup>st</sup>:") . str_replace(',,', '', "{$row['p1_name']},{$row['p2_name']},{$row['p3_name']}, Later: {$row['s1_name']},{$row['s2_name']},{$row['s3_name']}<br/>");
+        return implode($out);
     }
 
     function changeNulltoQueestionMark($txt) {
@@ -421,28 +479,63 @@ class BovineQuery extends TabPage {
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
-            print ("<b>DUE:</b>:" . $this->daysTillandDate($row ['calculated_potential_due_date']) . " by {$row['preg_check_method']} to <b>{$row['service_sire_short_name']}</b> <span id='small'>({$row['service_sire_full_reg_number']})</span><br/>");
+            return ("<b>DUE:</b>:" . $this->daysTillandDate($row ['calculated_potential_due_date']) . " by {$row['preg_check_method']} to <b>{$row['service_sire_short_name']}</b> <span id='small'>({$row['service_sire_full_reg_number']})</span><br/>");
+        } else {
+            return false;
         }
     }
+    
+     /*
+     * work around for breeding choice not being a real page for reference with ajax call to page 141 in display jquerydatatable.
+     */
 
-    //medical
-    function tab3() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-
-        print("<div class='row'>" . "\n\r");
-        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
-       self::showMedicalQuickformAccordion($this->bovineID);
-        print("</div>" . "\n\r");
-        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryMedicalLog.inc');
-        $bovineQueryMedicalLog = new BovineQueryMedicalLog($this->bovineID, $this->bovineFullRegNumber);
-        print($bovineQueryMedicalLog->main());
-        print("</div>" . "\n\r");
-        print("</div>" . "\n\r");
+    function progenyBreedingChoiceForBovine($request) {
+        return (new BovineQueryBreedingChoice)->progenyBreedingChoiceForBovine($request);
     }
 
+    function breedingChoicesHistorical($request) {
+        return (new BovineQueryBreedingChoice)->breedingChoicesHistorical($request);
+    }
+
+    function reproTabContent() {
+
+        $res2 = $GLOBALS['pdo']->prepare('SELECT * from bovinemanagement.bovinecurr WHERE id=? LIMIT 1');
+        $res2->execute(array($this->bovineID));
+        $row2 = $res2->fetch(PDO::FETCH_ASSOC);
+        $local_number = $row2 ['local_number'];
+
+
+        // do info list
+        $boxOut[] = $this->printPreSelectedSireChoices();
+        // breeding VWP
+        $boxOut[] = ("<b>VWP:</b> " . $this->breedingVoluntaryWaitingPeriod($this->bovineID)) . "<br/>";
+        // due
+        $boxOut[] = $this->printDueDate();
+
+        $out[] = '<div class="row">';
+        $out[] = '<div class="col-md-4">';
+        $out[] = (new BootStrap)->plainBox('Info', implode($boxOut));
+        $out[] = '</div>';
+        $out[] = '<div class="col-md-4">';
+        $out[] = (new EstrusKamar())->displaySingleCowKamarStatusBox($this->bovineID);
+        $out[] = '</div>';
+        $out[] = '</div>';
+        print(implode($out));
+
+        print ('<div id="bovine_query_log">');
+
+        $bovineQueryReproductionLog = new BovineQueryReproductionLog($this->bovineID, $this->bovineFullRegNumber);
+        print($bovineQueryReproductionLog->main());
+        print ('</div>');
+
+
+        print ("<hr />");
+    }
+
+   
+
     /* called here */
+
     public static function showMedicalQuickformAccordion($bovine_id) {
         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/medical/medicalCase.inc');
 
@@ -487,7 +580,7 @@ class BovineQuery extends TabPage {
                     $idStatus = 'Failed';
                 }
 
-                $str = "<b>RFID</b>: " . Misc::daysOrHoursAgo($idTimeRaw) . " <b class=\"smallish\">($ftime)</b> $idTime Auto ID <b>$idStatus</b> ";
+                $str = "<b>RFID</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($idTimeRaw) . " <b class=\"smallish\">($ftime)</b> $idTime Auto ID <b>$idStatus</b> ";
                 $outArray [] = ($str);
             }
 
@@ -531,7 +624,7 @@ from temp
                     $idStatus = 'Successful';
                 }
 
-                $str = "<b>RFID</b>: " . Misc::daysOrHoursAgo($idTimeRaw) . " <b class=\"smallish\">($ftime)</b> $idTime Auto ID <b>$idStatus</b> ";
+                $str = "<b>RFID</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($idTimeRaw) . " <b class=\"smallish\">($ftime)</b> $idTime Auto ID <b>$idStatus</b> ";
                 $outArray [] = ($str);
             }
 
@@ -544,58 +637,6 @@ from temp
         }
 
         return $outArray;
-    }
-
-    //MOVEMENT TAB
-    function tab2() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-
-        print("<div class='row'>" . "\n\r");
-        print("<div class='col-sm-4 col-sm-push-8'>" . "\n\r");
-        $this->showAccordionMovement($this->bovineID);
-        print("</div>" . "\n\r");
-        print("<div class='col-sm-8 col-sm-pull-4'>" . "\n\r");
-        //
-       
-         //sort gate
-        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementSortGate.inc');
-        $ret=MovementSortGate::individualCowSortStatus($this->bovineID);
-         print(' <div class="col-lg-3 col-xs-6">');
-       $colour='purple';
-       print(BootStrap::bootstrapSmallBox('Sort Gate',$ret,null,$colour,'ion ion-ios-arrow-thin-right'));     
-       print('</div>'); print('</br>');
-       
-        
-        
-        
-        print("<h3> Tracking </h3>");
-        //show location map
-        try {
-
-            require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusDetector.inc');
-            $obj = new Trilateration();
-            $obj->oneCow($this->bovineID);
-        } catch (\Exception $e) {
-            // var_dump($e->getMessage());
-            //show nothing.
-        }
-
-        print("<h3> Location Log </h3>");
-        print($this->locationAll());
-
-        
-        
-       
-        
-          
-          
-        print("<h3> RFID Stats </h3>");
-        $this->showLatestRFIDStatsParlor($this->bovineID);
-        $this->showLatestRFIDStatsSortGate($this->bovineID);
-        //      
-        print("</div>" . "\n\r");
-        print("</div>" . "\n\r");
     }
 
     private function locationAll() {
@@ -613,52 +654,9 @@ from temp
      * 
      */
 
-    function tab9() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-        /* draws a chart of last events */
-        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusDetector.inc');
-        $obj = new EstrusDetector();
-        $obj->oneCowLatestDataChartFilteredVar($this->bovineID); //filtered data
-        $obj->oneCowLatestDataChart($this->bovineID); //raw data
-    }
-
-    /**
-     * Genetics from Holstein Canada
-     */
-    function tab7() {
-
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-        $regNumber = substr($this->bovineFullRegNumber, 6, strlen($this->bovineFullRegNumber));
-        
-       $haplotype=BovineQueryBreedingChoice::showHaplotypeInfo($this->bovineID);
-        
-$html = <<<HTML
-<div class="row">
-  <div class="col-md-8">
-        <div class="col-md-4">
-        {$this->geneticIndexChangeOverTime($regNumber)}
-        </div>
-        <div class="col-md-4">
-        {$haplotype}
-        </div>
-  </div>
-  <div class="col-md-4">
-      {$this->typeClassificationChart($regNumber)}
-  </div>
-</div>
-                
-HTML;
-  
-
-       
-        
-      print ($html);
-    }
-    
     function typeClassificationChart($regNumber) {
-        
-         /**
+
+        /**
          * plot holstein canada classification as a bar graph
          */
         $query = "SELECT * FROM batch.holstein_canada_data_curr WHERE reg_no='$regNumber' LIMIT 1";
@@ -690,72 +688,81 @@ HTML;
                           legend: {position: 'none'},
           vAxis: {title: 'Trait',  titleTextStyle: {color: 'red'}}
           ";
-        $x = new GoogleVisBar($opt, $headerStrArr, $three);
+        $x = new GoogleVisualizationBar($opt, $headerStrArr, $three);
 
-        return (new BootStrap)->plainBox('Confirmation Chart',$x->toString());
+        return (new BootStrap)->plainBox('Confirmation Chart', $x->toString());
     }
-    
+
     function geneticIndexChangeOverTime($regNumber) {
-$sql = <<<SQL
+        $sql = <<<SQL
 SELECT extract_date as "Date" ,pro_doll as "Pro$",lpi as "LPI",gebv as "GEBV"
     FROM batch.holstein_canada_data 
         WHERE reg_no='$regNumber' 
             ORDER BY extract_date DESC
 SQL;
-           $out[]=( (new JQueryDataTable)->startBasicSql($sql)); 
-        return (new BootStrap)->plainBox('Genetic Index Change Over Time',implode($out));
-    }
-    
-
-    //tab FamilyTree
-    function tab6() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-
-        self::showFamilyTree();
-
-        // self::draw4GenFamilyTree();
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql));
+        return (new BootStrap)->plainBox('Genetic Index Change Over Time', implode($out));
     }
 
     function showFamilyTree() {
 
-        print ("<h3>Family Tree</h3>");
+        $out[] = FamilyTree::drawFemaleFamilyTree($this->bovineFullRegNumber);
+        return implode($out);
+    }
 
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reports/familyTree.inc');
-        FamilyTree::drawFemaleFamilyTree($this->bovineFullRegNumber);
+    /*
+     * call recursively to get family tree
+     */
+
+    function getAgregateData($full_reg_number) {
+        $sql = "select full_reg_number,full_name,birth_date,prodoll,dam_full_reg_number,sire_full_reg_number from batch.aggregate_view_all where full_reg_number='$full_reg_number' limit 1";
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+        return $results[0];
     }
 
     function draw4GenFamilyTree() {
-        // take registration number and look up info on cdn.
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/cdn.inc');
 
-        try {
-            $animal = getBovineCDNData($this->bovineFullRegNumber);
-            $animal_dam = getBovineCDNData($animal ['dam_full_reg_number']);
-            $animal_sire = getBovineCDNData($animal ['sire_full_reg_number']);
-            //
-            $animal_dam_dam = getBovineCDNData($animal_dam ['dam_full_reg_number']);
-            $animal_dam_sire = getBovineCDNData($animal_dam ['sire_full_reg_number']);
-            $animal_sire_dam = getBovineCDNData($animal_sire ['dam_full_reg_number']);
-            $animal_sire_sire = getBovineCDNData($animal_sire ['sire_full_reg_number']);
-            //
-            $animal_dam_dam_dam = getBovineCDNData($animal_dam_dam ['dam_full_reg_number']);
-            $animal_dam_sire_dam = '';
-            $animal_sire_dam_dam = ''; //don't show dam's of sires to speed up code.
-            $animal_sire_sire_dam = '';
-            $animal_dam_dam_sire = getBovineCDNData($animal_dam_dam ['sire_full_reg_number']);
-            $animal_dam_sire_sire = getBovineCDNData($animal_dam_sire ['sire_full_reg_number']);
-            $animal_sire_dam_sire = getBovineCDNData($animal_sire_dam ['sire_full_reg_number']);
-            $animal_sire_sire_sire = getBovineCDNData($animal_sire_sire ['sire_full_reg_number']);
-        } catch (Exception $e) {
-            Print("<h2>CDN data not fully available or data corrupt,usually means animal is too young and not registered.</h2>");
-        }
+        $animal = $this->getAgregateData($this->bovineFullRegNumber);
+        $animal_dam = $this->getAgregateData($animal['dam_full_reg_number']);
+        $animal_sire = $this->getAgregateData($animal['sire_full_reg_number']);
+        //
+        $animal_dam_dam = $this->getAgregateData($animal_dam ['dam_full_reg_number']);
+        $animal_dam_sire = $this->getAgregateData($animal_dam ['sire_full_reg_number']);
+        $animal_sire_dam = $this->getAgregateData($animal_sire ['dam_full_reg_number']);
+        $animal_sire_sire = $this->getAgregateData($animal_sire ['sire_full_reg_number']);
+        //
+        $animal_dam_dam_dam = $this->getAgregateData($animal_dam_dam ['dam_full_reg_number']);
+        $animal_dam_sire_dam = '';
+        $animal_sire_dam_dam = ''; //don't show dam's of sires to speed up code.
+        $animal_sire_sire_dam = '';
+        $animal_dam_dam_sire = $this->getAgregateData($animal_dam_dam ['sire_full_reg_number']);
+        $animal_dam_sire_sire = $this->getAgregateData($animal_dam_sire ['sire_full_reg_number']);
+        $animal_sire_dam_sire = $this->getAgregateData($animal_sire_dam ['sire_full_reg_number']);
+        $animal_sire_sire_sire = $this->getAgregateData($animal_sire_sire ['sire_full_reg_number']);
+
+
+
+        //FOR DEBUG
+        /*
+          print ($animal['bovine_full_name'] . ' - ' . $animal ['bovine_birthdate'] . '<br/>' . "\n\r");
+          print ($animal_dam ['bovine_full_name'] . ' - ' . $animal_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
+          print ($animal_sire ['bovine_full_name'] . ' - ' . $animal_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
+
+          print ($animal_dam_dam ['bovine_full_name'] . ' - ' . $animal_dam_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
+          print ($animal_dam_sire ['bovine_full_name'] . ' - ' . $animal_dam_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
+
+          print ($animal_sire_dam ['bovine_full_name'] . ' - ' . $animal_sire_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
+          print ($animal_sire_sire ['bovine_full_name'] . ' - ' . $animal_sire_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
+
+         */
 
 
         //Now use google visulations to show the data in an org chart
-        ?>
+        $js = <<<JS
 
-        <script type="text/javascript">
+    <script type="text/javascript">
             function drawVisualizationF() {
                 // Create and populate the data table.
                 var data = new google.visualization.DataTable();
@@ -766,49 +773,49 @@ SQL;
                 data.addRows(15);
 
                 //row 0
-                data.setCell(0, 0, '0', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal['bovine_full_reg_number'])); ?>"><?php echo($animal['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal['bovine_birthdate']); ?><i></font>');
+                data.setCell(0, 0, '0', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal['full_reg_number'])}">{$animal['full_name']}</a><br/><font color="red"><i>{$animal['birth_date']}<i></font>');
                 //row 1
-                data.setCell(1, 0, '1f', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(1, 0, '1f', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam['full_reg_number'])}">{$animal_dam['full_name']}</a><br/><font color="red"><i>{$animal_dam['birth_date']}<i></font>');
                 data.setCell(1, 1, '0');
                 //row 2
-                data.setCell(2, 0, '1m', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(2, 0, '1m', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire['full_reg_number'])}">{$animal_sire['full_name']}</a><br/><font color="red"><i>{$animal_sire['birth_date']}<i></font>');
                 data.setCell(2, 1, '0');
                 //row 3
-                data.setCell(3, 0, '2ff', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(3, 0, '2ff', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_dam['full_reg_number'])}">{$animal_dam_dam['full_name']}</a><br/><font color="red"><i>{$animal_dam_dam['birth_date']}<i></font>');
                 data.setCell(3, 1, '1f');
                 //row 4 
-                data.setCell(4, 0, '2fm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(4, 0, '2fm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_sire['full_reg_number'])}">{$animal_dam_sire['full_name']}</a><br/><font color="red"><i>{$animal_dam_sire['birth_date']}<i></font>');
                 data.setCell(4, 1, '1f');
                 //row 5 
-                data.setCell(5, 0, '2mm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(5, 0, '2mm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_sire['full_reg_number'])}">{$animal_sire_sire['full_name']}</a><br/><font color="red"><i>{$animal_sire_sire['birth_date']}<i></font>');
                 data.setCell(5, 1, '1m');
                 //row 6 
-                data.setCell(6, 0, '2mf', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(6, 0, '2mf', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_dam['full_reg_number'])}">{$animal_sire_dam['full_name']}</a><br/><font color="red"><i>{$animal_sire_dam['birth_date']}<i></font>');
                 data.setCell(6, 1, '1m');
                 /////////////////////////
                 //   //row 7
-                data.setCell(7, 0, '3fff', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_dam_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_dam_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_dam_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(7, 0, '3fff', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_dam_dam['full_reg_number'])}">{$animal_dam_dam_dam['full_name']}</a><br/><font color="red"><i>{$animal_dam_dam_dam['birth_date']}<i></font>');
                 data.setCell(7, 1, '2ff');
                 //row 8 
-                data.setCell(8, 0, '3ffm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_dam_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_dam_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_dam_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(8, 0, '3ffm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_dam_sire['full_reg_number'])}">{$animal_dam_dam_sire['full_name']}</a><br/><font color="red"><i>{$animal_dam_dam_sire['birth_date']}<i></font>');
                 data.setCell(8, 1, '2ff');
                 //row 9 
-                data.setCell(9, 0, '3fmf', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_sire_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_sire_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_sire_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(9, 0, '3fmf', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_sire_dam['full_reg_number'])}">{$animal_dam_sire_dam['full_name']}</a><br/><font color="red"><i>{$animal_dam_sire_dam['birth_date']}<i></font>');
                 data.setCell(9, 1, '2fm');
                 //row 10 
-                data.setCell(10, 0, '3fmm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_dam_sire_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_dam_sire_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_dam_sire_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(10, 0, '3fmm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_dam_sire_sire['full_reg_number'])}">{$animal_dam_sire_sire['full_name']}</a><br/><font color="red"><i>{$animal_dam_sire_sire['birth_date']}<i></font>');
                 data.setCell(10, 1, '2fm');
                 //   //row 11
-                data.setCell(11, 0, '3mmf', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_sire_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_sire_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire_sire_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(11, 0, '3mmf', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_sire_dam['full_reg_number'])}">{$animal_sire_sire_dam['full_name']}</a><br/><font color="red"><i>{$animal_sire_sire_dam['birth_date']}<i></font>');
                 data.setCell(11, 1, '2mm');
                 //row 12 
-                data.setCell(12, 0, '3mmm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_sire_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_sire_sire['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire_sire_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(12, 0, '3mmm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_sire_sire['full_reg_number'])}">{$animal_sire_sire_sire['full_name']}</a><br/><font color="red"><i>{$animal_sire_sire_sire['birth_date']}<i></font>');
                 data.setCell(12, 1, '2mm');
                 //row 13
-                data.setCell(13, 0, '3mff', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_dam_dam['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_dam_dam['bovine_full_name']); ?></a><br/><font color="red"><i><?php echo($animal_sire_dam_dam['bovine_birthdate']); ?><i></font>');
+                data.setCell(13, 0, '3mff', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_dam_dam['full_reg_number'])}">{$animal_sire_dam_dam['full_name']}</a><br/><font color="red"><i>{$animal_sire_dam_dam['birth_date']}<i></font>');
                 data.setCell(13, 1, '2mf');
                 //row 14 
-                data.setCell(14, 0, '3mfm', '<a href="<?php echo(Misc::createListOfAllCowsMilking($animal_sire_dam_sire['bovine_full_reg_number'])); ?>"><?php echo($animal_sire_dam_sire['bovine_full_name']); ?></a></a><br/><font color="red"><i><?php echo($animal_sire_dam_sire['bovine_birthdate']); ?><i></font>');
+                data.setCell(14, 0, '3mfm', '<a href="{$GLOBALS['MiscObj']->createListOfAllCowsMilking($animal_sire_dam_sire['full_reg_number'])}">{$animal_sire_dam_sire['full_name']}</a></a><br/><font color="red"><i>{$animal_sire_dam_sire['birth_date']}<i></font>');
                 data.setCell(14, 1, '2mf');
 
 
@@ -822,65 +829,28 @@ SQL;
             google.charts.setOnLoadCallback(drawVisualizationF);
             });
         </script>
-        <?php
-        print(' <div id="visualizationF" style="width: 100%; height: 600px;"></div>');
+         <div id="visualizationF" style="width: 100%; height: 600px;"></div>
+             
+JS;
 
-
-
-        /*
-          print ($animal['bovine_full_name'] . ' - ' . $animal ['bovine_birthdate'] . '<br/>' . "\n\r");
-          print ($animal_dam ['bovine_full_name'] . ' - ' . $animal_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
-          print ($animal_sire ['bovine_full_name'] . ' - ' . $animal_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
-
-          print ($animal_dam_dam ['bovine_full_name'] . ' - ' . $animal_dam_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
-          print ($animal_dam_sire ['bovine_full_name'] . ' - ' . $animal_dam_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
-
-          print ($animal_sire_dam ['bovine_full_name'] . ' - ' . $animal_sire_dam ['bovine_birthdate'] . '<br/>' . "\n\r");
-          print ($animal_sire_sire ['bovine_full_name'] . ' - ' . $animal_sire_sire ['bovine_birthdate'] . '<br/>' . "\n\r");
-
-         */
-    }
-
-    //tab production
-    function tab5() {
-        $this->loadVars($_REQUEST ['bovine_id'], $_REQUEST ['pageid'], $_REQUEST ['bovine_local_number']);
-
-   
-        
-        //check she has a lactation, or don't show anything.
-        $sql = "SELECT id FROM bovinemanagement.lactation WHERE bovine_id=({$this->bovineID})";
-        $res = $GLOBALS['pdo']->query($sql);
-        if ($res->rowCount() > 0) {
-
-
-            print("<div class='row'>" . "\n\r");
-            print("<div class='col-md-6'>" . "\n\r");
-            $this->productionAll();
-            print("</div>" . "\n\r");
-            print("<div class='col-md-6'>" . "\n\r");
-            $this->previousLactationInfo($this->bovineFullRegNumber); //accordian
-            print("</div>" . "\n\r");
-            print("</div>" . "\n\r");
-        } else {
-            print('<h2>No Lactations.</h2>');
-        }
+        return (new BootStrap)->plainBox('Family Tree', $js);
     }
 
     private function productionAll() {
-          print($this->productionItems($this->bovineID));
+        print($this->productionItems($this->bovineID));
 
-          
-          $ownerStats='';
-            if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            $out[]=($this->getLatestLactationRevenue($this->bovineID));
-             $out[]=($this->getPercentageManuallyMilked($this->bovineID));
-             $out[]=($this->getPercentageReattatched($this->bovineID));
-             $out[]=($this->findMastitisDoses($this->bovineID));
-             $ownerStats= (new BootStrap)->plainBox('Milking Stats',implode($out));
+
+        $ownerStats = '';
+        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+            $out[] = ($this->getLatestLactationRevenue($this->bovineID));
+            $out[] = ($this->getPercentageManuallyMilked($this->bovineID));
+            $out[] = ($this->getPercentageReattatched($this->bovineID));
+            $out[] = ($this->findMastitisDoses($this->bovineID));
+            $ownerStats = (new BootStrap)->plainBox('Milking Stats', implode($out));
         }
-          
-         
-$html = <<<HTML
+
+
+        $html = <<<HTML
    <div class="row">
   <div class="col-md-4">{$this->getLatestMilking($this->bovineID)}</div>
   <div class="col-md-4"> {$this->getLatestAdlicTest($this->bovineFullRegNumber)}</div>
@@ -888,12 +858,10 @@ $html = <<<HTML
   
 </div>   
 HTML;
-      print($html);    
-          
+        print($html);
 
-       $this->plotLatestLactation($this->bovineFullRegNumber); //causes screen to be blank. document.ready doesnt work on tab switch.
 
-      
+        $this->plotLatestLactation($this->bovineFullRegNumber); //causes screen to be blank. document.ready doesnt work on tab switch.
     }
 
     function findMastitisDoses($bovine_id) {
@@ -912,15 +880,15 @@ HTML;
         //milk withholding
         if (!empty(BovineQueryMedicalLog::milkWithHolding($bovineID))) {
             $txt = '<h3>Milk: <b>Withhold</b></h3> <span class="smallish">until ' . date('D M j/Y ga', BovineQueryMedicalLog::milkWithHolding($bovineID)) . '</span>';
-            $out[]= BootStrap::errorNotify(($txt));
+            $out[] = BootStrap::errorNotify(($txt));
         } else {
-           $out[]= BootStrap::sucessNotify(( "<h3>Milk: Clear</h3>"));
+            $out[] = BootStrap::sucessNotify(( "<h3>Milk: Clear</h3>"));
         }
 
         //dim
-$dim=(BootStrap::bootstrapSmallBox('DIM', self::findCurrentDIM($bovineID), null, 'purple', 'ion ion-ios-clock'));
+        $dim = (BootStrap::bootstrapSmallBox('DIM', self::findCurrentDIM($bovineID), null, 'purple', 'ion ion-ios-clock'));
 
-$html = <<<HTML
+        $html = <<<HTML
      <div class="row">
   <div class="col-md-4">$dim</div>
   <div class="col-md-4"><!--.col-md-4--></div>
@@ -929,20 +897,20 @@ $html = <<<HTML
 HTML;
 
 //print($html);
-        $out[]= $html;
-      
+        $out[] = $html;
+
 
         //3 quarters
         $sql = "SELECT three_quarter FROM bovinemanagement.production_item WHERE bovine_id=$bovineID order by event_time DESC LIMIT 1";
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ((!empty($row['three_quarter'])) AND ( $row['three_quarter'] == 't')) {
-          $out[]= BootStrap::warningNotify(( "<h3>Udder: 3 Quarter</h3>"));           
+            $out[] = BootStrap::warningNotify(( "<h3>Udder: 3 Quarter</h3>"));
         }
-        
+
         //slow milking (calculate) TODO
 
-       
+
         return(implode($out));
     }
 
@@ -1003,13 +971,13 @@ HTML;
             }
             $accordion = new AccordionImplementationPreviousLactations($bovineFullRegNumber);
             $accordion->setCSS('accordionNarrowBovineQuery');
-         
-   //previousLactationInfo         
 
- 
+            //previousLactationInfo         
+
+
             $accordion->render($accordionArray);
             //used because google visualization doesn't know what size to render chart in hidden div. so force resize when accordian tab opened.     
-            $js= <<<JSCRIPT
+            $js = <<<JSCRIPT
 <script>       
                     $( document ).ready(function() {
  $("#accordion_{$accordion->uuid}").accordion({ activate: function(event, ui) {
@@ -1022,13 +990,12 @@ HTML;
 </script>     
 JSCRIPT;
             print($js);
-           // var_dump($accordion);
-            
+            // var_dump($accordion);
         }
     }
 
     function summaryMovement() {
-        print ("<div class='summaryBlock'>");
+
         // get three latest locations
         $query = "SELECT event_time,date_trunc('days',now()-event_time) as days_ago,name,userid
 FROM bovinemanagement.location_event 
@@ -1036,18 +1003,18 @@ LEFT JOIN bovinemanagement.location ON location_event.location_id = location.id
 WHERE bovine_id={$this->bovineID} ORDER BY event_time DESC LIMIT 3";
         $res = $GLOBALS ['pdo']->query($query);
         $counter = 0;
-        print ("<h1>Location</h1>");
+
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             if ($counter == 0) {
                 print ("<h2>{$row['name']}</h2>");
             }
             $daysSince = $row ['days_ago'];
             $formattedDate = date("M d Y", strtotime($row ['event_time']));
-            print ("<p>$daysSince (<a class=\"smallish\">$formattedDate</a>) {$row['name']}</p>");
+            $out[] = ("<li>$daysSince (<a class=\"smallish\">$formattedDate</a>) {$row['name']}</li>");
             $counter++;
         }
 
-        print ("</div> <!-- End of summaryBlock Movement -->");
+        print( (new BootStrap)->plainBox('Recent Locations', implode($out)));
     }
 
     function summaryReproduction() {
@@ -1085,7 +1052,7 @@ WHERE bovine_id={$this->bovineID} ORDER BY event_time DESC LIMIT 3";
     private function daysTillandDate($time) {
         $strTime = strtotime($time);
         $dateTime = date('M j, Y', $strTime);
-        $daysTime = Misc::daysOrHoursAgo(strtotime($time));
+        $daysTime = $GLOBALS['MiscObj']->daysOrHoursAgo(strtotime($time));
         // determine if it is in the future or not.
         if ($daysTime >= 0) {
             $subStr = $daysTime . ' ';
@@ -1144,10 +1111,10 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id=sale_pric
       // to do this. should be a css class.
       if ($pageHeader == true) {
       $style = "id='animalSelect'";
-      $aniNumber = Misc::createListOfAllAliveCows(true);
+      $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows(true);
       } else {
       $style = '';
-      $aniNumber = Misc::createListOfAllAliveCows(false);
+      $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows(false);
       }
 
       // custom select input
@@ -1161,8 +1128,6 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id=sale_pric
 
       }
      */
-
-   
 
     /** main method with name,etc. at top of page */
     function displayName($bovine_id) {
@@ -1214,7 +1179,7 @@ WHERE bovine.id=$bovine_id LIMIT 1";
         // reg
         // number
         // show cow name
-        $shortName = Misc::femaleShortName($row ['full_name']);
+        $shortName = $GLOBALS['MiscObj']->femaleShortName($row ['full_name']);
 
         if ($shortName == '') {
             $shortName = $row ['potential_name'] . '<span id="potentialName">(potential)</span>';
@@ -1252,8 +1217,8 @@ WHERE bovine.id=$bovine_id LIMIT 1";
 
 
         if ($row['dam_local_number'] != null) {
-            $damShortName = Misc::femaleShortName($row ['dam_full_name']);
-            $damLink = $GLOBALS['MiscObj']->hrefToBovinePageFullName($row['dam_id'],$row['dam_local_number'],$row['dam_full_name']); 
+            $damShortName = $GLOBALS['MiscObj']->femaleShortName($row ['dam_full_name']);
+            $damLink = $GLOBALS['MiscObj']->hrefToBovinePageFullName($row['dam_id'], $row['dam_local_number'], $row['dam_full_name']);
         }
 
 
@@ -1289,7 +1254,7 @@ WHERE bovine.id=$bovine_id LIMIT 1";
         /* print stuff out */
 
         /* a div is needed to create a box for the rest */
-    
+
 
         print ("<div id='animalNameBox'>");
         print ("<div id='animalShortNameNumBox'>#$nameStr</div>");
@@ -1338,7 +1303,7 @@ WHERE bovine.id=$bovine_id LIMIT 1";
         print ("<div id='statsBox2'>");
         if (!empty($this->bovineFullRegNumber)) {
             print("<div id='cdnBox'>" . "\n\r");
-            print('<a href="' . Misc::createListOfAllCowsMilking($row['full_reg_number']) . '"><img   width="50" height="19" src="/images/cdnLogo.svg" /></a>');
+            print('<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '"><img   width="50" height="19" src="/images/cdnLogo.svg" /></a>');
             print('&nbsp;&nbsp;&nbsp;&nbsp;');
             print("<a href=\"$holsteinQueryString\">" . '<img  width="28" height="20" src="/images/holsCanadaBWSmall.svg" />' . "</a>" . "\n\r");
             print("</div>" . "\n\r");
@@ -1379,12 +1344,12 @@ WHERE bovine.id=$bovine_id LIMIT 1";
 
 
                 $holQuery_sire = HolsteinCanadaHelper::createHolsteinCanadaQuery($value['service_sire_full_reg_number']);
-                print ("<small><small> <b>(potential)</b> {$value['days_ago']} <a href='" . Misc::createListOfAllCowsMilking($value['service_sire_full_reg_number']) . "'>{$value['service_sire_short_name']}</a>  &nbsp; &nbsp;<a href=\"$holQuery_sire\"><b>{$value['service_sire_full_reg_number']}</b></a> </small></small> " . '');
+                print ("<small><small> <b>(potential)</b> {$value['days_ago']} <a href='" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($value['service_sire_full_reg_number']) . "'>{$value['service_sire_short_name']}</a>  &nbsp; &nbsp;<a href=\"$holQuery_sire\"><b>{$value['service_sire_full_reg_number']}</b></a> </small></small> " . '');
             }
         } else {
 
 
-            print (" <a href='" . Misc::createListOfAllCowsMilking($row['sire_full_reg_number']) . "'>{$row['sire_short_name']}</a>  &nbsp; &nbsp;<a href=\"$holQuery_sire\"><b>{$row['sire_full_reg_number']}</b></a>" . '');
+            print (" <a href='" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['sire_full_reg_number']) . "'>{$row['sire_short_name']}</a>  &nbsp; &nbsp;<a href=\"$holQuery_sire\"><b>{$row['sire_full_reg_number']}</b></a>" . '');
         }
         print("</div>" . "\n\r");
 
@@ -1395,9 +1360,6 @@ WHERE bovine.id=$bovine_id LIMIT 1";
 
         /* END statsBox3 */
         print("</div>" . "\n\r");
-
-
-       
     }
 
     function displayBreeding($local_number, $row, $row2, $bovine_id) {
@@ -1466,8 +1428,6 @@ WHERE bovine.id=$bovine_id LIMIT 1";
 
         print ('</div> <!--End breed -->');
     }
-
-  
 
     // full registration number of animal needed.
     function plotLatestLactation($full_reg) {
@@ -1560,19 +1520,19 @@ SELECT date,abs(fresh_date - date) as dim,fresh_date,milkyield+milkyield2 as dai
                 $opt = "   series: { 1:{ lineWidth: 0, pointSize: 6 } },
                  chartArea: {width: '90%', height: '80%'},
                  legend: {position: 'in'}";
-                $x = new GoogleVisLine($opt, $headerStrArr, $dailyMilkYieldArr, $valactaMilkYieldArr);
+                $x = new GoogleVisualizationLine($opt, $headerStrArr, $dailyMilkYieldArr, $valactaMilkYieldArr);
                 $str = $str . ($x->toString());
             } elseif (($dailyMilkYieldArr != null) && ($valactaMilkYieldArr == null)) {
                 $opt = "   series: { 1:{ lineWidth: 0, pointSize: 6 } },
                  chartArea: {width: '90%', height: '80%'},
                  legend: {position: 'in'}";
-                $x = new GoogleVisLine($opt, $headerStrArr, $dailyMilkYieldArr);
+                $x = new GoogleVisualizationLine($opt, $headerStrArr, $dailyMilkYieldArr);
                 $str = $str . ($x->toString());
             } elseif (($dailyMilkYieldArr == null) && ($valactaMilkYieldArr != null)) {
                 $opt = "   series: { 0:{ lineWidth: 2, pointSize: 6,color: 'red' } },
                  chartArea: {width: '90%', height: '80%'},
                  legend: {position: 'in'}";
-                $x = new GoogleVisLine($opt, $headerStrArr, $valactaMilkYieldArr);
+                $x = new GoogleVisualizationLine($opt, $headerStrArr, $valactaMilkYieldArr);
                 $str = $str . ($x->toString());
             } else {
                 $str = $str . ('<p>No milking data yet.</p>');
@@ -1598,7 +1558,7 @@ SELECT date,abs(fresh_date - date) as dim,fresh_date,milkyield+milkyield2 as dai
                                 },
                         chartArea: {width: '90%', height: '80%'},
                         legend: {position: 'in'}";
-            $x = new GoogleVisLine($opt, $headerStrArr, $valactaSSCArr);
+            $x = new GoogleVisualizationLine($opt, $headerStrArr, $valactaSSCArr);
             $str = $str . ($x->toString());
             $str = $str . ('</div> <!-- end LactationCurve -->');
         }
@@ -1623,7 +1583,7 @@ SELECT date,abs(fresh_date - date) as dim,fresh_date,milkyield+milkyield2 as dai
                                 },
                         chartArea: {width: '90%', height: '80%'},
                         legend: {position: 'in'}";
-            $x = new GoogleVisLine($opt, $headerStrArr, $valactaFatArr, $valactaProtArr);
+            $x = new GoogleVisualizationLine($opt, $headerStrArr, $valactaFatArr, $valactaProtArr);
             $str = $str . ($x->toString());
             $str = $str . ('</div> <!-- end LactationCurve -->');
         }
@@ -1632,7 +1592,7 @@ SELECT date,abs(fresh_date - date) as dim,fresh_date,milkyield+milkyield2 as dai
 
     function getLatestMilking($bovine_id) {
 
-$sql = <<<SQL
+        $sql = <<<SQL
 SELECT DISTINCT on (date) date as "Date"
 ,round((SELECT avg(milkyield) FROM alpro.cow x WHERE bovine_id=$bovine_id AND milking_number=1 AND x.date=cow.date ),1) as "AM"
 ,round((SELECT avg(milkyield) FROM alpro.cow x WHERE bovine_id=$bovine_id AND milking_number=2 AND x.date=cow.date ),1) as "PM"
@@ -1640,9 +1600,9 @@ SELECT DISTINCT on (date) date as "Date"
                 WHERE bovine_id=$bovine_id AND date >= (current_date - interval '7 days') ORDER BY date DESC limit 14
 SQL;
 
-   
-          $out[]=( (new JQueryDataTable)->startBasicSql($sql));     
-          return  (new BootStrap)->plainBox('Latest Parlor Milkings',implode($out));
+
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql));
+        return (new BootStrap)->plainBox('Latest Parlor Milkings', implode($out));
     }
 
     function getLatestAdlicTest($full_reg) {
@@ -1650,15 +1610,14 @@ SQL;
         $res = $GLOBALS ['pdo']->query($query);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $ssc = $row ['ssc'] / 1000;
-       
-        $out[]="<li>Date {$row['test_date']}</li>";  
-        $out[]="<li>BCA {$row['bca_milk']}-{$row['bca_fat']}-{$row['bca_prot']}</li>";  
-        $out[]="<li>Milk {$row['total_milk']} kg</li>";  
-        $out[]="<li>SSC {$ssc}k</li>";  
-        $out[]="<li>DIM @ test {$row['days_in_mi']}</li>";  
-        
-      return  (new BootStrap)->plainBox('Latest Valacta Test',implode($out));
- 
+
+        $out[] = "<li>Date {$row['test_date']}</li>";
+        $out[] = "<li>BCA {$row['bca_milk']}-{$row['bca_fat']}-{$row['bca_prot']}</li>";
+        $out[] = "<li>Milk {$row['total_milk']} kg</li>";
+        $out[] = "<li>SSC {$ssc}k</li>";
+        $out[] = "<li>DIM @ test {$row['days_in_mi']}</li>";
+
+        return (new BootStrap)->plainBox('Latest Valacta Test', implode($out));
     }
 
     function showLocationLog($outArray) {
@@ -1669,7 +1628,7 @@ SQL;
         while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row2['event_time']) + 1; //add 1 seconds to display at top of list.
             $ftime = date('M j, Y', $time);
-            $str = "" . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row2['reason']} {$row2['comment']}</b> by {$row2['userid']}<br/>";
+            $str = "" . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row2['reason']} {$row2['comment']}</b> by {$row2['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
 
@@ -1678,7 +1637,7 @@ SQL;
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "" . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row['name']}</b> by {$row['userid']}<br/>";
+            $str = "" . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row['name']}</b> by {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -1761,31 +1720,31 @@ ORDER BY cow.date DESC,cow.milking_number  DESC LIMIT 6
                 setTimeout(drawChart_letdown, 200); //firefox workaround.   
                 google.charts.setOnLoadCallback(drawChart_letdown, true);
                 $(window).resize(function(){
-            google.charts.setOnLoadCallback(drawChart_letdown);
-            });
+                google.charts.setOnLoadCallback(drawChart_letdown);
+                });
                 function drawChart_letdown() {
 
 
-                    var data = new google.visualization.DataTable();
-                    data.addColumn('number', 'liters/min');
+                var data = new google.visualization.DataTable();
+                data.addColumn('number', 'liters/min');
             <?php echo($header); ?>
-                    data.addRows([
+                data.addRows([
             <?php echo($data); ?>
-                    ]);
+                ]);
 
 
-                    var options = {
-                        title: 'Milk Let-Down',
-                        interpolateNulls: true,
-                        hAxis: {title: 'Milking Time (s)', titleTextStyle: {color: '#000'}},
-                        vAxis: {title: 'Milk (l/min)', titleTextStyle: {color: '#000'}},
-                        legend: {textStyle: {color: '#000', fontSize: 10}}
+                var options = {
+                title: 'Milk Let-Down',
+                interpolateNulls: true,
+                hAxis: {title: 'Milking Time (s)', titleTextStyle: {color: '#000'}},
+                vAxis: {title: 'Milk (l/min)', titleTextStyle: {color: '#000'}},
+                legend: {textStyle: {color: '#000', fontSize: 10}}
 
-                    };
+                };
 
 
-                    var chart = new google.visualization.LineChart(document.getElementById('chart_div_letdown'));
-                    chart.draw(data, options);
+                var chart = new google.visualization.LineChart(document.getElementById('chart_div_letdown'));
+                chart.draw(data, options);
                 }
             </script>
 
@@ -1819,12 +1778,10 @@ class AccordionImplementationReproduction extends AccordionSub {
     function tab1() {
 
         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusHeats.inc');
-        $param= new stdClass();
-        $param->bovine_id= self::$bovineID;
-        $a=new QF2_EstrusHeats((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])),'individual',$param);
-        print($a->renderBox('qf_heatsEntry','Record Heat Event'));       
-        
-
+        $param = new stdClass();
+        $param->bovine_id = self::$bovineID;
+        $a = new QF2_EstrusHeats((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'bovine_id' => $_REQUEST['bovine_id'])), 'individual', $param);
+        print($a->renderBox('qf_heatsEntry', 'Record Heat Event'));
     }
 
     function tab2() {
@@ -1835,11 +1792,10 @@ class AccordionImplementationReproduction extends AccordionSub {
 
     function tab3() {
         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusBreedings.inc');
-       $param= new stdClass();
-       $param->bovine_id= self::$bovineID;
-        $a=new QF2_EstrusBreedingsMarkCowToBeBred((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])),'individual',$param);
-        print($a->renderBox('qf2_BreedingsCowToBeBred','Animal to be Bred'));     
-        
+        $param = new stdClass();
+        $param->bovine_id = self::$bovineID;
+        $a = new QF2_EstrusBreedingsMarkCowToBeBred((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'bovine_id' => $_REQUEST['bovine_id'])), 'individual', $param);
+        print($a->renderBox('qf2_BreedingsCowToBeBred', 'Animal to be Bred'));
     }
 
     function tab4() {
@@ -1849,11 +1805,10 @@ class AccordionImplementationReproduction extends AccordionSub {
 
     function tab5() {
         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusKamar.inc');
-      $param= new stdClass();
-        $param->bovine_id= self::$bovineID;
-         $k = new QF2_EstrusKamar((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])), 'individual',$param);
+        $param = new stdClass();
+        $param->bovine_id = self::$bovineID;
+        $k = new QF2_EstrusKamar((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'bovine_id' => $_REQUEST['bovine_id'])), 'individual', $param);
         print($k->renderBox('qf2_kamarEntry', 'Record Kamar Event'));
-
     }
 
     function tab6() {
@@ -1886,24 +1841,23 @@ class AccordionImplementationMovement extends AccordionSub {
 
     function tab1() {
         $param = new stdClass();
-        $param->bovine_id=self::$bovineID;
+        $param->bovine_id = self::$bovineID;
         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementIndividual.inc');
-        $a=new QF2_MoveAnimal((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])),self::$mode,$param);
-        print($a->renderBox('qf2_MoveAnimal','Move Animal to new Group'));  
+        $a = new QF2_MoveAnimal((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'bovine_id' => $_REQUEST['bovine_id'])), self::$mode, $param);
+        print($a->renderBox('qf2_MoveAnimal', 'Move Animal to new Group'));
         print($a->formJS());
-        
     }
 
     function tab2() {
-         require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementSortGate.inc');
-         
+        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementSortGate.inc');
+
         $param = new stdClass();
-        $param->bovine_id=self::$bovineID;
-        $a=new QF2_SortGate((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])),self::$mode,$param);
-        print($a->renderBox('QF2_SortGate','Mark Animal to be Sorted'));  
+        $param->bovine_id = self::$bovineID;
+        $a = new QF2_SortGate((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'], 'bovine_id' => $_REQUEST['bovine_id'])), self::$mode, $param);
+        print($a->renderBox('QF2_SortGate', 'Mark Animal to be Sorted'));
         print($a->formJS());
     }
-    
+
     function tab3() {
 
         // require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementIndividual.inc');
@@ -1932,7 +1886,7 @@ class AccordionImplementationMovement extends AccordionSub {
 class AccordionImplementationPreviousLactations extends AccordionSub {
 
     public static $bovineFullRegNumber;
-    
+
     public function __construct($bovineFullRegNumber = null) {
         if ($bovineFullRegNumber != null) {
             self::$bovineFullRegNumber = $bovineFullRegNumber;
@@ -1946,9 +1900,9 @@ class AccordionImplementationPreviousLactations extends AccordionSub {
 
         $str = '';
 
-    
-        
-$sql = <<<SQL
+
+
+        $sql = <<<SQL
 SELECT days_in_mi as "DIM", bca_milk ||'-'|| bca_fat ||'-'||  bca_prot as "BCA", total_milk as "Milk (kg)",fat_per as "Fat %",prot_per as "Prot %",round(ssc/1000,1) as "SSC",round(mun/10,1) as "MUN" , 
     round(total_milk*fat_per*.01,2) as "Fat (kg/day)",round(total_milk*prot_per*.01,2) as "Prot (kg/day)" 
     FROM batch.valacta_data 
@@ -1958,10 +1912,10 @@ SQL;
 
 
 
-        
+
         // $out[]=( (new JQueryDataTable)->startBasicSql($sql));
-        $str = $str .( (new JQueryDataTable)->startBasicSql($sql));
-        
+        $str = $str . ( (new JQueryDataTable)->startBasicSql($sql));
+
         $valactaMilkYieldArr = null;
         $valactaFatArr = null;
         $valactaProtArr = null;

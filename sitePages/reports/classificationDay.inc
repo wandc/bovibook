@@ -1,19 +1,6 @@
 <?php 
 
 
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if(class_exists('DataGridLR_Ext') != true) {
-  //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-  class DataGridLR_Ext extends DataGridLR {
-                     function colourLineCriteria($row) {
-                     if ($row['completed']=='t') {  return true;}
-                     else  {  return false;}
-                     }
-                }
-}
   
 class ClassificationDay extends TabPage {
 
@@ -32,38 +19,52 @@ class ClassificationDay extends TabPage {
 	}
 
 	protected function tab1() {
-      print("<style>form.quickformtableless input {width: 200px;}</style>"); //tp fix stupid quickforms bug.
-		$this->displayClassificationList();
+
+		print($this->displayClassificationList());
              
     }
 
     protected function tab2() {
-     
-        print("<h3>NOTE: Do not use this form during classification or results will be lost.</h3>");
-        $a=new QF2_Classification((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_Classification','Select Animals to Add to Classification List'));  
-        print($a->formJS());
-	print($this-> deleteButton());
         
-          print("<h3>List to Help Choose Who To Classify</h3>".$this->pageid);
-        $this->displayCowsToClassifyList();
+        $a=new QF2_Classification((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        $formStr.=($a->renderBox('qf2_Classification','Select Animals to Add to Classification List'));  
+        $formStr.=($a->formJS());
+	$formStr.=($this-> deleteButton());
+        //   
+        $warning=BootStrap::warningSpan('NOTE: Do not use this form during classification or results will be lost.');
+        
+$html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>    
+            <p>$warning</p>
+            $formStr
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'>
+        <h3>List to Help Choose Who To Classify</h3>
+            {$this->displayCowsToClassifyList()}
+        </div> 
+    </div>    
+HTML;
+
+          print($html);
+       
     }
         
     
     
     
     public function toClassifyList() {
-        $sql = "SELECT bovinecurr.id as bovine_id,local_number,bovinecurr.full_name,location_name,bovinecurr.birth_date,bovinemanagement.round_to_nearest_date (fresh_date) as fresh_date,score,short_name,date_trunc('day',current_date-bovinecurr.fresh_date) as dim 
+$sql = <<<SQL
+SELECT bovinecurr.id as bovine_id,local_number,bovinecurr.full_name,location_name,bovinecurr.birth_date,bovinemanagement.round_to_nearest_date (fresh_date) as fresh_date,score,short_name,date_trunc('day',current_date-bovinecurr.fresh_date) as dim 
                 FROM
                 bovinemanagement.bovinecurr 
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bovinecurr.full_reg_number
 LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = bovinecurr.sire_full_reg_number
 WHERE bovinecurr.location_id in (40,41,39,42)
-ORDER BY location_name,local_number ASC";
-
+ORDER BY location_name,local_number ASC
+SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
-        //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         
@@ -115,22 +116,58 @@ $columnsStr= <<<EX
                 type: "date",
             },
 EX;
-    print($dt->start($this->pageid,'toClassifyList',null,$columnsStr,null,false,'"paging": false,'));     
+    return($dt->start($this->pageid,'toClassifyList',null,$columnsStr,null,false,'"paging": false,'));     
 }     
 
     
     
-    
-    
+    /*
+     * used when classifying to check off what is done.
+     */
+    public function displayClassificationList() {
+         $dt=new JQueryDataTable();
+$columnsStr= <<<EX
+           
+               {
+                data: "local_number",
+                title: "Animal",
+                type: "num-html"
+        },
+            {
+                data: "location_name",
+                title: "Current Location"
+            },
+            {
+                data: "fresh_date",
+                title: "Fresh Date",
+                type: "date",
+            },
+     
+            {
+                data: "dim",
+                title: "DIM"
+            },
+        {
+                data: "score",
+                title: "Classificatuon Score"
+            },{
+                data: "birth_date",
+                title: "Birth Date",
+                type: "date",
+            },
+        {
+                data: "action",
+                title: "Action"
+            }
+EX;
+    return($dt->start($this->pageid,'classificationList',null,$columnsStr,'highlight_okay',false,'"paging": false,'));     
+    }
     
         
-	public function displayClassificationList() {
-		
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
+	public function classificationList() {
 
-		// Setup your database connection
-		$sql="
-		SELECT bovinecurr.id as bovine_id,local_number,bovinecurr.full_name,location_name,bovinecurr.birth_date,classificationreport_temp.completed,bovinemanagement.round_to_nearest_date (fresh_date) as fresh_date,score,short_name,date_trunc('day',current_date-bovinecurr.fresh_date) as dim 
+$sql = <<<SQL
+SELECT bovinecurr.id as bovine_id,local_number,bovinecurr.full_name,location_name,bovinecurr.birth_date,classificationreport_temp.completed,bovinemanagement.round_to_nearest_date (fresh_date) as fresh_date,score,short_name,date_trunc('day',current_date-bovinecurr.fresh_date) as dim 
                 FROM system.classificationreport_temp
 LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.id=classificationreport_temp.bovine_id
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bovinecurr.full_reg_number
@@ -138,23 +175,25 @@ LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = bovinecurr.sire_full_r
 
 WHERE classificationreport_temp.checked=true
 ORDER BY location_name,local_number
-";
-             
-                $dg1 = new DataGridLR_Ext($sql, 1000);
-               
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''),null,array('DataGridHelper','printFormattedBovineNameAndNumber()'))); 
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Full Name', 'full_name', '', array('' => ''), null, null));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', '', array('' => ''), null, null));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('DIM   ', 'dim', '', array('' => ''), null, null));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Fresh Date', 'fresh_date', 'fresh_date', array('' => ''),null,array('ClassificationDay','printDateInClassifierFormat()')));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Classification Score', 'score', '', array('' => ''), null, null));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Birth Date', 'birth_date', 'birth_date', array('' => ''),null,array('ClassificationDay','printDateInClassifierFormat()')));
-               $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('ClassificationDay', 'printActionButtons2()')));      
-                    
-                        
-                       
-                print($dg1->render('datagrid',true,$GLOBALS['config']['COLOUR']['okay']));
-                $dg1->pager(); 
+SQL;
+
+             $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
+            $row['current_location'] = strtotime($row['location_name']);
+            $row['action'] = $this->printActionButtons2($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['colour_row'] =  (($row['completed']) ? 1 : 0);
+        }
+
+        //output
+        $output['data'] = $results;
+        return ($output);
+		
         }     
 	
         
@@ -163,16 +202,16 @@ ORDER BY location_name,local_number
           /** **********************************************************
 	   * see whether to print completed button for classification
 	   *********************************************************** */
-   function printActionButtons2($params)
+   function printActionButtons2($record,$callBackURL)
 	  {
-       extract($params);
+
 	
 	      //only show complete button for those that are not completed and will occur in the next 10 hours OR PAST.      
               if ($record['completed']=='1') {
-                  $returnButtonsAsString=self::completedClassificationQuickForm($record['bovine_id'],'undo'); //show undo button
+                  $returnButtonsAsString=self::completedClassificationQuickForm($record['bovine_id'],'undo',$callBackURL); //show undo button
               }
               else {
-                  $returnButtonsAsString=self::completedClassificationQuickForm($record['bovine_id'],'completed'); //show complete button
+                  $returnButtonsAsString=self::completedClassificationQuickForm($record['bovine_id'],'completed',$callBackURL); //show complete button
               }
 
 	    
@@ -186,7 +225,7 @@ ORDER BY location_name,local_number
 	   /** **********************************************************
 	   * completed button for classification
 	   *********************************************************** */
-	   function completedClassificationQuickForm($bovine_id,$button_type)
+	   function completedClassificationQuickForm($bovine_id,$button_type,$callBackURL)
 	  {
 	    
 	    $form = new HTML_QuickForm("completedButtonQuickForm",  'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -231,7 +270,7 @@ ORDER BY location_name,local_number
             }
 	      
 	      
-	      header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+	      header($callBackURL);
 	      exit();
 	      
 	      }
@@ -295,7 +334,7 @@ WHERE fresh_date is not null ORDER BY location_name,local_number";
 
 while (($row = $res->fetch())) {
 //parse for last word of name and then make an array for the select list.
-$aniNumber[$row[0]] = $row[1] ." - " . Misc::femaleShortName($row[2]);
+$aniNumber[$row[0]] = $row[1] ." - " . $GLOBALS['MiscObj']->femaleShortName($row[2]);
 }
 
         

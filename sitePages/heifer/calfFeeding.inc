@@ -124,10 +124,10 @@ require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/machinery/documents.inc');
      
         require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicalCase.inc');    
         $paramMed= new stdClass();
-        $paramMed->aniNumber= Misc::createListOfAllYoungCalves(); //pass along list of animals to show.
+        $paramMed->aniNumber= $GLOBALS['MiscObj']->createListOfAllYoungCalves(); //pass along list of animals to show.
         $b=new QF2_GeneralTreatment((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group',$paramMed); //group
    
-        require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/deworming.inc');    
+        require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/groupTreatment.inc');    
         //$paramDeh= new stdClass();
         $d=new QF2_Dehorn((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group',null);
         
@@ -233,7 +233,7 @@ LEFT JOIN bovinemanagement.location_urban_feedstall on bovineall.location_id=loc
         $out =$out . '<ul>';
         while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
          
-            $out = $out . '<li>'.' <a href="' . Misc::hrefToBovinePage($row2['id']) . '">' . $row2['local_number'] . "</a> </li> ";
+            $out = $out . '<li>'.' <a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row2['id']) . '">' . $row2['local_number'] . "</a> </li> ";
         }
          $out = $out . '</ul>';
            $out =$out .'</div>';
@@ -266,7 +266,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
         $out = '<ul>';
         while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
             $time=date('H',strtotime($row2['event_time']));
-            $out = $out . '<li>'.$time .'h <a href="' . Misc::hrefToBovinePage($row2['bovine_id']) . '">' . $row2['local_number'] . "</a> {$row2['text']}</li> ";
+            $out = $out . '<li>'.$time .'h <a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row2['bovine_id']) . '">' . $row2['local_number'] . "</a> {$row2['text']}</li> ";
         }
          $out = $out . '</ul>';
         return $out;
@@ -362,6 +362,9 @@ where error_solved is null order by error_occurred DESC";
         break;
     case 3540:
        $out= "Detergent empty: blue yellow.";
+        break;
+    case 4121:
+       $out= "Station temperature is too low. Room Door Open?";
         break;
      case 4200:
        $out= "Feeder automatically in standby.";
@@ -754,7 +757,7 @@ WHERE substring(responder_nr from 1 for 3) != 'DEL' AND rfid_number is null
             
 
             $str = $str . '<div class="calfBox ' . $class . '">';
-            $str = $str . ('<h3>' . '<img class=""    src="/images/cowHeadFront.svg"><a href="' . Misc::hrefToBovinePage($row['bovine_id']) . '" >' . $row['local_number'] . '</a></h3>');
+            $str = $str . ('<h3>' . '<img class=""    src="/images/cowHeadFront.svg"><a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['bovine_id']) . '" >' . $row['local_number'] . '</a></h3>');
             $str = $str . '<ul>';
             $str = $str . '<li>'.$bootstrapModal->button().' '.$openMedicalCase.' '.$dehorned.'</li>';
             $str = $str . ('<li>Age: '  .$row['age_days'] . '</li>');
@@ -1070,7 +1073,7 @@ $outputArray=array();
 
     function printPartialName($params) {
         extract($params);
-        $animalShortName = Misc::femaleShortName($row['full_name']);
+        $animalShortName = $GLOBALS['MiscObj']->femaleShortName($row['full_name']);
         return $animalShortName;
     }
 
@@ -1151,14 +1154,14 @@ Class QF2_CalfFeedingMilk extends Quickform2Helper {
         }
     
          // grab a list of calves in calf barn location and calving pen
-         $calfNumberArr=Misc::createListOfAllYoungCalves();
+         $calfNumberArr=$GLOBALS['MiscObj']->createListOfAllYoungCalves();
       
         
         $calfMilkAMountArr=array('0.25'=>0.25,'0.50'=>0.50,'0.75'=>0.75,'1.00'=>1.00,'1.25'=>1.25,'1.50'=>1.50,'1.75'=>1.75,'2.00'=>2.00,'2.25'=>2.25,'2.50'=>2.50,'2.75'=>2.75,'3.00'=>3.00,'3.25'=>3.25,'3.50'=>3.50,'3.75'=>3.75,'4.00'=>4.00);
         
         
         
-        $dateArray = Misc::createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
         
        
 

@@ -2,7 +2,7 @@
 
 // code to add a vertical menu down the side of the page.
 //D Waddy March 15 2009
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
+
 
 class VerticalMenu {
 

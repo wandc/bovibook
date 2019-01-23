@@ -5,32 +5,15 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/transition/transitionCalving.inc'); //used for potential calf sire loginc.
 
 
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if(class_exists('DataGridLR_Ext') != true) {
-/* //extends datgrid class with specific logic to colour the line. */
-class DataGridLR_Ext extends DataGridLR {
-
-    function colourLineCriteria($row) {
-
-        if (strlen($row['potential_name']) == 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-}
 
 class CalfName extends BasePage {
 
     public function defaultDisplay() {
 
-        self::calfNameQuickForm();
-        self::displayCalvesNeedingApotentialNameAndRegisterd();
+        $this->calfNameQuickForm();
+       print($this->displayCalvesNeedingApotentialNameAndRegisterd());
          print("<br/><h2>Recent Calvings</h2>");
-        TransitionCalving::displayLast100DaysCalvingEvents();   
+        (new TransitionCalving)->displayLast100DaysCalvingEvents();   
     }
 
     /*
@@ -39,29 +22,47 @@ class CalfName extends BasePage {
      */
 
     function displayCalvesNeedingApotentialNameAndRegisterd() {
-        print("<h2>Calves to be Named Who Are Not Yet Registered</h2>");
-        //NOTE: The conceiver is taken from the dam which in the case of an embryo should really be the reciepeint, if we ever fix this deign flaw this will need to be changed.
-        $sql = "SELECT calf_potential_name.id,potential_name,local_number,xx.id as bovine_id,xx.full_name,xx.full_reg_number,event_time_reg_sent,birth_date as birth_time,(SELECT id FROM bovinemanagement.bovine WHERE full_reg_number=xx.dam_full_reg_number) as conceiver_id 
+        
+        
+$sql = <<<SQL
+SELECT calf_potential_name.id,potential_name,local_number,xx.id as bovine_id,xx.full_name,xx.full_reg_number,event_time_reg_sent,birth_date as birth_time,(SELECT id FROM bovinemanagement.bovine WHERE full_reg_number=xx.dam_full_reg_number) as conceiver_id 
                  FROM bovinemanagement.bovine xx
                  LEFT JOIN batch.holstein_canada_registered ON xx.id=bovine_id 
                  LEFT JOIN bovinemanagement.calf_potential_name ON xx.id=calf_potential_name.bovine_id 
-                 WHERE (local_reg_status is null OR local_reg_status=false) AND death_date is null ORDER BY potential_name DESC, local_number DESC";
-        $dg = new DataGridLR_Ext($sql, 50);
-        
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Potential Name', 'potential_name', 'potential_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Relatives', 'Relatives', 'Relatives', array('' => ''), null, array('CalfName', 'printDamAndGrandDam()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Potential Calf Sire', null, '', array('' => ''),null,array('TransitionCalving','potentialSireandRecipient()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Registration Sent', 'event_time_reg_sent', 'event_time_reg_sent', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('CalfName', 'printActionButtons()')));
-          print($dg->render('datagrid datagridNarrow'));
-        $dg->pager();
+                 WHERE (local_reg_status is null OR local_reg_status=false) AND death_date is null ORDER BY potential_name DESC, local_number DESC
+SQL;
+
+             $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],''); 
+            $rowOut['Potential Name#'] = ($row['potential_name']);
+            $rowOut['Relatives'] = $this->printDamAndGrandDam($row);
+            $rowOut['Potential Calf Sire'] =  (new TransitionCalving)->PotentialSireandRecipient($row);
+            $rowOut['Registration Sent'] = JQueryDataTable::formattedDate($row['event_time_reg_sent']);
+            $rowOut['Action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+           
+            $resultsOut[] = $rowOut;
+        }
+
+       //output
+        $dataArr = $resultsOut;
+
+        $out[]=("<h2>Calves to be Named Who Are Not Yet Registered</h2>");
+        $out[]= ( (new JQueryDataTable)->startBasicArray($dataArr, ''));
+        return implode($out);
+
     }
 
    
     
-    function printDamAndGrandDam($params) {
-          extract($params);
+    function printDamAndGrandDam($record) {
+ 
           $sql0 = "SELECT dam_full_reg_number FROM bovinemanagement.bovine WHERE full_reg_number='{$record['full_reg_number']}' limit 1";
           $res0 = $GLOBALS['pdo']->query($sql0);
           $row0 = $res0->fetch(PDO::FETCH_ASSOC);
@@ -149,8 +150,8 @@ WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_numb
     /*******************************************
      * Show Delete Button.
      * ******************************************* */
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+
         $returnButtonsAsString=null;
         $currentUserid = $GLOBALS['auth']->getUsername();
 
@@ -168,7 +169,10 @@ WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_numb
 
             if (($record['id'] == $row['id'])) {
 
-                $returnButtonsAsString = DataGridHelper::deleteQuickForm($row['id'], $row['tablename']); //show delete button, with Breeding table id as index for delete.
+                 $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.calf_potential_name'));
+                 $returnButtonsAsString = ($a->renderDelete('calfPotName' . $row['id']));           
+                
+                
             }
         }
 

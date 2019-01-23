@@ -36,7 +36,7 @@ class FeedUsageProjection extends TabPage {
         $this->dailyProjection('14day');
         $this->dailyProjection('30day');
         $FeedBinCapacityChart= new FeedBinCapacityChart();
-        $FeedBinCapacityChart->feedBinCapacityChart();
+        $FeedBinCapacityChart->displayFeedBinCapacityChart();
     }
 
     
@@ -346,23 +346,34 @@ SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amou
                 $title = '30 Day Projection';
                 break;
         }
-/*
-        $dg = new DataGridLR($sql, $numberPerPage);
+        
+        //FIXME: SQL IS FOR PRE NRC 2001 and needs changed to new way.
+        
+        /*
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        //change presentation
+        foreach ($results as &$row) {
 
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Feed Name', 'feed_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('As Fed Total (kg)', 'wet_total_daily_usage', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('DM Total (kg)', 'dry_total_daily_usage', '', array('' => ''), null, null));
-
-
-        print("<h3>$title</h3>");
-        // Output table and paging links
-        print($dg->render());
-        $dg->pager();
  
- */
+            $rowOut['Feed Name'] = ($row['feed_type']);
+            $rowOut['Location'] = ($row['location']);
+            $rowOut['As Fed Total (kg)'] = ($row['wet_total_daily_usage']);
+            $rowOut['DM Total (kg)'] = ($row['dry_total_daily_usage']);
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+
+        $out[] = ('<h3>$title</h3>');
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr));
+        print implode($out);
+        */
+       
     }
 
 //end function
@@ -378,7 +389,7 @@ SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amou
  
 class FeedBinCapacityChart  {
     
-    function feedBinCapacityChart() {
+    public function displayFeedBinCapacityChart() {
         ?>
 
         <h3>FEED BIN CAPACITY CHART</h3>

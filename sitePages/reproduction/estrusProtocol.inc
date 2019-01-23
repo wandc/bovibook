@@ -1,12 +1,6 @@
 <?php 
 
 
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicineScheduled.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusBreedings.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusEmbryo.inc');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
-
 class EstrusProtocol extends BasePage {
 
     
@@ -43,8 +37,48 @@ class EstrusProtocol extends BasePage {
     function customJavascript() {
         
     }
+    
+    
+     function displayProtocolEvents($mode = 'default') {
+           $dt=new JQueryDataTable();
+$columnsStr= <<<EX
+            {
+                 data: "event_time_raw",
+                 "visible": false,
+                "searchable": false
+            }, 
+            {
+                data: "local_number",
+                title: "Animal",
+                type: "num-html"
+            },
+            {
+                data: "location_name",
+                title: "Current Location"
+            },
+            {
+                data: "event_time",
+                title: "Scheduled Start Time",
+                type: "date",
+            },
+     
+            {
+                data: "name",
+                title: "Protocol"
+            },
+            {
+                data: "userid",
+                title: "Employee"
+            },
+            {
+                data: "action",
+                title: "Action"
+            }
+EX;
+    print($dt->start($this->pageid,'protocolEvents',null,$columnsStr,'highlight_important'));     
+}  
 
-    function displayProtocolEvents($mode = 'default') {
+    function protocolEvents($mode = 'default') {
 
 
         $sql = "SELECT *,date_start as event_time,protocol_event.id as id FROM bovinemanagement.protocol_event 
@@ -52,36 +86,39 @@ class EstrusProtocol extends BasePage {
         LEFT JOIN bovinemanagement.bovineall ON bovineall.id=protocol_event.bovine_id
         ORDER by date_start DESC";
 
-        $dg = new DataGridLR($sql, 15);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Group', 'location_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Protocol', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Scheduled Start Time', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedDateTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('EstrusProtocol', 'printActionButtons()')));
+                
+        //change presentation
+        foreach ($results as &$row) {
+            $row['event_time_raw'] = strtotime($row['event_time']);     
+            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']);   
+            $row['event_time'] = date("l M d, Y", strtotime($row['event_time'])); 
+   
+           if (strtotime($row['create_time']) >= strtotime('-1 week')) {
+                $callBackURL = "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}";
+                  $deleteButtonAsString =$this->printActionButtons($row,$callBackURL);
+            } else {
+                $deleteButtonAsString = '';
+            }
+            $row['action'] = $deleteButtonAsString;
+
         }
 
-        if ($mode == 'default') {
-            print('<h3>Breeding Protocols</h3>');
-        }
-        if ($mode == 'historical') {
-            print('<h3>Historical Breeding Protocols</h3>');
-        }
+        //output
+        $output['data'] = $results;
+        return ($output);
 
-
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
     }
 
     /**     * *****************************************
      * Show Delete Button.
      * ******************************************* */
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+
         $currentUserid = $GLOBALS['auth']->getUsername();
 
         //find the last entry for the current user and use that as a basais to display the delete button or not.
@@ -92,7 +129,7 @@ class EstrusProtocol extends BasePage {
         $returnButtonsAsString = null;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if (($record['id'] == $row['id'])) { //FIXME, should we only show delete button if none of the medicines has been admnistered?
-                $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['protocol_uuid']); //show delete button, with Breeding table id as index for delete.
+                $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['protocol_uuid'],$callBackURL); //show delete button, with Breeding table id as index for delete.
             }
         }
 
@@ -103,7 +140,7 @@ class EstrusProtocol extends BasePage {
     /**     * ******************************************
      * Delete Button Quickform
      * ******************************************** */
-    function deleteQuickForm($tableid, $uuid) {
+    function deleteQuickForm($tableid, $uuid,$callBackURL) {
 
         $form = new HTML_QuickForm("breedingProtocolDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
@@ -124,7 +161,7 @@ class EstrusProtocol extends BasePage {
 
                 
                 //delete medicines and google claendar first, because of foreign key, then delete rest. 
-                MedicineScheduled::protocolMedicineDefaultDelete($uuid);
+                (new MedicineScheduled)->protocolMedicineDefaultDelete($uuid);
                 
                 
                 //do protocol delete
@@ -151,21 +188,13 @@ class EstrusProtocol extends BasePage {
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table
     }
 
     
-
-
-    
-    
-    
-    
-    
-
     
     /**     * *****************************************
      * List Different Types Of Breeding Protocols 
@@ -196,20 +225,20 @@ Class QF2_Protocol extends Quickform2Helper {
         
          switch ($this->param->type) {
             case "reproductive":
-                $aniNumber = Misc::createListOfAllAliveCowsFemale();
-                $dateArray = Misc::createDailyDatesForPast7Next14DaysAtNoon(); //dates
+                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCowsFemale();
+                $dateArray = $GLOBALS['MiscObj']->createDailyDatesForPast7Next14DaysAtNoon(); //dates
                 $form->addFieldset('header')->setLabel('Record Breeding Protocol Event');
                 $sql = "SELECT id,name FROM bovinemanagement.protocol_type WHERE active=true AND type='reproductive' ORDER BY name";
                 break;
             case "medical":
-                $aniNumber = Misc::createListOfAllAliveCows();
-                 $dateArray =Misc::createDailyDatesForLastandNextFewDays();
+                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+                 $dateArray =$GLOBALS['MiscObj']->createDailyDatesForLastandNextFewDays();
                 $form->addFieldset('header')->setLabel('Record Medical Protocol Event');
                 $sql = "SELECT id,name FROM bovinemanagement.protocol_type WHERE active=true AND type='medical' ORDER BY name";
                 break;
             case "calf":
-                $aniNumber =Misc::createListOfAllYoungCalves();
-                 $dateArray =Misc::createDailyDatesForLastandNextFewDays();
+                $aniNumber =$GLOBALS['MiscObj']->createListOfAllYoungCalves();
+                 $dateArray =$GLOBALS['MiscObj']->createDailyDatesForLastandNextFewDays();
                 $sql = "SELECT id,name FROM bovinemanagement.protocol_type WHERE active=true AND type='calf' ORDER BY name";
                 break;
             default:
@@ -239,7 +268,7 @@ Class QF2_Protocol extends Quickform2Helper {
 
     function process($value) {
         
-           $uuid = Misc::uuid_create();  //create a uuid for this transacation.
+           $uuid = $GLOBALS['MiscObj']->uuid_create();  //create a uuid for this transacation.
         
            $bovine_id = $value['bovine_id'];
            $date_start = date('Y-m-d H:i:sO', $value['dateEvent']);

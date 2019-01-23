@@ -1,31 +1,4 @@
 <?php 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/dataGridHelper.php');
-
-
-
-
-;
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) { //FFDA7F
-    //extends datgrid class with specific logic to colour the line.
-
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            if ((PreCalving::printMuse(null, $row) == null) || (PreCalving::printBolus(null, $row) == null)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
-
 class PreCalving extends BasePage {
 
    

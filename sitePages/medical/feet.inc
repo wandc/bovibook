@@ -7,30 +7,7 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
 ;
 
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) { //FFDA7F
-    //extends datgrid class with specific logic to colour the line.
 
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            /*
-              $sql = "SELECT name FROM bovinemanagement.foot_event LEFT JOIN bovinemanagement.foot_type ON foot_type.id=foot_event.foot_type_id WHERE foot_event.id={$row['foot_event_id']}";
-              $res2 = $GLOBALS['pdo']->query($sql);
-              $row2 = $res2->fetch(PDO::FETCH_ASSOC);
-             */
-            if (($row['name'] == 'Lame') || ($row['name'] == 'Foot Rot') || ($row['name'] == 'Cut')) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
 
 class Feet extends TabPage {
 
@@ -66,13 +43,13 @@ class Feet extends TabPage {
         $this->displayFootQuickForm(self::$mode, self::$bovineID);
         print("</div>");
         print("<div class='col-sm-8 col-sm-pull-4'>");
-        $this->displayFootActionList();
+        print($this->displayFootActionList());
         print("</div>");
         print("</div>");
     }
 
     protected function tab2() {
-        $this->displayFootCasesLog();
+        print($this->displayFootCasesLog());
     }
 
     protected function tab3() {
@@ -86,12 +63,14 @@ class Feet extends TabPage {
     }
 
     function displayFootActionList($mode = 'default') {
-        $numberPerPage = 30;
-
+        
+        
+        
         //complicated sql because we want to select by certain conditions and then order it by event_time
         //only show events in the last 90days. The union allows lame events to show longer if necessary.
-        $sql = "
-		with footcurrsingle as (
+        
+        $sql = <<<SQL
+	with footcurrsingle as (
 SELECT DISTINCT ON (footcurr.bovine_id) local_number,full_name,footcurr.bovine_id,footcurr.foot_event_id,foot,footcurr.name,foot_type_id,userid,footcurr.comment,footcurr.event_time as event_time,locationcurr.name as location_name FROM bovinemanagement.footcurr 
                 LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id = footcurr.bovine_id
                 WHERE footcurr.foot_type_id != 8
@@ -101,19 +80,30 @@ SELECT * FROM footcurrsingle WHERE (name='Lame' OR name='Foot Rot' OR name='Cut'
 UNION
 SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='Cut') AND event_time >= (now() - interval '90 days')  ORDER BY event_time DESC ,local_number
 
-		";
+SQL;
 
-
-        $dg = new DataGridLR_Ext($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', 'location_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Foot Action', null, '', array('' => ''), null, array('Feet', 'printFootAction()')));
-
-        print("<h3>Foot Action List</h3>");
-        if ($mode == 'default') {
-            print($dg->render('datagrid', true, $GLOBALS['config']['COLOUR']['important']));      //change line color to red for feet that have not been looked at.
-            $dg->pager();
+        
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+             $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
+             $rowOut['Location'] = ($row['location_name']);
+             $rowOut['Foot Action'] = $this->printFootAction($row);
+             $rowOut['colour_row'] =  (!empty($row['foot_type_id']) ? 1 : 0); //this really doesn't do anything.
+          
+          $resultsOut[]=$rowOut;  
         }
+
+       //output
+        $dataArr = $resultsOut;
+    
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         return implode($out); 
+      
     }
 
     /*     * ******************************* */
@@ -121,33 +111,48 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
     /*     * ******************************* */
 
     function displayFootCasesLog($mode = 'default') {
-        $numberPerPage = 30;
-
-        $sql = "SELECT foot_event.id as foot_event_id,foot_event.bovine_id,foot_event.event_time,local_number,full_name,foot,foot_type.name as diagnosis,comment,userid,locationcurr.name FROM bovinemanagement.foot_event
+        
+        
+         $sql = <<<SQL
+SELECT foot_event.id as foot_event_id,foot_event.bovine_id,foot_event.event_time,local_number,full_name,foot,foot_type.name as diagnosis,comment,userid,locationcurr.name FROM bovinemanagement.foot_event
 		LEFT JOIN bovinemanagement.foot_type ON foot_event.foot_type_id = foot_type.id
 		LEFT JOIN bovinemanagement.bovine ON bovine.id = foot_event.bovine_id
                 LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id = bovine.id
 		WHERE bovine.death_date is null
-		ORDER BY foot_event.event_time DESC";
+		ORDER BY foot_event.event_time DESC
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action/Diagnosis', 'diagnosis', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Which Foot', 'foot', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', '', array('' => ''), null, null));
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Feet', 'printActionButtons()')));
+        
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Action/Diagnosis'] = ($row['diagnosis']);
+            $rowOut['Which Foot'] = ($row['foot']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Location'] = ($row['name']);
+            $rowOut['Employee'] = ($row['userid']);
+
+            if ($mode == 'default') {
+                $rowOut['Action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            }
+
+            $resultsOut[] = $rowOut;
         }
 
-
-        print("<h3>Foot Log</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+        //output
+        $dataArr = $resultsOut;
+    
+         $out[]=("<h3>Foot Log</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         return implode($out); 
+        
     }
 
     function displayFootQuickForm($mode = 'group', $bovine_id = null) {
@@ -158,7 +163,7 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
         //get different types of things that can happen to foot.
@@ -175,7 +180,7 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
             $medArray[$row[0]] = $row[1];
         }
 
-        $timeArray = Misc::createHourlyDatesForLastDay();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay();
         unset($timeArray[null]); //remove null value.
 
         $form = new HTML_QuickForm("footQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -266,12 +271,12 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
         echo $renderer->toHtml();
     }
 
-//datagrid customizations.....
+//customizations.....
 
 
     /* print the latest events for the different feet if the event is not cured, in which case nothing is printed. */
-    function printFootAction($params) {
-        extract($params);
+    function printFootAction($record) {
+      
 
         $sql = "SELECT * FROM bovinemanagement.footcurr WHERE bovine_id={$record['bovine_id']} ORDER BY event_time DESC";
         $res = $GLOBALS['pdo']->query($sql);
@@ -287,8 +292,8 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
         return $retStr;
     }
 
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+
         $returnButtonsAsString = '';
         $currentUserid = $GLOBALS['auth']->getUsername();
 
@@ -300,7 +305,7 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
 
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($record['foot_event_id'] == $row['id']) {
-                $returnButtonsAsString = self::deleteQuickForm($record['foot_event_id']); //show delete button, with Breeding table id as index for delete.
+                $returnButtonsAsString = self::deleteQuickForm($record['foot_event_id'],$callBackURL); //show delete button, with Breeding table id as index for delete.
             }
         }
 
@@ -310,7 +315,7 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
         return $returnButtonsAsString;
     }
 
-    function deleteQuickForm($footEventID) {
+    function deleteQuickForm($footEventID,$callBackURL) {
         $form = new HTML_QuickForm("footEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
@@ -340,7 +345,7 @@ SELECT * FROM footcurrsingle WHERE (name!='Lame' OR name!='Foot Rot' OR name!='C
             }
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table

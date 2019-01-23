@@ -33,7 +33,7 @@ class BovineQueryBreedingChoice {
         
         print ('<div class="row">');
         print('<div class="col-md-5">');
-        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/customComment.inc');
+      
         CustomComment::newCustomCommentQuickForm(null, $this->bovine_id, 'trait');
         CustomComment::displayCustomComment('individual', $this->bovine_id, 'trait');
         print('</div>');
@@ -72,7 +72,7 @@ class BovineQueryBreedingChoice {
         $res = $GLOBALS['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
 
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/cdnPageParser.php');
+      
         $a = new CDNPageParser();
         $out = $a->generateIframe($row['full_reg_number']);
         print($out);

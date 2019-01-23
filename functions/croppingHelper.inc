@@ -370,7 +370,7 @@ static public function PolygonareaLatLonInHectares($polygon)
 {
 $kmlStr=(self::PolygonStrToKmlStr($polygon)); 
 //should not need to abs, but for some polygons we get a negative area, this could mean a bug somehwere deeper.
-return abs(Misc::areaLatLonInHectares($kmlStr));
+return abs($GLOBALS['MiscObj']->areaLatLonInHectares($kmlStr));
 }
 
 /**

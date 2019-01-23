@@ -2,30 +2,6 @@
 
 
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) {
-
-    //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            if ((($row['last_completion_elapsed_time']) >= 0) || (($row['last_completion_elapsed_time']) == null)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
-
 class Task extends TabPage {
 
     public function defaultDisplay() {
@@ -35,10 +11,11 @@ class Task extends TabPage {
         if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
             $tabArray[1]['name'] = 'Tasks Needing Completion';
 
-
+if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
             $tabArray[2]['name'] = 'All Users Task List';
             $tabArray[3]['name'] = 'Log';
             $tabArray[4]['name'] = 'Scores';
+}
         }
         $this->renderTabs($tabArray);
     }
@@ -90,10 +67,6 @@ SELECT * FROM temp  WHERE quarter=(extract(quarter from current_date)) LIMIT 1;
 
 
 
-        $numberPerPage = 40;
-
-
-
         $sql = "
 	               WITH temp as (
 SELECT userid,count(task_completed.create_time) as total_events, sum(extract(epoch from time_to_complete)/60) as total_time,EXTRACT(QUARTER FROM task_completed.event_time) as quarter
@@ -104,38 +77,23 @@ GROUP BY userid,quarter ORDER BY quarter,userid
 )
 SELECT * FROM temp ;
 		";
-        $dg = new DataGridLR($sql, $numberPerPage);
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+          print( (new JQueryDataTable)->startBasicSql($sql)); 
+        
     }
 
     private function displayTaskLog($mode = 'default') {
 
-        $numberPerPage = 40;
 
         $sql = "
 	              SELECT * FROM misc.task_completed LEFT JOIN misc.task ON task.id=task_completed.task_id ORDER BY event_time DESC,name
 		";
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        //$datagrid->addColumn(new Structures_DataGrid_Column('ID', 'id', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Userid', 'userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Event Time', 'event_time', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', '', array('' => ''), null, null));
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+        //Name  Userid   Event Time Comment
+                print( (new JQueryDataTable)->startBasicSql($sql)); 
+       
     }
 
     private function displayListOfTasksToDo($mode = 'single') {
-
-
-        $numberPerPage = 40;
-
 
         if ($mode == 'single') {
             $sql = "
@@ -150,25 +108,9 @@ SELECT * FROM temp ;
                 ";
         }
 
-        $dg = new DataGridLR_Ext($sql, $numberPerPage);
-        //$datagrid->addColumn(new Structures_DataGrid_Column('ID', 'id', '', array('' => ''), null, null));
-        if ($mode = 'all') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Assigned Userid', 'assigned_userid', '', array('' => ''), null, null));
-        }
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Completion Time', 'time_to_complete', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('How Often', 'interval', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Details', 'description', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Last Completed', null, '', array('' => ''), null, array('Task', 'printLastCompleted()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Completed?', null, '', array('' => ''), null, array('Task', 'printActionButtons()')));
-
-
-
-
-        //color rows for entries not bred yet
-        //self::colorOverdueTasks($datagrid, $tableBody);
-        print($dg->render('datagrid', true, $GLOBALS['config']['COLOUR']['important']));
-        $dg->pager();
+        // Name Completion Time How Often Details Last Completed Completed? COLOUR ROWS
+          print( (new JQueryDataTable)->startBasicSql($sql)); 
+        
     }
 
     function printLastCompleted($params) {
@@ -215,7 +157,7 @@ SELECT * FROM temp ;
 
     function taskCompletedQuickForm($task_id) {
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray[null]); //remove null value.
         $comment2 = '';
         $form = new HTML_QuickForm("taskCompletedQuickFormButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();

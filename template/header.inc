@@ -2,9 +2,7 @@
 
 /** Header at top of every normal secure page
  */
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //need to include here for javascript refresh.
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
 class Header {
 
    
@@ -89,9 +87,7 @@ HTML;
         //show side bar.
         //only show to admin and owner. 
         if (((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE))) {
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/sideBarInfo.inc');
             $sideBarInfo = new SideBarInfo();
-           
         } 
 
           ?>
@@ -187,172 +183,6 @@ HTML;
         <?php
     }
     
-    //OLD WAY
-    public function original() { 
-        
-        //runs a timer until access token expires and logs the user out.
-        //if we end up using refresh tokens, this could do the refreshing.
-        if ($GLOBALS['auth_scheme'] == 'oauth2Local') {
-        $this->displayUntilLogoutTimer();
-        }
-        
-        print("<div id='headerReplace'> <!--overwritten with Header AJAX --></div>" . "\n\r");
-         $access_token=rtrim(strtr(base64_encode(json_encode($_SESSION['access_token'])), '+/', '-_'), '=');
-        ?>          
-        <script type="text/javascript" language="javascript"> 
-            
-             $(document).ready(function(){ 
-               
-                        $(function(){
-      function load(){
-         $.ajax({
-  url: "/api/html/10005/content/<?php echo($_REQUEST['pageid']);?>",
-   headers: {"Authorization": "Bearer <?php echo($access_token);?>"}    
-  }).done(function(data) {
-     $('#headerReplace').html(data);
-});
-    }
-    load();
-    setTimeout(load,300000);//300 seconds
-    });
-                       
-                    }); 
-            
-            
-        </script>
-        <?php 
-
-    }
-
-    public function content() {
-        $pageid=$_REQUEST['item'];//ajax pass of pageid
-        
-           return ($this->main(BasePage::getPageTitleStr($pageid)));
-          
-    }
-    
-    
-    
-
-     public function main($pageTitleStr) {
-       
-        $str = '';
-
-        //when mobile device logs in directly with key, this isn't set, so error thrown. FIXME.
-        if ($GLOBALS['auth']->getAuthData('groups') != null) {
-            if ((in_array('employee', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-
-                $str = $str . ('<div class="headerOneLine">');
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQuery.php');
-                $bovineQ = new BovineQuery();
-                $str = $str .$bovineQ->bovineSelectQuickForm('compact');
-                $str = $str . ('</span>');
-
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/cropping/fieldQuery.inc');
-                $fieldQ = new FieldQuery();
-                $str = $str .$fieldQ->fieldSelectQuickForm('compact');
-                $str = $str . ('</span>');
-
-                $str = $str . ('<span>');
-                include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/machinery/machineQuery.inc');
-                $machineQ = new MachineQuery();
-                $str = $str .$machineQ->machineSelectQuickForm('compact');
-                $str = $str . ('</span>');
-
-                $str = $str . ('<span>');
-                require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/structure/search.inc');
-                $s = new Search();
-                $str = $str .$s->searchForm();
-                $str = $str . ('</span>');
-
-                $str = $str . ('</div">');
-            }
-        }
-        return $str;
-    }
-
-    public function desktopDisplay($pageTitleStr) {
- $str = '';
- 
-        $str=$str.('<div class="globalTopContainer">' . "\n");
-        $str=$str.('<div class="headerOneLine">' . "\n");
-
-        $str=$str.('<span>' . "\n");
-        $str=$str.("<a class='globalTopContainerCrest' href=\"index.php?pageid=1\"></a>" . "\n"); //clickable logo
-        $str=$str.('</span>' . "\n");
-                 $str = $str .($_SERVER['REMOTE_ADDR']);
-        $str=$str.("<h1>$pageTitleStr</h1>" . "\n");
-
-        //show icons only to internal employees.
-        if ((in_array('employee', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQuery.php');
-            $bovineQ = new BovineQuery();
-              $str=$str.$bovineQ->bovineSelectQuickForm('compact');
-            
-              $str=$str.('<h4 class="iconSpacer">' . '</h4>' . "\n");
-
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/cropping/fieldQuery.inc');
-            $fieldQ = new FieldQuery();
-              $str=$str.$fieldQ->fieldSelectQuickForm('compact');
-
-            $str=$str.('<h4 class="iconSpacer">' . '</h4>' . "\n");
-
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/machinery/machineQuery.inc');
-            $machineQ = new MachineQuery();
-             $str=$str.$machineQ->machineSelectQuickForm('compact');
-             
-               $str=$str.('<h4 class="iconSpacer">' . '</h4>' . "\n");
-        }
-
-
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/structure/search.inc');
-        $s = new Search();
-        $str=$str.$s->searchForm();
-
-        /* opens gmail in new tab when clicked, user must be autheroized */
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-
-
-            $str=$str.('<h4 class="iconSpacer">' . '</h4>' . "\n");
-
-            //shows gmail count.
-            $str=$str.('<span>');
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleMailSite.inc');
-            $mail = new GoogleMailSite();
-             $str=$str.$mail->mailAnchorLink();
-            // $mail->original();  //FIXME? what does this do here?
-            $mail->originalNewMessages();
-            $str=$str.('</span>');
-        }
-
-        $str=$str.('<div class="headerRight">'); 
-        if ($GLOBALS['auth_scheme'] == 'oauth2') {
-             $str=$str.self::getWhoIsLoggedIn(); //$str=$str. name of person logged in.
-             $str=$str.Oauth2Security::logoutButton(); //show logout button
-        } elseif ($GLOBALS['auth_scheme'] == 'oauth2Local') {
-             $str=$str.self::getWhoIsLoggedIn(); //$str=$str. name of person logged in.
-             $str=$str.Oauth2Local::logoutButton(); //show logout button
-        } elseif ($GLOBALS['auth_scheme'] == 'auth') {
-             $str=$str.self::getWhoIsLoggedIn(); //$str=$str. name of person logged in.
-             $str=$str.security::doSecurity2(); //show logout button
-        } else {
-            throw new Error("No auth scheme selected!");
-        }
-
-        $str=$str.('</div>' . "\n");
- 
-       $str=$str.('</div>' . "\n");
-        $str=$str.('<!--/headerOneLine-->' . "\n");
-
-
-        $str=$str.('</div>' . "\n");
-        $str=$str.('<!--/globalTopContainer-->' . "\n");
-        
-        return $str;
-    }
 
     /**
      * small function to $str=$str. who is logged in. 
@@ -370,7 +200,7 @@ HTML;
      * 
      * 
      * LOGOUT TIMER
-     * 
+     * FIXME: NOT USED.
      */
     public function untilLogoutTimerContent() {
           $expireTime=strtotime(Oauth2Local::findOutWhenSessionAccessTokenExpiresEpoch());
@@ -426,11 +256,8 @@ HTML;
         <?php 
 
     }
-    
-    
-    
-    
-}
+  
+}//end class
 
 /*
  * custom forms for the top of the page header
@@ -447,7 +274,7 @@ Class HeaderForm {
     }
 
     public function animals() {
-        $aniNumber = Misc::createListOfAllAliveCows(false);
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows(false);
         $options = $this->createSelectOption($aniNumber);
 
         $html = <<<HTML
@@ -471,7 +298,7 @@ HTML;
     }
     
     public function machines() {
-        $aniNumber = MachineQuery::createListOfAllActiveMachines('default');
+        $aniNumber =(new MachineQuery)->createListOfAllActiveMachines('default');
         $options = $this->createSelectOption($aniNumber);
 
         $html = <<<HTML

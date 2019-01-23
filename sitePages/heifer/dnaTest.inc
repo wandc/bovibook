@@ -239,12 +239,12 @@ Class QF2_DNATest extends Quickform2Helper {
        
         //only show if userid is admin or owner group.
         if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $dateArray = Misc::createDailyDatesForLastYearAtNoon(); //for admin only.   
+            $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //for admin only.   
         }else {
-           $dateArray = Misc::createDailyDatesForLastFewDays(); 
+           $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastFewDays(); 
         } 
 
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         
          $dnaTestTypes = array('LD Panel' => 'LD Panel', '50K Panel' => '50K Panel');
 

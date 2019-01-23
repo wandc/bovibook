@@ -1,9 +1,4 @@
 <?php 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/global.php');
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/croppingHelper.inc');
-require_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
 /**
  * Shows trimble GPS data on field query (or wherever else) 
  *
@@ -121,10 +116,7 @@ ORDER BY close_timestamp DESC,event DESC
         $sql1 = "SELECT DISTINCT ON (summary_created) event_name,coverage_area,implement_width,start_time,end_time,coverage_time,geo_point FROM gis.summary 
 WHERE st_intersects( gis.ST_SetSRID(('$geom_to_intersect'::geometry),4326),(gis.ST_SetSRID(geo_point,4326)))
 ORDER BY summary_created DESC";
-        $dg = new DataGridLR($sql1, 120);
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('last_fertilizer_event', 'last_fertilizer_event', 'last_fertilizer_event', array('' => ''), null, null));
-        print($dg->render());
-        $dg->pager();
+        print( (new JQueryDataTable)->startBasicSql($sql1)); 
         print("<br/>");
 
 

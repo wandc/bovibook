@@ -1,13 +1,6 @@
 <?php
 
 
-
-
-
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/accordionSub.php');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/holsteinCanadaERAReg.inc');
-;
-
 /** accordian class */
 class AccordionImplementation extends AccordionSub {
 
@@ -71,7 +64,7 @@ HTML;
     ///list potential breedings or embryo transfers
     function PotentialSireandRecipient($record) {
 
-        extract($record); //HACK, if called from datagrid it expands into record array. if not it just passes it by for js datatable 
+     
 
         $calvingTime = $record['birth_time'];
         $probArr = array();
@@ -164,7 +157,7 @@ WHERE recipient_bovine_id=$bovine_id  AND calculated_potential_due_date >= (date
         return $ret;
     }
 
-///chooses who the sire and recipient are for datagrid
+///chooses who the sire and recipient are 
     function chooseSireandRecipient($record) {
 
 
@@ -531,8 +524,8 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         $numberOfCalves = $this->mode;
 
 
-        //$dateArray=Misc::createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
-        $dateArray = Misc::createHourlyDatesForLastSevenDays();
+        //$dateArray=$GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastSevenDays();
         //grab a list of cows with a due date.
         $res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number,calculated_potential_due_date from bovinemanagement.pregnant_view ORDER BY local_number");
 

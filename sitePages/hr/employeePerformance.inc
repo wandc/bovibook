@@ -1,8 +1,4 @@
 <?php 
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/debug.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
 class EmployeePerformance extends BasePage{
   
  
@@ -23,16 +19,10 @@ SELECT userid as employee,date,milking_number,first_attach,last_attach
 FROM temp
 ORDER BY employee,milking_number,date DESC";
     
-    
-        $dg = new DataGridLR($sql, 200);
-        /*
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-         */
+    print ("<h3>Miking Parlor Stats</h3>");
+        print( (new JQueryDataTable)->startBasicSql($sql)); 
         
-        print ("<h3>Miking Parlor Stats</h3>");
-        print($dg->render());
-        $dg->pager();
+       
     }
 
 

@@ -43,7 +43,7 @@ $str2='';
 ');
         //go through array for each cow and sire.
         foreach ($this->getFemale() as $key => $value) {
-            $str1=$str1.("<option value=\"/functions/cdnPageParser.php?reg=$key&iframe=1\">$value</option>");
+            $str1=$str1.("<option value=\"/functions/cDNPageParser.php?reg=$key&iframe=1\">$value</option>");
         }
         $str1=$str1.('
 </select>
@@ -59,7 +59,7 @@ $str2='';
 ');
         //go through array for each cow and sire.
         foreach ($this->getMale() as $key => $value) {
-            $str2=$str2.("<option value=\"/functions/cdnPageParser.php?reg=" . trim($key) . "&iframe=1\">$value</option>");
+            $str2=$str2.("<option value=\"/functions/cDNPageParser.php?reg=" . trim($key) . "&iframe=1\">$value</option>");
         }
         $str2=$str2.('
 </select>
@@ -84,7 +84,7 @@ $str2='';
         $sql = "SELECT full_reg_number,full_name,local_number FROM bovinemanagement.bovinecurr";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-            $damRegArray[$row['full_reg_number']] = $row['local_number'] . " - " . Misc::femaleShortName($row['full_name']);;
+            $damRegArray[$row['full_reg_number']] = $row['local_number'] . " - " . $GLOBALS['MiscObj']->femaleShortName($row['full_name']);;
         }
         return $damRegArray;
     }

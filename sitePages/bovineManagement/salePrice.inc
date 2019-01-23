@@ -1,58 +1,4 @@
 <?php 
-
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaHelper.inc');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';  
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) {
-
-    //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-    class DataGridLR_Ext extends DataGridLR {
-
-     /**
-     * Method to change the color of rows when they need to be priced.
-     */
-        function colourLineCriteria($row) {
-            if ((strtotime($row['last_update']) <= strtotime('now - 6 months')) AND ( (strtotime($row['fresh_date']) >= strtotime('now - 60 days')) OR (strtotime($row['due_date']) <= strtotime('now + 60 days')) )) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
- if (class_exists('DataGridLR_Ext2') != true) {
-
-    //extends datgrid class with specific logic to colour the line.
-    //use print($dg1->render('datagrid',true,'00FF00')); to set colour
-    class DataGridLR_Ext2 extends DataGridLR {
-
-     /**
-     * Method to change the color of latest row
-     */
-        function colourLineCriteria($row) {
-          
-            if ($row['id']==$row['latest_id'])
-                { return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}                        
-                 
-
 class SalePrice extends TabPage {
 
     private $bovine_id;
@@ -65,21 +11,23 @@ class SalePrice extends TabPage {
             $this->bovine_id = $_REQUEST['bovine_id'];
         }
         
-          $a=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_SalesListCustomEvent','Select Animals to Add to Custom Sales List'));  
-        print($a->formJS());
-
+       
+/*
+        $b=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        print($b->renderBox('qf2_SalesListCustomEvent2','Select Animals to Add to Custom Sales List SECONDARY'));  
+        print($b->formJS());
+  */      
         
         //setup for tabs.
-        $tabArray[1]['name'] = 'Enter Price';
-        $tabArray[2]['name'] = 'Current Prices';
-        $tabArray[3]['name'] = 'Custom List';
+        $tabArray[1]['name'] = 'Current Prices';
+        $tabArray[2]['name'] = 'Custom List Primary';
+        $tabArray[3]['name'] = 'Custom List Secondary';
         $tabArray[4]['name'] = 'Fresh List';
         $tabArray[5]['name'] = 'Pregnant List';
         $tabArray[6]['name'] = 'Springer Heifer List';
         $tabArray[7]['name'] = 'Due Soon List';
         $tabArray[8]['name'] = 'Recent Sold (cull) Buyer Output';
-        $tabArray[9]['name'] = 'Recent Sold (custom list) Buyer Output';
+        $tabArray[9]['name'] = 'Recent Sold (custom primary list) Buyer Output';
         $this->setCSStabs('jquery_tabs_sale_price');
 
         
@@ -102,69 +50,43 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id = sale_pr
     }
 
     function tab1() {
-
-  print ('<div class="row">');
-        $selectedBovineID = $this->animalQueryQuickForm();
-       
-          print('</div>');
-           print("<hr>");
-        print ('<div class="row">');
-        print('<div class="col-md-6">');
-       if (($this->bovine_id != -1)) {
-         //lookup animal reg number.
-        //load from Little River DB!
-        $sql = "SELECT * from bovinemanagement.bovinecurr WHERE id={$this->bovine_id} LIMIT 1";
-        $res = $GLOBALS['pdo']->query($sql);
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $bovineFullRegNumber = $row['full_reg_number'];
-
-        //draw holstein canada iframe.
-        include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaPageParser.php');
-        $xx=new HolsteinCanadaPageParser(850,900); //reg,iframe,width,height.
-        print($xx->generateIframe($bovineFullRegNumber));  
-       }
-        print('</div>');
-        print('<div class="col-md-4">');
-        
-         if ($this->bovine_id != -1) {
-      
-        $this->salePriceCowQuickForm();
-        $this->displayPreviousPricesForChosenCow($this->bovine_id);
-   
-         }
-          
-        print('</div>');
-        print('</div>');
-        
-        
+    print($this->displayListOfSalePrices());
     }
 
+    
+    //primary
     function tab2() {
-        $this->displayListOfSalePrices();
+    
+         $a=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'custom');
+        print($a->renderBox('qf2_SalesListCustomEvent1','Select Animals to Add to Custom Sales List PRIMARY'));  
+        print($a->formJS());
+        print($this->displaySalesList('custom'));
     }
 
+    //secondary
     function tab3() {
-      
-        print('<br/>');
-        print('<br/>');
-        $this->displaySalesList('custom');
+
+        $a=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'custom_secondary');
+        print($a->renderBox('qf2_SalesListCustomEvent2','Select Animals to Add to Custom Sales List SECONDARY'));  
+        print($a->formJS_Secondary());
+        print($this->displaySalesList('custom_secondary'));
 
     }
 
     function tab4() {
-        $this->displaySalesList('fresh');
+        print($this->displaySalesList('fresh'));
     }
 
     function tab5() {
-        $this->displaySalesList('pregnant');
+        print($this->displaySalesList('pregnant'));
     }
 
     function tab6() {
-        $this->displaySalesList('springer');
+        print($this->displaySalesList('springer'));
     }
 
     function tab7() {
-        $this->displaySalesList('dueSoon');
+        print($this->displaySalesList('dueSoon'));
     }
     
     
@@ -213,7 +135,7 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         print("<h2>{$full_reg_number}</h2>");   
         print("<h3>Born: ".date('M d, Y',strtotime($birth_date))."</h3>");   
         $number2 = "<a href=\"" . HolsteinCanadaHelper::createHolsteinCanadaQuery($full_reg_number) . "\"> <b>HOL</b>" . "</a>";
-        $number3 = "<a href=\"" . Misc::createListOfAllCowsMilking($full_reg_number) . "\"> <b>CDN</b>" . "</a>";
+        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($full_reg_number) . "\"> <b>CDN</b>" . "</a>";
         print(  $number2 . "&nbsp;&nbsp;" . $number3);
         
         
@@ -242,14 +164,14 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
     
     
     
-    function salePriceCowQuickForm() {
+    function salePriceCowQuickForm($bovine_id) {
         //grab name/number info on current bovine
-        $sql = "SELECT id as bovine_id,full_name,local_number FROM bovinemanagement.bovine WHERE id={$this->bovine_id}";
+        $sql = "SELECT id as bovine_id,full_name,local_number FROM bovinemanagement.bovine WHERE id=$bovine_id";
         $res = $GLOBALS['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $animalText =$GLOBALS['MiscObj']->hrefToBovinePageFullName($row['bovine_id'],$row['local_number'],$row['full_name']);
 
-
+ 
         $priceArray = array(null => 'Do Not Sell!', 500 => 500, 600 => 600, 700 => 700, 800 => 800, 900 => 900,
             1000 => 1000, 1100 => 1100, 1200 => 1200, 1300 => 1300, 1400 => 1400, 1500 => 1500, 1600 => 1600, 1700 => 1700, 1800 => 1800, 1900 => 1900,
             2000 => 2000, 2100 => 2100, 2200 => 2200, 2300 => 2300, 2400 => 2400, 2500 => 2500, 2600 => 2600, 2700 => 2700, 2800 => 2800, 2900 => 2900,
@@ -274,7 +196,7 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
 
@@ -293,7 +215,7 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
 
         //
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-        $form->addElement('hidden', 'bovine_id',$this->bovine_id );
+        $form->addElement('hidden', 'bovine_id',$bovine_id );
 
         //submit buttons
         $submitGroup[] = $form->createElement('reset', 'btnClear', 'Clear');
@@ -341,100 +263,73 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id={$this->bovine_id}");
+            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
-    function animalQueryQuickForm() {
-
-        $aniNumber = Misc::createListOfAllAliveCows();
-
-        //javascript to allow submission on change of select element.
-        $attrs = array('onchange' => "javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid={$_REQUEST['pageid']}';$('#example > ul').tabs('select', 0);");
-
-        //javascript to allow submission when enter is pressed within select form
-        //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
-
-        $form = new HTML_QuickForm("frmBovineQuery",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true); $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-        $form->addElement('header', 'hdrQuickformtest', 'Select an Animal');
-        $form->addElement('select', 'animalNumber', '', $aniNumber, $attrs);
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-
-        //defaults
-        if ($this->bovine_id != null) {
-            $form->setDefaults(array('animalNumber' => $this->bovine_id)); //set current bovine.
-        } else {
-            $form->setDefaults(array('animalNumber' => 0)); //set default to no variety.
-        }
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            __construct($form->exportValue('animalNumber'));
-            $pageid = $form->exportValue('pageid');
-        } //end validation
-
-        $form->accept($renderer);
-        echo $renderer->toHtml();
-        return $form->exportValue('animalNumber'); // return what bovineID was selected.
-    }
-
+   
     // displays info on potential offspring from cdn website.
     function displayPreviousPricesForChosenCow($bovine_id) {
-         $sql = "SELECT id as bovine_id,full_name,local_number FROM bovinemanagement.bovine WHERE id={$this->bovine_id}";
+         $sql = "SELECT id as bovine_id,full_name,local_number FROM bovinemanagement.bovine WHERE id=$bovine_id";
         $res = $GLOBALS['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
-        $animalShortName = Misc::femaleShortName($row['full_name']);
+        $animalShortName = $GLOBALS['MiscObj']->femaleShortName($row['full_name']);
 
-        print("<h3>Pricing History for " . $row['local_number'] . " - " . $animalShortName . "</h3>");
+         $out[]=("<h3>Pricing History for " . $row['local_number'] . " - " . $animalShortName . "</h3>");
         
         ////
 
 
-        $sql = "SELECT *,(SELECT id FROM bovinemanagement.sale_price WHERE bovine_id = $bovine_id AND update_time=(SELECT max(update_time) FROM bovinemanagement.sale_price WHERE bovine_id = $bovine_id)) as latest_id FROM specific_cow_price WHERE bovine_id = $bovine_id ";
+   
+$sql = <<<SQL
+SELECT *,(SELECT id FROM bovinemanagement.sale_price WHERE bovine_id = $bovine_id AND update_time=(SELECT max(update_time) FROM bovinemanagement.sale_price WHERE bovine_id = $bovine_id)) as latest_id 
+    FROM
+   (SELECT sale_price.id,event_time,price,plus,comment,custom_comment,userid,bovine_id
+		FROM bovinemanagement.sale_price
+LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id = sale_price_comment.id) x
+   WHERE bovine_id = $bovine_id 
+SQL;
 
-                 $dg = new DataGridLR_Ext2($sql, 40);
-                 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Price', 'price', 'price', array('' => ''), null, array('SalePrice', 'printFormattedPrice()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, array('SalePrice', 'printComment()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', 'userid', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('SalePrice','printActionButtons()')));
+        
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Price'] = $this->printFormattedPrice($row);
+            $rowOut['Comment'] = $this->printComment($row);
+            $rowOut['Employee'] = ($row['userid']);
+          $rowOut['Action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
+         // $rowOut['colour_row'] =  (($row['completed']) ? 1 : 0);
+          
+          $resultsOut[]=$rowOut;  
+        }
+
+       //output
+        $dataArr = $resultsOut;
+      
+
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         return implode($out); 
+      
+    }
+
+   
+
   
-        print($dg->render('datagrid',true,$GLOBALS['config']['COLOUR']['attention'])); //to set colour
-       
-        $dg->pager();
-      
-
-      
-
-    }
-
-    function printFormattedNumber($params) {
-        extract($params);
-        $number = "<a href=\"" . Misc::hrefToBovinePage($record['bovine_id']) . "\"> {$record['local_number']}</a>";
-        return $number;
-    }
-
-    function printPartialName($params) {
-        extract($params);
-      
-        $animalShortName = Misc::femaleShortName($row['full_name']);
-        return $animalShortName;
-    }
-
-//datagrid customizations.....
 
 
-    function printFormattedPrice($params) {
-        extract($params);
+
+
+    function printFormattedPrice($record) {
+    
 
         if ($record['plus'] == 't') {
             $plus = '+';
@@ -445,8 +340,8 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         return $record['price'] . $plus;
     }
 
-    function printComment($params) {
-        extract($params);
+    function printComment($record) {
+
         //combine comments into one field.
         if ($record['custom_comment'] == '') {
             $comment = $record['comment'];
@@ -459,9 +354,8 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
     }
 
     
-     function printActionButtons($params) {
-        $customHeaderLocation="http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}";
-        extract($params);
+     function printActionButtons($record,$callBackURL=null) {
+        
 
         $currentUserid = $GLOBALS['auth']->getUsername();
           
@@ -474,7 +368,8 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
            
             if (($record['id'] == $row['id'])) {
-                $returnButtonsAsString = DataGridHelper::deleteQuickForm($row['id'], 'sale_price',$customHeaderLocation); //show delete button, with table id as index for delete.
+                 $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.sale_price'));
+                 $returnButtonsAsString = ($a->renderDelete('salePrice' . $row['id']));                
             }
         }
 
@@ -485,30 +380,45 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
     
     function displayListOfSalePrices($mode = 'default') {
  
-		$sql = "SELECT bovinecurr.id as bovine_id,bovinecurr.full_name, bovinecurr.location_name,bovinecurr.local_number,sale_price.price,sale_price.plus,sale_price.custom_comment,sale_price_comment.comment,sale_price.event_time as last_update,sale_price.userid,bovinecurr.fresh_date,pregnant_view.calculated_potential_due_date as due_date,sire.short_name as sire_short_name
+	
+$sql = <<<SQL
+SELECT bovinecurr.id as bovine_id,bovinecurr.full_name, bovinecurr.location_name,bovinecurr.local_number,sale_price.price,sale_price.plus,sale_price.custom_comment,sale_price_comment.comment,sale_price.event_time as last_update,sale_price.userid,bovinecurr.fresh_date,pregnant_view.calculated_potential_due_date as due_date,sire.short_name as sire_short_name
 FROM bovinemanagement.bovinecurr
 LEFT JOIN bovinemanagement.sale_price ON sale_price.id=(SELECT id from bovinemanagement.sale_price WHERE sale_price.bovine_id=bovinecurr.id AND sale_price.event_time=(SELECT max(event_time) FROM bovinemanagement.sale_price WHERE bovine_id=bovinecurr.id))
 LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = bovinecurr.sire_full_reg_number
 LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id=sale_price_comment.id
-LEFT JOIN bovinemanagement.pregnant_view on pregnant_view.id=bovinecurr.id";  //no order by so that datagrid sorting works.
+LEFT JOIN bovinemanagement.pregnant_view on pregnant_view.id=bovinecurr.id
+SQL;
+
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']);     
+            $rowOut['Full Name'] = ($row['full_name']);
+            $rowOut['Sire'] = ($row['sire_short_name']);
+            $rowOut['Fresh'] = JQueryDataTable::formattedDate($row['fresh_date']);    
+            $rowOut['Due'] = JQueryDataTable::formattedDate($row['due_date']);
+            $rowOut['Last Pricing'] = JQueryDataTable::formattedDate($row['last_update']);
+            $rowOut['Price'] = ($row['price']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Location'] = ($row['location_name']);
+          
+          $resultsOut[]=$rowOut;  
+        }
+
+       //output
+        $dataArr = $resultsOut;
+      
+         $out[]=('<h2>Current Prices</h2>');
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         return implode($out);                 
                 
-        $dg = new DataGridLR_EXT($sql, 400);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Number', 'local_number', 'local_number', array('' => ''), null, array('SalePrice', 'printFormattedNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'full_name', 'full_name', array('' => ''), null, array('SalePrice', 'printPartialName()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sire', 'sire_short_name', 'sire_short_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Fresh', 'fresh_date', 'fresh_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Due', 'due_date', 'due_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Last Pricing', 'last_update', 'last_update', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Price', null, 'price', array('' => ''), null, array('SalePrice', 'printFormattedPrice()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', null, 'comment', array('' => ''), null, array('SalePrice', 'printComment()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', 'userid', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', 'location_name', array('' => ''), null, null));
-        
-         print($dg->render('datagrid',true,$GLOBALS['config']['COLOUR']['attention'])); //to set colour
-        
-        $dg->pager();
-        
-                
+     
           
     }
 
@@ -627,6 +537,31 @@ WHERE salesreport_temp.checked=true ORDER BY temp.bovine_local_number;
 ";
         }
 
+        
+                if ($listType == 'custom_secondary') {
+            $sql = "
+WITH temp as (
+SELECT
+ bovinecurr.id as bovine_id,calculated_potential_due_date as event_time2, bovinecurr.local_number as bovine_local_number, bovinecurr.full_name as bovine_full_name,calculated_potential_due_date,service_sire_short_name,bovinecurr.location_name,bovinecurr.full_reg_number as bovine_full_reg_number,bovinecurr.birth_date as b_birth_date,bovinecurr.sire_full_reg_number,bovinecurr.dam_full_reg_number,dam.full_name as dam_full_name,sire.short_name as sire_short_name,bovinecurr.fresh_date as bovinecurr_fresh_date,(SELECT date FROM alpro.latest_full_day_production(bovinecurr.id)) as latest_production_date, (SELECT milkyield FROM alpro.latest_full_day_production(bovinecurr.id)) as latest_production_milkyield
+FROM bovinemanagement.bovinecurr 
+LEFT JOIN bovinemanagement.pregnant_view ON pregnant_view.id = bovinecurr.id
+LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = bovinecurr.sire_full_reg_number
+LEFT JOIN bovinemanagement.bovine as dam ON dam.full_reg_number = bovinecurr.dam_full_reg_number
+)
+SELECT temp.*,
+(aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
+(dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
+ ,price,comment,valacta_data_latest_test_view.*	  
+FROM temp
+LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
+LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
+LEFT JOIN bovinemanagement.sale_price_curr ON sale_price_curr.bovine_id=temp.bovine_id
+LEFT JOIN batch.valacta_data_latest_test_view ON  temp.bovine_full_reg_number = valacta_data_latest_test_view.reg
+LEFT JOIN system.salesreport_temp2 ON salesreport_temp2.bovine_id = temp.bovine_id
+WHERE salesreport_temp2.checked=true ORDER BY temp.bovine_local_number;
+";
+        }
+        
 
 //60 days from calving list.
         if ($listType == 'dueSoon') {
@@ -730,43 +665,57 @@ ORDER BY calculated_potential_due_date ASC
         }
 
         
-         $dg = new DataGridLR($sql, $numberToshow);
-         $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('SalePrice', 'printFormattedSalesBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sire', 'sire_short_name', 'sire_short_name', array('' => ''), null, array('SalePrice', 'printSire()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Dam', 'dam_full_name', 'dam_full_name', array('' => ''), null, array('SalePrice', 'printDam()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Birth Date', 'birth_date', 'birth_date', array('' => ''), null, array('SalePrice', 'printBirthDate()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Classification', 'classification', 'classification', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Fresh', 'bovinecurr_fresh_date', 'bovinecurr_fresh_date', array('' => ''), null, array('SalePrice', 'printFreshDate()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Due To', 'service_sire_short_name', 'service_sire_short_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Due Date', 'calculated_potential_due_date', 'calculated_potential_due_date', array('' => ''), null, array('DataGridHelper', 'printFormattedTime2()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Latest Parlor Yield', 'latest_production_milkyield', 'latest_production_milkyield', array('' => ''), null, array('SalePrice', 'printLatestProduction()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Projection', 'bca_milk', 'bca_milk', array('' => ''), null, array('SalePrice', 'printProjection()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('SSC', 'ssc', 'ssc', array('' => ''), null, array('SalePrice', 'printSSC()')));   
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Price', 'price', 'price', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', 'location_name', array('' => ''), null, null));
-
- print($dg->render('datagrid', false, $GLOBALS['config']['COLOUR']['okay']));
- $dg->pager();
+        
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
     
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['bovine_local_number'], $row['bovine_full_name']);
+            $rowOut['Sire'] = ($row['sire_short_name']);
+            $rowOut['Dam'] = ($row['dam_full_name']);
+            $rowOut['Birth Date'] = JQueryDataTable::formattedDate($row['b_birth_date']);
+            $rowOut['Classification'] = ($row['classification']);
+            $rowOut['Fresh'] = JQueryDataTable::formattedDate($row['bovinecurr_fresh_date']);
+            $rowOut['Due To'] = ($row['service_sire_short_name']);
+            $rowOut['Due Date'] = JQueryDataTable::formattedDate($row['calculated_potential_due_date']);
+            $rowOut['Latest Parlor Yield'] = $this->printLatestProduction($row);
+            $rowOut['Projection'] = $this->printProjection($row);
+            $rowOut['SSC'] = ($row['ssc']);
+            $rowOut['Price'] = ($row['price']);
+            $rowOut['Location'] = ($row['location_name']);
+
+            $resultsOut[]=$rowOut;  
+        }
+
+       //output
+        $dataArr = $resultsOut;
+      
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'paging:false')); 
+         return implode($out);                
+        
     }
 
     function printFormattedSalesBovineNameAndNumber($params) {
         extract($params);
         $number1 = $GLOBALS['MiscObj']->hrefToBovinePageFullName($record['bovine_id'],$record['bovine_local_number'],$record['bovine_full_name']);
         $number2 = "<a href=\"" . HolsteinCanadaHelper::createHolsteinCanadaQuery($record['bovine_full_reg_number']) . "\"> <b>HOL</b>" . "</a>";
-        $number3 = "<a href=\"" . Misc::createListOfAllCowsMilking($record['bovine_full_reg_number']) . "\"> <b>CDN</b>" . "</a>";
+        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['bovine_full_reg_number']) . "\"> <b>CDN</b>" . "</a>";
         return $number1 . "&nbsp;&nbsp;" . $number2 . "&nbsp;&nbsp;" . $number3;
     }
 
     function printSire($params) {
         extract($params);
-        $number2 = "<a href=\"" . Misc::createListOfAllCowsMilking($record['sire_full_reg_number']) . "\">{$record['sire_short_name']}" . "</a>";
+        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['sire_full_reg_number']) . "\">{$record['sire_short_name']}" . "</a>";
         return $number2;
     }
 
     function printDam($params) {
         extract($params);
-        $number2 = "<a href=\"" . Misc::createListOfAllCowsMilking($record['dam_full_reg_number']) . "\">{$record['dam_full_name']} &nbsp;&nbsp;{$record['dam_classification']}" . "</a>";
+        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['dam_full_reg_number']) . "\">{$record['dam_full_name']} &nbsp;&nbsp;{$record['dam_classification']}" . "</a>";
         return $number2;
     }
 
@@ -788,8 +737,8 @@ ORDER BY calculated_potential_due_date ASC
         }
     }
 
-    function printProjection($params) {
-        extract($params);
+    function printProjection($record) {
+
         if ($record['days_in_mi'] == null) {
             return "";
         } else {
@@ -814,8 +763,8 @@ ORDER BY calculated_potential_due_date ASC
     }
 
     //from parlor
-    function printLatestProduction($params) {
-        extract($params);
+    function printLatestProduction($record) {
+
         if ($record['latest_production_milkyield'] != 0) {
             return round($record['latest_production_milkyield'], 1) . ' &nbsp;&nbsp; <b class="smallish">(' . $record['latest_production_date'] . ')</b> ';
         }
@@ -835,19 +784,24 @@ Class QF2_SalesListCustom extends Quickform2Helper {
 
         $mode = 'group';
 
-        $aniNumber = Misc::createListOfAllAliveCowsFemale();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCowsFemale();
 
         ////
         //$fieldset = $form->addFieldset('header')->setLabel('Check Animals to Add to Sales List');
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        if ($mode == 'group') {
-            $form->addSelect('aniamlSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($aniNumber);
-        } else {
-            $form->addElement('hidden', 'aniamlSelected')->setValue($bovine_id);
-        }
+        
 
         //read animals that are currently marked as slected and add them as defaults to the form
-        $query="SELECT bovine_id FROM system.salesreport_temp";
+            if ($this->mode == 'custom') {
+            $query = "SELECT bovine_id FROM system.salesreport_temp";
+            $form->addSelect('aniamlSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($aniNumber);
+        } elseif ($this->mode == 'custom_secondary') {
+            $query = "SELECT bovine_id FROM system.salesreport_temp2";
+            $form->addSelect('aniamlSelected', array('multiple' => 'multiple', 'id' => 'selectEvents_secondary'))->loadOptions($aniNumber);
+        } else {
+            throw new Exception("ERROR: Custom sales list type of priamry or secondary not chosen in definition.");
+        }
+
         $statement = $GLOBALS['pdo']->prepare($query);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_COLUMN); //fetch column
@@ -862,7 +816,21 @@ Class QF2_SalesListCustom extends Quickform2Helper {
     function formJS() {
 $jscript = <<<JSCRIPT
  <script>           
-var s2 = $("#selectEvents").select2({
+var s3 = $("#selectEvents").select2({
+    placeholder: "Choose Animals",
+    tags: false
+});   
+      </script>      
+JSCRIPT;
+
+            return $jscript;
+    }
+    
+    //select2 javascript needed for form
+    function formJS_Secondary() {
+$jscript = <<<JSCRIPT
+ <script>           
+var s2 = $("#selectEvents_secondary").select2({
     placeholder: "Choose Animals",
     tags: false
 });   
@@ -875,17 +843,28 @@ JSCRIPT;
     
     function process($value) {
        
-       
-        
-        //fist step is to delete everything in the temp storage table.
+        if ($this->mode == 'custom') {
+
+            //fist step is to delete everything in the temp storage table.
             $res = $GLOBALS['pdo']->exec("TRUNCATE system.salesreport_temp"); //erase contents of temp db table.	
-        
-        foreach ($value['aniamlSelected'] as $k => $v) {
+
+            foreach ($value['aniamlSelected'] as $k => $v) {
                 //now we insert all the animals that were checked.
                 $query = ("INSERT INTO system.salesreport_temp (bovine_id,checked) VALUES ($v,true)");
                 $res = $GLOBALS['pdo']->exec($query);
             }
-       
+        } elseif ($this->mode == 'custom_secondary') {
+            //fist step is to delete everything in the temp storage table.
+            $res = $GLOBALS['pdo']->exec("TRUNCATE system.salesreport_temp2"); //erase contents of temp db table.	
+
+            foreach ($value['aniamlSelected'] as $k => $v) {
+                //now we insert all the animals that were checked.
+                $query = ("INSERT INTO system.salesreport_temp2 (bovine_id,checked) VALUES ($v,true)");
+                $res = $GLOBALS['pdo']->exec($query);
+            }
+        } else {
+            throw new Exception("ERROR: Custom sales list type of priamry or secondary not chosen.");
+        }
     }
 
 }//end class   

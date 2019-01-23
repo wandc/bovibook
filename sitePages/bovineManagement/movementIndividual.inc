@@ -204,7 +204,7 @@ Class QF2_MoveAnimal extends Quickform2Helper {
 
     function definition($form) {
 
-        $dateArray = Misc::createHourlyDatesForLastDay();
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay();
         $location = $this->listActiveLocationsAndCounts();  
        $combinedArr=parent::currentAniamlsAndGroups(); 
 
@@ -242,7 +242,7 @@ JSCRIPT;
         try {
             $res = $GLOBALS['pdo']->beginTransaction();
 
-            $transaction_id = Misc::generatePseudoRandomTransactionInteger();
+            $transaction_id = $GLOBALS['MiscObj']->generatePseudoRandomTransactionInteger();
 
             $value['event_time'] = date('Y-m-d H:i:sO', $value['dateEvent']);
 

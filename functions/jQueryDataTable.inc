@@ -17,8 +17,9 @@ class JQueryDataTable {
     public function start($pageid, $jsonInPageFunctionName, $item = '', $stdObjColumns, $colourRowClass = null, $reload = true, $extraOptions = '') {
 
         $this->dataTableDefaults();
-
-        $uuid = uniqid(); //give unique id
+      
+        $uuid=uniqid();//do not give UUID or state save does not work. //$uuid = uniqid(); //give unique id
+        
         $str = '';
 
         $str = $str . <<<js
@@ -369,6 +370,7 @@ jss2;
 
     }
 
+    /*orderClasses fixes so colour stays when  sort happens. */   
     private function colourRow($colourRowClass = null) {
         $str = '';
         $str = $str . <<<jss
@@ -377,6 +379,7 @@ jss2;
         $(node).addClass( '$colourRowClass' );
       }
     },
+       "orderClasses": false,       
 jss;
         return $str;
     }
@@ -393,17 +396,24 @@ jss;
         return $GLOBALS['MiscObj']->hrefToBovinePageFullName($bovine_id,$local_number,$full_name);
     }
 
-    function printFormattedFieldAlphaNumeric($field_id, $alpha_numeric_id) {
+    public static function printFormattedFieldAlphaNumeric($field_id, $alpha_numeric_id) {
         $number = "<a href=\"" . "/index.php?pageid=107&field_id={$field_id}" . "\"> <b>{$alpha_numeric_id}</b> " . "</a>";
         return $number;
     }
 
-    function formattedShortRegNum($full_reg_number) {
+    public static function formattedShortRegNum($full_reg_number) {
         //just returns the number portion of the reg number (used for herd cull)
         $returnArray = $GLOBALS['MiscObj']->breakUpFullRegNumber($full_reg_number);
         return $returnArray['number'];
     }
 
+    
+    /* we probably should choose 4 functions here and have all out date display use them */
+    
+    public static function formattedDate($date,$dateStr='M d, Y') {
+        return (empty($date)) ? '':  date($dateStr, strtotime($date));
+    }
+    
 }
 
 //end class

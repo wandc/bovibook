@@ -2,11 +2,6 @@
 
 /** Footer to include at the bottom of pages
  */
-include_once($_SERVER['DOCUMENT_ROOT'].'global.php'); //need to include here for javascript refresh.
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/misc/bulkTankPickup.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/misc/quota.inc');
-
 
 class Footer {
 
@@ -68,49 +63,14 @@ class Footer {
     public function content() {
         
         
-             $out=self::showContent(); 
+            $out=self::showContent(); 
          
           return $out;
           
     }
 
     
-    function showContentMobile() {
-        $str = '';
-    
-    //find info from footer class.
-$milkCowCountArray=Misc::milkingCowCount();
-$numMilking = $milkCowCountArray['countTotal'];
-$dimArr= self::findAverageDIMForDateRange(date('Y-m-d H:i:s',strtotime('-1 day')),date('Y-m-d H:i:s',strtotime('now')));
-$dim=round($dimArr[0],1);
-$lastPickupArr= self::findMilkPickupForDateRange(date('Y-m-d H:i:s',strtotime('-5 day')),date('Y-m-d H:i:s',strtotime('now')));
-$lastPickup=end($lastPickupArr);
-$startDate=date('Y-m-d 00:00:00',strtotime("-15 days"));
-$endDate=date('Y-m-d 00:00:00',strtotime('now'));
-$dataArray=self::findProvComponentsForDateRange($startDate,$endDate);
-if ($dataArray['fat']==null) {
-    $fat=''; //no current tests.
-}else {
-$fat='@ '.end($dataArray['fat']).'%';
-}
-$Quota=new Quota;
-$quotaArr=$Quota->calculateLastOverUnderQuota();
-    
 
-
-$str = $str .("<p>$numMilking @ $dim DIM</p>");
-$str = $str .("<p>pickup:$lastPickup $fat</p>");
-$str = $str .("<p>Quota:{$quotaArr['magnitude']}kg/{$quotaArr['percent']}%</p>");
- 
-        //ajax container
-        $str = $str . ('<span>');
-        $str = $str . ('<div id="responsecontainer"></div>'); //DOES this work inside an ajax call now?
-        $str = $str . ('</span>');
-
-
-return $str;
-
-    }
     
 
     
@@ -208,7 +168,7 @@ return $str;
         $str = '';
 
         //initial calculations
-        $milkCowCountArray = Misc::milkingCowCount(); //.08s load time, maybe could be faster.
+        $milkCowCountArray = $GLOBALS['MiscObj']->milkingCowCount(); //.08s load time, maybe could be faster.
         $dim = $milkCowCountArray['dimMiklkingTotal']; //find DIM
         $dateNow = date("D H:i:s");
         
@@ -225,14 +185,14 @@ return $str;
 
         /////////////////////////
         //// Number milking 
-        $milkCowCountArray = Misc::milkingCowCount(); //.08s load time, maybe could be faster.
+        $milkCowCountArray = $GLOBALS['MiscObj']->milkingCowCount(); //.08s load time, maybe could be faster.
         $startDate = date('Y-m-d 00:00:00', strtotime("-90 days"));
         $endDate = date('Y-m-d H:i:s', strtotime("now"));
         $dataArray = $this->findNumberMilkingForDateRange($startDate, $endDate);
         //replace the last data point with today's up to the minute data.
         $dataArray[sizeof($dataArray) - 1] = $milkCowCountArray['countTotal'];
         $str = $str . ('<span>');
-        $cows=new GoogleVisSparkLine2();
+        $cows=new GoogleVisualizationSparkLine();
         $str = $str . $cows->sparklineContainerVis('# Cows', $dataArray, end($dataArray));
         $str = $str . ('</span>');
 
@@ -241,7 +201,7 @@ return $str;
         $endDate = date('Y-m-d H:i:s', strtotime("now"));
         $dataArray = $this->findAverageDIMForDateRange($startDate, $endDate);
         $str = $str . ('<span>');
-        $dim=new GoogleVisSparkLine2();
+        $dim=new GoogleVisualizationSparkLine();
         $str = $str . $dim->sparklineContainerVis('DIM', $dataArray, round(end($dataArray)));
         $str = $str . ('</span>');
 
@@ -250,7 +210,7 @@ return $str;
         $endDate = date('Y-m-d H:i:s', strtotime("now"));
         $dataArray = $this->findMilkPickupForDateRange($startDate, $endDate);
         $str = $str . ('<span>');
-        $pickup=new GoogleVisSparkLine2();
+        $pickup=new GoogleVisualizationSparkLine();
         $str = $str . $pickup->sparklineContainerVis('Pickup', $dataArray, end($dataArray));
         $str = $str . ('</span>');
 
@@ -259,19 +219,19 @@ return $str;
         $startDate = date('Y-m-d 00:00:00', strtotime("-90 days"));
         $dataArray = $this->findProvComponentsForDateRange($startDate);
         $str = $str . ('<span>');
-        $fat=new GoogleVisSparkLine2();
+        $fat=new GoogleVisualizationSparkLine();
         $str = $str . $fat->sparklineContainerVis('Fat', $dataArray['fat'], end($dataArray['fat']));
         $str = $str . ('</span>');
 
         //// Protein
         $str = $str . ('<span>');
-        $prot=new GoogleVisSparkLine2();
+        $prot=new GoogleVisualizationSparkLine();
         $str = $str . $prot->sparklineContainerVis('Prot', $dataArray['prot'], end($dataArray['prot']));
         $str = $str . ('</span>');
 
         //// SCC
        $str = $str . ('<span>');
-       $scc=new GoogleVisSparkLine2();
+       $scc=new GoogleVisualizationSparkLine();
        $str = $str . $scc->sparklineContainerVis('SCC (k)', $dataArray['scc'], end($dataArray['scc']));
        
          $str = $str . ('</span>');
@@ -281,7 +241,7 @@ return $str;
         $breedingRateInterval = 30;
         $dataArray = ReproReport::calculateTwentyOneDayBreedingAverage(1, $breedingRateInterval, 90); //slow part .03s.
         $str = $str . ('<span>');
-        $breedingrate=new GoogleVisSparkLine2();
+        $breedingrate=new GoogleVisualizationSparkLine();
         $str = $str . $breedingrate->sparklineContainerVis('30d BR', $dataArray, end($dataArray));
         $str = $str . ('</span>');
 */

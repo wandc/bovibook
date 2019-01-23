@@ -61,14 +61,14 @@ class CommodityPrices extends BasePage {
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Corn ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$cornArr);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$cornArr);
                 print($x->toString());
                 
                 print ("<h3>Corn (Western Ontario Feed)</h3>") ;
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Corn ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$cornArrOntario);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$cornArrOntario);
                 print($x->toString());
                 
                 //
@@ -76,28 +76,28 @@ class CommodityPrices extends BasePage {
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Soybean Meal ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$soybeanMealArr);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$soybeanMealArr);
                 print($x->toString());
                 //
                 print ("<h3>Barley (Bayport,ON)</h3>") ;
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Barley ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$barleyArr);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$barleyArr);
                 print($x->toString());
                 //
                 print ("<h3>DDGS</h3>") ;
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['DDGS ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$ddgsArr);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$ddgsArr);
                 print($x->toString());   
                 //
                 print ("<h3>Soybeans (Sorel)</h3>") ;
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Soybeans Sorel ($)'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$soybeansSorelArr);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$soybeansSorelArr);
                 print($x->toString());
                
 

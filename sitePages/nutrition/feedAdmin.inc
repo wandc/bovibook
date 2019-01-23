@@ -79,7 +79,7 @@ class FeedAdmin extends TabPage {
         //create select list for dry matter
         $listOfPercentages = $this->listOfDryMatterPercentages();
 
-        $timeArray = Misc::createDailyDatesForLastYearAtNoon();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
         unset($timeArray[null]); //remove null value.
 
 
@@ -307,7 +307,7 @@ FROM nutrition.bag_feed WHERE bag_feed.id= $bag_feed_id LIMIT 1");
         }
 
 
-        $timeArray = Misc::createDailyDatesForLastYearAtNoon();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
         unset($timeArray[null]); //remove null value.
 
 
@@ -378,7 +378,7 @@ FROM nutrition.bag_feed WHERE bag_feed.id= $bag_feed_id LIMIT 1");
         }
 
 
-        $timeArray = Misc::createDailyDatesForLastYearAtNoon();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
         unset($timeArray[null]); //remove null value.
         //create select list for % DM
         $listOfPercentages = $this->listOfDryMatterPercentages();

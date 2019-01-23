@@ -14,7 +14,7 @@ class VideoCalfBarn extends TabPage {
 
    
 	  //need the http in front to make it a url.
-if (Misc::isPublicAddress($_SERVER['REMOTE_ADDR']) ==true) {
+if ($GLOBALS['MiscObj']->isPublicAddress($_SERVER['REMOTE_ADDR']) ==true) {
 print("<h3>You are here from the internet and thus only get static pictures, no video, to save bandwidth.</h3>");
 
           $str = <<<EOD

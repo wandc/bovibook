@@ -429,7 +429,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Income / Feed Cost ($/$ ratio)'] = 'number';
         $opt = '';
-        $x = new GoogleVisLine($opt, $headerStrArr, $revenueOverFeedCostPerCowArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $revenueOverFeedCostPerCowArray);
         print($x->toString());
     }
 
@@ -451,7 +451,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisLine($opt, $headerStrArr, $revenuePerCowArray, $feedCostPerCowArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $revenuePerCowArray, $feedCostPerCowArray);
         print($x->toString());
     }
 
@@ -467,7 +467,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
 
 
         $opt = '';
-        $x = new GoogleVisLine($opt, $headerStrArr, $bfPerCowArray, $protPerCowArray, $lactPerCowArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $bfPerCowArray, $protPerCowArray, $lactPerCowArray);
         print($x->toString());
     }
 
@@ -490,7 +490,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisLine($opt, $headerStrArr, $bfPerCowArray, $bfArray, $bfQuotaArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $bfPerCowArray, $bfArray, $bfQuotaArray);
         print($x->toString());
     }
 
@@ -508,7 +508,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisLine($opt, $headerStrArr, $milkSoldArray, $milkSoldPerCowArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $milkSoldArray, $milkSoldPerCowArray);
         print($x->toString());
     }
 
@@ -518,7 +518,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Avg DIM'] = 'number';
         $opt = '';
-        $x = new GoogleVisLine($opt, $headerStrArr, $dimArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $dimArray);
         print($x->toString());
     }
 

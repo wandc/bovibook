@@ -141,7 +141,7 @@ class FeedAugerTimeLog {
         $result = curl_exec($ch); // run the whole process 
         curl_close($ch);
 
-        $unprossedArr = Misc::parse_csv($result);
+        $unprossedArr = $GLOBALS['MiscObj']->parse_csv($result);
         
         //create an array where we only have input events, not NTP events, etc.
         $newArr=array();

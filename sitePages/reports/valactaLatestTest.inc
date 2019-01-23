@@ -31,7 +31,7 @@ class ValactaLatestTest extends BasePage {
         $headerStrArr = array();
         $headerStrArr['DIM'] = 'number'; //BACKWARDS
         $headerStrArr['MUN'] = 'number';
-        $x = new GoogleVisScatter(null, $headerStrArr, $dimArr, $munArr);
+        $x = new GoogleVisualizationScatter(null, $headerStrArr, $dimArr, $munArr);
         print($x->toString());
     }
 
@@ -127,34 +127,9 @@ EX;
     /////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////
 
-    /**
-     * Method to change the color (to red) of any row in the datgrid where the cow isn't eating.
-     * We have to do this after that datagrid->fill has been called, so that is why this is awkward
-     */
-    function colorCowsNotEating($datagrid, $tableBody) {
-        //get an array of data in the datagrid
-        $ds = $datagrid->getDataSource();
-        $data = $ds->fetch();
+ 
 
-        //go through each row and color it red if the cow hasn't been bred yet.
-        $counter = 0;
-        foreach ($data as $row) {
-
-            if (($row['poundsfedtodaya'] == 0 && $row['allotmenta'] != 0) || ($row['poundsfedtodayb'] == 0 && $row['allotmentb'] != 0)) {
-                //create a not eating list to return
-                $animalShortName = Misc::femaleShortName($row['full_name']);
-                $number = "<a href=\"index.php?pageid=6&bovine_id={$row['bovine_id']}\"> {$row['local_number']} - $animalShortName</a>";
-                $returnArray[] = $number;
-                //colour row
-                $tableBody->setRowAttributes($counter, array('bgcolor' => '#FF6666'));
-            }
-
-            $counter++;
-        }
-        return $returnArray;
-    }
-
-    //datagrid customizations.....
+   
     function printFormattedNumber($params) {
         extract($params);
         $number = "<a href=\"index.php?pageid=6&bovine_id={$record['bovine_id']}\"> {$record['local_number']}</a>";
@@ -163,7 +138,7 @@ EX;
 
     function printPartialName($params) {
         extract($params);
-        $animalShortName = Misc::femaleShortName($record['full_name']);
+        $animalShortName = $GLOBALS['MiscObj']->femaleShortName($record['full_name']);
         return $animalShortName;
     }
 
@@ -224,7 +199,7 @@ ORDER BY ssc DESC";
         $headerStrArr['xAxis'] = 'string'; //BACKWARDS
         $headerStrArr['SCC'] = 'number';
         $opt = '';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $scc);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $scc);
         print($x->toString());
   }
     }
@@ -247,7 +222,7 @@ ORDER BY bhb DESC";
         $headerStrArr['xAxis'] = 'string'; //BACKWARDS
         $headerStrArr['BHB mmol'] = 'number';
         $opt = '';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $bhb);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $bhb);
         print($x->toString());
           }
     }
@@ -272,7 +247,7 @@ ORDER BY fat_per ASC";
         $headerStrArr['xAxis'] = 'string'; //BACKWARDS
         $headerStrArr['Low Fat %'] = 'number';
         $opt = '';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $fat);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $fat);
         print($x->toString());
           }
     }
@@ -296,7 +271,7 @@ ORDER BY days_in_mi DESC";
         $headerStrArr['xAxis'] = 'string'; //BACKWARDS
         $headerStrArr['High DIM'] = 'number';
         $opt = '';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $dim);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $dim);
         print($x->toString());
         }
     }
@@ -320,7 +295,7 @@ ORDER BY total_milk ASC";
         $headerStrArr['xAxis'] = 'string'; //BACKWARDS
         $headerStrArr['Milk Less than 20 litre'] = 'number';
         $opt = '';
-        $x = new GoogleVisColumn($opt, $headerStrArr, $milk);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $milk);
         print($x->toString());
            }
     }

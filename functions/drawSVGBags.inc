@@ -315,10 +315,10 @@ SELECT * from temp EXCEPT (SELECT * from temp WHERE (max_feed_footage = max_forw
         $str = ""; //start with blank string
 
         $str = $str . "<!-- bag consumption jagged line part-->";
-        $str = $str . "<line x1='$xminus' y1='0' x2='$xplus' y2='" . $heightScale * 4.5 . "' stroke = 'black' stroke-width = '4'/>" . "\n\r";
-        $str = $str . "<line x1='$xplus' y1='" . $heightScale * 4.5 . "' x2='$xminus' y2='" . $heightScale * 9 . "' stroke = 'black' stroke-width = '4'/>" . "\n\r";
-        $str = $str . "<line x1='$xminus' y1='" . $heightScale * 9 . "' x2='$xplus' y2='" . $heightScale * 13.5 . "' stroke = 'black' stroke-width = '4'/>" . "\n\r";
-        $str = $str . "<line x1='$xplus' y1='" . $heightScale * 13.5 . "' x2='$xminus' y2='" . $heightScale * 18 . "' stroke = 'black' stroke-width = '4'/>" . "\n\r";
+        $str = $str . "<line x1='$xminus' y1='0' x2='$xplus' y2='" . $heightScale * 4.5 . "' stroke = 'black' stroke-width = '4' />" . "\n\r";
+        $str = $str . "<line x1='$xplus' y1='" . $heightScale * 4.5 . "' x2='$xminus' y2='" . $heightScale * 9 . "' stroke = 'black' stroke-width = '4' />" . "\n\r";
+        $str = $str . "<line x1='$xminus' y1='" . $heightScale * 9 . "' x2='$xplus' y2='" . $heightScale * 13.5 . "' stroke = 'black' stroke-width = '4' />" . "\n\r";
+        $str = $str . "<line x1='$xplus' y1='" . $heightScale * 13.5 . "' x2='$xminus' y2='" . $heightScale * 18 . "' stroke = 'black' stroke-width = '4' />" . "\n\r";
 
         return $str;
     }
@@ -394,12 +394,14 @@ sample_number {$row->sample_number}
             }
 
 
+            $forageTestResultsEscaped=json_encode($forageTestResults);
+            
 //choose colour of dot based on rfq test.
             $color_code = $this->chooseColourCodeFromInt($rfq);
 $rfq=round($rfq,1);
 //draw colour coded circle and text with rfq.
-            $str = $str . "<circle onclick='alert(\"$forageTestResults\");' cx='$footage' cy='8' r='8' stroke='#$color_code' stroke-width='1' fill='#$color_code'/>" . "\n\r";
-            $str = $str . "<text   onclick='alert(\"$forageTestResults\");'  x='$footage' y='" . ($heightScale * 5) . "' dx='0,0,0,0,0' dy='0,0,0,0,2' textLength='' lengthAdjust='spacing' font-size='.5em' fill='#000000' text-anchor='middle' >$rfq</text>" . "\n\r";
+            $str = $str . "<circle onclick='alert($forageTestResultsEscaped);' cx='$footage' cy='8' r='8' stroke='#$color_code' stroke-width='1' fill='#$color_code'/>" . "\n\r";
+            $str = $str . "<text   onclick='alert($forageTestResultsEscaped);'  x='$footage' y='" . ($heightScale * 5) . "' dx='0,0,0,0,0' dy='0,0,0,0,2' textLength='0' lengthAdjust='spacing' font-size='.5em' fill='#000000' text-anchor='middle' >$rfq</text>" . "\n\r";
             $str = $str . "<circle   onclick='window.open(\"$pdfUrl\");'  cx='$footage' cy='28' r='3' stroke='purple' stroke-width='1' fill='purple'/>" . "\n\r";
         }
         return $str;
@@ -489,7 +491,7 @@ $rfq=round($rfq,1);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             $footage = $row['footage'] * $scaleMultiplier; //choose where to place text
             $date = date('M d/y', strtotime($row['event_time']));
-            $str = $str . "<text  x='$footage' y='" . ($heightScale * 16) . "' dx='0,0,0,0,0' dy='0,0,0,0,0' textLength='' lengthAdjust='spacing' font-size='.5em' text-anchor='middle' >$date</text>" . "\n\r";
+            $str = $str . "<text  x='$footage' y='" . ($heightScale * 16) . "' dx='0,0,0,0,0' dy='0,0,0,0,0' textLength='0' lengthAdjust='spacing' font-size='.5em' text-anchor='middle' >$date</text>" . "\n\r";
         }
         return $str;
     }
@@ -507,8 +509,8 @@ WHERE bag_id=$bagId";
             $footageStart = $row['footage_start'] * $scaleMultiplier;
             $footageFinish = $row['footage_finish'] * $scaleMultiplier;
             $str = $str . "<text  x='$footage' y='" . ($heightScale * 11) . "' dx='0,0,0,0,0' dy='0,0,0,0,0'  font-size='.7em' text-anchor='middle' >{$row['alpha_numeric_id']}</text>" . "\n\r";
-            $str = $str . "<line x1='$footageStart' y1='0' x2='$footageStart' y2='" . ($heightScale * 18) . "' stroke = 'black' stroke-width = '1'/>" . "\n\r";
-            $str = $str . "<line x1='$footageFinish' y1='0' x2='$footageFinish' y2='" . ($heightScale * 18) . "' stroke = 'black' stroke-width = '1'/>" . "\n\r";
+            $str = $str . "<line x1='$footageStart' y1='0' x2='$footageStart' y2='" . ($heightScale * 18) . "' stroke = 'black' stroke-width = '1' />" . "\n\r";
+            $str = $str . "<line x1='$footageFinish' y1='0' x2='$footageFinish' y2='" . ($heightScale * 18) . "' stroke = 'black' stroke-width = '1' />" . "\n\r";
         }
         return $str;
     }
@@ -519,8 +521,8 @@ WHERE bag_id=$bagId";
         $x1 = 328 * $scaleMultiplier;
         $y1 = 7.75 * $scaleMultiplier;
         $x2 = $x1 + 40;
-        $str = $str . "<text  x='$x1' y='$y1' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='2.4em' text-anchor='middle' >$slot</text>" . "\n\r";
-        $str = $str . "<text  x='$x2' y='$y1' dx='0,0,0,0,20' dy='0,0,0,0,0' textLength='' lengthAdjust='' font-size='0.5em' text-anchor='middle' >$bagId</text>" . "\n\r";
+        $str = $str . "<text  x='$x1' y='$y1' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='2.4em' text-anchor='middle' >$slot</text>" . "\n\r";
+        $str = $str . "<text  x='$x2' y='$y1' dx='0,0,0,0,20' dy='0,0,0,0,0' textLength='0' lengthAdjust='spacing' font-size='0.5em' text-anchor='middle' >$bagId</text>" . "\n\r";
         return $str;
     }
 
@@ -539,14 +541,14 @@ WHERE bag_id=$bagId";
             $x4 = 300 * $scaleMultiplier;
             $y = 26.25 * $heightScale;
             
-            $str = $str . "<text  x='$xaa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >-50'</text>" . "\n\r";
-            $str = $str . "<text  x='$x1' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >0'</text>" . "\n\r";
-            $str = $str . "<text  x='$xa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >50'</text>" . "\n\r";
-            $str = $str . "<text  x='$x2' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >100'</text>" . "\n\r";
-            $str = $str . "<text  x='$xb' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >150'</text>" . "\n\r";
-            $str = $str . "<text  x='$x3' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >200'</text>" . "\n\r";
-            $str = $str . "<text  x='$xc' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >250'</text>" . "\n\r";
-            $str = $str . "<text  x='$x4' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >300'</text>" . "\n\r";
+            $str = $str . "<text  x='$xaa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >-50'</text>" . "\n\r";
+            $str = $str . "<text  x='$x1' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >0'</text>" . "\n\r";
+            $str = $str . "<text  x='$xa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >50'</text>" . "\n\r";
+            $str = $str . "<text  x='$x2' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >100'</text>" . "\n\r";
+            $str = $str . "<text  x='$xb' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >150'</text>" . "\n\r";
+            $str = $str . "<text  x='$x3' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >200'</text>" . "\n\r";
+            $str = $str . "<text  x='$xc' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >250'</text>" . "\n\r";
+            $str = $str . "<text  x='$x4' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >300'</text>" . "\n\r";
         }
 
 //print 10' tick marks

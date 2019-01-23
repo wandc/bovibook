@@ -1,11 +1,5 @@
 <?php 
-
-
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/debug.php');
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/dataGridHelper.php');
-
 /** so far this is only used in bovinequery */
-
 class CustomComment extends BasePage{
   
   
@@ -23,41 +17,43 @@ class CustomComment extends BasePage{
    // displays info on potential offspring from cdn website.
     function displayCustomComment($mode='group',$bovine_id=null,$type=null) {
         
-        
-        
-		if ($mode!='group') {
-		 $sql = "SELECT id,type,bovine_id,comment,userid,event_time, date_trunc('days',now()-event_time) as days_ago FROM bovinemanagement.comment_custom WHERE type='$type' AND comment_custom.bovine_id=$bovine_id ";
-  
-		}
-		else {
-		  $sql = "SELECT id,type,bovine_id,comment,userid,event_time, date_trunc('days',now()-event_time) as days_ago FROM bovinemanagement.comment_custom WHERE type='$type' ";
-    
-		}  
-
-                $dg = new DataGridLR($sql, 30);
-
-        if ($mode=='group') {        
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
+          
+        if ($mode != 'group') {
+            $sql = "SELECT id,type,bovine_id,comment,userid,event_time, date_trunc('days',now()-event_time) as days_ago FROM bovinemanagement.comment_custom WHERE type='$type' AND comment_custom.bovine_id=$bovine_id ";
+        } else {
+            $sql = "SELECT id,type,bovine_id,comment,userid,event_time, date_trunc('days',now()-event_time) as days_ago FROM bovinemanagement.comment_custom WHERE type='$type' ";
         }
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Time', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Employee', 'userid', 'userid', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('CustomComment','printActionButtons()')));
 
-
-        // self::colorCowsWhoShouldBeMarkedToBreed($datagrid,$tableBody);
         
-        //print("<h3>Recent Heats</h3>");
-        print($dg->render());
-        $dg->pager();
-  
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+          if ($mode=='group') {     
+          $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
+          }
+          $rowOut['Time']=JQueryDataTable::formattedDate($row['event_time']);        
+          $rowOut['Comment']=  $row['comment'];
+          $rowOut['Employee']=  $row['userid'];
+          $rowOut['Action']=  self::printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+          $resultsOut[]=$rowOut;  
+        }
+            
+        //output
+        $dataArr = $resultsOut;
       
+        
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         print implode($out); 
+   
     }
 
-    function printActionButtons($params) {
-        $customHeaderLocation="http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}";
-        extract($params);
-
+    function printActionButtons($record,$callBackURL) {
+      
+        
         $currentUserid = $GLOBALS['auth']->getUsername();
         $type = $record['type'];
 
@@ -73,7 +69,8 @@ class CustomComment extends BasePage{
         $returnButtonsAsString = null;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if (($record['id'] == $row['id'])) {
-                $returnButtonsAsString = DataGridHelper::deleteQuickForm($row['id'], 'comment_custom',$customHeaderLocation); //show delete button, with table id as index for delete.
+                  $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.comment_custom'));
+                $returnButtonsAsString = ($a->renderDelete('customcomment' . $row['id']));
             }
         }
 
@@ -118,10 +115,10 @@ class CustomComment extends BasePage{
 		while (($row = $res->fetch())) {
 			//parse for last word of name and then make an array for the select list.
                     $tt=preg_split("/[\s,]+/", $row[1]);
-			$aniNumber[$row[0]] = $row[2] ." - " . Misc::femaleShortName($row[1]);
+			$aniNumber[$row[0]] = $row[2] ." - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
 		}
       
-     $timeArray=Misc::createHourlyDatesForLastDay();
+     $timeArray=$GLOBALS['MiscObj']->createHourlyDatesForLastDay();
      unset($timeArray[null]); //remove null value.
       
       //list of pre-canned comments

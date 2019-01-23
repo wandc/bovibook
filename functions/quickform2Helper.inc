@@ -5,7 +5,7 @@
  * 
  */
 require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickForm2RendererBootStrapV3.inc';
-require_once('HTML/QuickForm2.php');
+
 
 class Quickform2Helper {
 
@@ -255,7 +255,7 @@ HTML;
      */
     function currentAniamlsAndGroups() {
         //animals
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
 
         //find locations with animals in it, we will call a group.
         $sql = "SELECT DISTINCT ON (location_id) location_id,location.name,COUNT(*) as count from bovinemanagement.bovinecurrall 

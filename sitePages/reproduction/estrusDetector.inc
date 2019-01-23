@@ -1,9 +1,4 @@
 <?php
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-
-
 class EstrusDetector extends TabPage {
 
     public function defaultDisplay() {
@@ -70,7 +65,7 @@ class EstrusDetector extends TabPage {
 
     function quickFormMatchTagToCow() {
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //hourly array, with unix timestamp as index.
         //grab a list of tags.
         //grab a list of tags.
         $res = $GLOBALS['pdo']->query("SELECT
@@ -93,7 +88,7 @@ ORDER BY tag_id");
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
 
@@ -589,22 +584,13 @@ LEFT JOIN bovinemanagement.bovine ON bovine.id=ble_bovine_tag.bovine_id
      * 
      */
 
-    function oneCowLatestDataChart($bovine_id) {
-        ?>
+    public function oneCowLatestDataChart($bovine_id) {
+$js = <<<JS
+<script type="text/javascript">
 
-        <!--Load the AJAX API-->
-
-
-        <script type="text/javascript">
-
-            // Load the Visualization API and the piechart package.
-
-
-
-
-            function drawChartB() {
+            function drawChart_oneCowLatestData() {
                 var jsonData = $.ajax({
-                    url: "<?php echo($GLOBALS['config']['HTTP']['JSON_API']); ?>140/oneCowLatestData/<?php echo($bovine_id); ?>",
+                    url: "{$GLOBALS['config']['HTTP']['JSON_API']}140/oneCowLatestData/$bovine_id)",
                                 dataType: "json",
                                 async: false
                             }).responseText;
@@ -613,7 +599,7 @@ LEFT JOIN bovinemanagement.bovine ON bovine.id=ble_bovine_tag.bovine_id
                             var data = new google.visualization.DataTable(jsonData);
 
                             // Instantiate and draw our chart, passing in some options.
-                            var chart = new google.visualization.LineChart(document.getElementById('chart_divB'));
+                            var chart = new google.visualization.LineChart(document.getElementById('div_chart_oneCowLatestData'));
                             chart.draw(data, {chartArea: {left: 40, top: 20}, width: 1600, height: 400, pointSize: 2, lineWidth: 0, vAxis: {viewWindow: {
                                         min: -120,
                                         max: -60
@@ -621,15 +607,17 @@ LEFT JOIN bovinemanagement.bovine ON bovine.id=ble_bovine_tag.bovine_id
                         }
 
                         // Set a callback to run when the Google Visualization API is loaded.
-                        google.charts.setOnLoadCallback(drawChartB, true);
+                        google.charts.setOnLoadCallback(drawChart_oneCowLatestData, true);
                         $(window).resize(function () {
-                            google.charts.setOnLoadCallback(drawChartB);
+                            google.charts.setOnLoadCallback(drawChart_oneCowLatestData);
                         });
 
         </script>
 
-        <div id="chart_divB" ></div>
-        <?php
+        <div id="div_chart_oneCowLatestData" ></div>
+JS;
+    
+       return $js;
     }
 
     public function oneCowLatestDataFiltered($request) {
@@ -802,21 +790,14 @@ LEFT JOIN bas.ble_bovine_tag_curr ON ble_bovine_tag_curr.tag_id=ble_tag_event_fi
     }
 
     function oneCowLatestDataChartFilteredVar($bovine_id) {
-        ?>
-
-        <!--Load the AJAX API-->
-
-
-        <script type="text/javascript">
+        
+$js = <<<JS
+  <script type="text/javascript">
 
             // Load the Visualization API and the piechart package.
-
-
-
-
             function drawChartB() {
                 var jsonData = $.ajax({
-                    url: "<?php echo($GLOBALS['config']['HTTP']['JSON_API']); ?>140/oneCowLatestDataFilteredVar/<?php echo($bovine_id); ?>",
+                    url: "{$GLOBALS['config']['HTTP']['JSON_API']}140/oneCowLatestDataFilteredVar/$bovine_id",
                                 dataType: "json",
                                 async: false
                             }).responseText;
@@ -835,11 +816,11 @@ LEFT JOIN bas.ble_bovine_tag_curr ON ble_bovine_tag_curr.tag_id=ble_tag_event_fi
                         $(window).resize(function () {
                             google.charts.setOnLoadCallback(drawChartB);
                         });
-
         </script>
 
         <div id="chart_divB" ></div>
-        <?php
+JS;
+      return $js;
     }
 
     /*
@@ -854,18 +835,26 @@ LEFT JOIN bas.ble_bovine_tag_curr ON ble_bovine_tag_curr.tag_id=ble_tag_event_fi
 
         foreach ($baseArr as $key => $value) {
 
-
-            $sql = "
+            
+            //check if there is no data, if we dont do this we get divide by zero below.
+            $sql0 = "SELECT count(*) as null_count from (SELECT tag_id FROM bas.all_tags_latest_event WHERE  base_{$value}_rssi is null ) as null_count";
+            $res0 = $GLOBALS['pdo']->query($sql0);
+            $row0 = $res0->fetch();
+            if (($row0['null_count']) == 0) {
+                $errorSub[] = new notifyObj(get_class($this), date('Y-m-d', strtotime("now")), 1,$value . " Base station $value not working.");
+            } else {
+                $sql = "
 with temp as (
 SELECT count(*) as null_count from (SELECT tag_id FROM bas.all_tags_latest_event WHERE  base_{$value}_rssi is null ) as null_count
 )
 SELECT 100-null_count/(SELECT count(*) from (SELECT tag_id FROM bas.all_tags_latest_event) as d)*100  as answer,'$value' as base FROM temp
 ";
-            $res = $GLOBALS['pdo']->query($sql);
-            $row = $res->fetch();
-            if (($row['answer']) == 0) {
+                $res = $GLOBALS['pdo']->query($sql);
+                $row = $res->fetch();
+                if (($row['answer']) == 0) {
 
-                $errorSub[] = new notifyObj(get_class($this), date('Y-m-d', strtotime("now")), 1, $row['base'] . " Base station {$row['base']} not working.");
+                    $errorSub[] = new notifyObj(get_class($this), date('Y-m-d', strtotime("now")), 1, $row['base'] . " Base station {$row['base']} not working.");
+                }
             }
         }
         return $errorSub;

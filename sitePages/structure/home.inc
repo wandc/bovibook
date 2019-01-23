@@ -96,7 +96,7 @@ select * from temp where update_time < current_timestamp - interval '20 minutes'
         $results = $res2->fetchAll(PDO::FETCH_ASSOC);
         //process data
         foreach ($results as &$row) {
-             $row['home_page']= '<a href="' . Misc::hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
+             $row['home_page']= '<a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
           }
           
         //output
@@ -130,7 +130,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
         //process data
         foreach ($results as &$row) {
             $time = date('H', strtotime($row['event_time']));
-             $row['home_page']=  '' . $time . 'h <a href="' . Misc::hrefToBovinePage($row['bovine_id']) . '">' . $row['local_number'] . "</a> {$row['text']}";
+             $row['home_page']=  '' . $time . 'h <a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['bovine_id']) . '">' . $row['local_number'] . "</a> {$row['text']}";
           }
           
         //output
@@ -152,7 +152,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
 
         $out = '';
         while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
-            $out = $out . '<a href="' . Misc::hrefToBovinePage($row2['id']) . '">' . $row2['local_number'] . "</a> ";
+            $out = $out . '<a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row2['id']) . '">' . $row2['local_number'] . "</a> ";
         }
         return $out;
     }
@@ -170,7 +170,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
         $results = $res2->fetchAll(PDO::FETCH_ASSOC);
         //process data
         foreach ($results as &$row) {
-             $row['home_page']= '<a href="' . Misc::hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
+             $row['home_page']= '<a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
           }
           
         //output
@@ -192,7 +192,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
         //process data
         foreach ($results as &$row) {
-             $row['home_page']= '<a href="' . Misc::hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
+             $row['home_page']= '<a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['id']) . '">' . $row['local_number'] . "</a> ";
           }
           
         //output
@@ -209,7 +209,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
         $results = $res->fetchAll(PDO::FETCH_ASSOC);
         //process data
         foreach ($results as &$row) {
-             $row['home_page']= '<a href="' . Misc::hrefToBovinePage($row['bovine_id']) . '">' . $row['local_number'] . "</a> ";
+             $row['home_page']= '<a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['bovine_id']) . '">' . $row['local_number'] . "</a> ";
           }
           
         //output

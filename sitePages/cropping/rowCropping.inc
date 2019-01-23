@@ -29,7 +29,7 @@ class RowCropping extends TabPage {
     protected function tab1() {
 
         //$this->soilTestNeeded(null);
-        $this->forageFields();
+        print($this->forageFields());
     }
 
     protected function tab2() {
@@ -144,17 +144,33 @@ print("<h3>Uses soil tests and if lime has been applied, it estimates what the a
 
         $sql = "SELECT *,id as field_id from cropping.foragecurr order by alfalfa_suitable DESC,corn_suitable DESC";
         
-        $dg = new DataGridLR($sql, 120);
+           $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Area'] = ($row['area']);
+            $rowOut['alfalfa_suitable'] = ($row['alfalfa_suitable']);
+            $rowOut['corn_suitable'] = ($row['corn_suitable']);
+            $rowOut['trefoil_suitable'] = ($row['trefoil_suitable']);
+            
+           
+            $resultsOut[] = $rowOut;
+        }
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('common_name', 'common_name', 'common_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('area', 'area', 'area', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('alfalfa_suitable', 'alfalfa_suitable', 'alfalfa_suitable', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('corn_suitable', 'corn_suitable', 'corn_suitable', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('trefoil_suitable', 'trefoil_suitable', 'trefoil_suitable', array('' => ''), null, null));
-
-        print($dg->render());
-        $dg->pager();
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Forage Fields</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
+        
     }
 
    
@@ -203,22 +219,14 @@ ORDER BY last_soil_test
 
         //change presentation
         foreach ($results as &$row) {
-         /*   
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('last_soil_test', 'last_soil_test', 'last_soil_test', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric(null,"last_soil_test")')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('pH', 'ph', 'ph', array('' => ''), null, array('RowCropping', 'printPh()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('magnesium (Mg)', 'magnesium', 'magnesium', array('' => ''), null, array('SoilSample', 'printMagnesium()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Lime Requirment', '', '', array('' => ''), null, array('SoilSample', 'printLimeRequirementsQuickform()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('imp', 'imp', 'imp', array('' => ''), null, array('RowCropping', 'printImportantField()')));
-*/
-           
+  
      $row['field'] =JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'],$row['alpha_numeric_id']);    
            $row['event_time_raw']=strtotime($row['last_soil_test']);
           
            $row['event_time']= date("M d Y H:00",strtotime($row['last_soil_test']));  //has to be at end.
          
               $row['colour_row']= $this->printImportantField($row);
-              $row['lime_requirement']=SoilSample::printLimeRequirementsNB($row['ph'], $row['buffer_ph'] );
+              $row['lime_requirement']=(new SoilSample)->printLimeRequirementsNB($row['ph'], $row['buffer_ph'] );
          //  if  ((($row['estrus_type_id'])==1) AND empty($row['note']))  {  $row['colour_row']=1;} else {  $row['colour_row']=0;}
         }
 

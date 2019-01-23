@@ -1,23 +1,7 @@
 <?php 
 //Lists straws of semen in our inventory
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/debug.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/dataGridHelper.php');
 
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if(class_exists('DataGridLR_Ext') != true) {
-  //extends datgrid class with specific logic to colour the line.
-  class DataGridLR_Ext extends DataGridLR {
-                     function colourLineCriteria($row) {
-                     if ($row['implanter_userid']=='') {  return true;}
-                     else  {  return false;}
-                     }
-                }
-}
 
 class EstrusEmbryo extends TabPage{
 
@@ -30,30 +14,34 @@ class EstrusEmbryo extends TabPage{
          }
          
          function tab1() {
-               print("<div class='row'>"."\n\r");
-      
-        print("<div class='col-sm-4 col-sm-push-8'>"."\n\r");
-             $this->markCowToReceiveEmbryoQuickForm();
-	    $this->markCowAsImplantedQuickform(); 
-        print("</div>"."\n\r");
-          print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-       $this->displayListOfEmbryoImplantations();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");     
+             $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>    
+             {$this->markCowToReceiveEmbryoQuickForm()}
+             {$this->markCowAsImplantedQuickform()} 
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'>
+            {$this->displayListOfEmbryoImplantations()}
+        </div> 
+    </div>    
+HTML;
+          print($html);
          }
          
          
          function tab2() {
-                 print("<div class='row'>"."\n\r");
-      
-        print("<div class='col-sm-4 col-sm-push-8'>"."\n\r");
-             $this->addEmbryoStrawToInventory();
-            $this->markFlushQuickForm();
-        print("</div>"."\n\r");
-          print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-       $this->displayListOfEmbryoStraws();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");     
+              $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>    
+             {$this->addEmbryoStrawToInventory()}
+             {$this->markFlushQuickForm()} 
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'>
+            {$this->displayListOfEmbryoStraws()}
+        </div> 
+    </div>    
+HTML;
+          print($html);
          }
 
          
@@ -63,7 +51,7 @@ class EstrusEmbryo extends TabPage{
 	function markFlushQuickForm()
 	{
 
-		$dateArray=Misc::createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
+		$dateArray=$GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
 
 		//grab a list of cows.
 		$res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number,full_reg_number from bovinemanagement.bovine WHERE death_date IS NULL ORDER BY local_number");
@@ -71,7 +59,7 @@ class EstrusEmbryo extends TabPage{
 		$aniNumber[null] = "Please Select one..."; //dummy value
 		while (($row = $res->fetch())) {
 			//parse for last word of name and then make an array for the select list.
-			$aniNumber[$row[0]] = $row[2] ." - " . Misc::femaleShortName($row[1]);
+			$aniNumber[$row[0]] = $row[2] ." - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
 		}
 
 		
@@ -123,7 +111,7 @@ class EstrusEmbryo extends TabPage{
 		} //end validation
 
 		$form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
 
 	}
 	
@@ -149,7 +137,7 @@ class EstrusEmbryo extends TabPage{
         
 function addEmbryoStrawToInventory() {
 
-                 $dateArray=Misc::createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
+                 $dateArray=$GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
 
 		//grab a list of cows.
 		$res = $GLOBALS['pdo']->query("SELECT embryo_flush.id,donor_dam_full_reg_number,flush_date,bovine.full_name FROM bovinemanagement.embryo_flush
@@ -159,7 +147,7 @@ function addEmbryoStrawToInventory() {
 		$flushNumber[null] = "Please Select one..."; //dummy value
 		while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 			//parse for last word of name and then make an array for the select list.
-			$flushNumber[$row['id']] = Misc::femaleShortName($row['full_name']).' - '.$row['donor_dam_full_reg_number'] ." - " .date('M d, Y',strtotime($row['flush_date']));
+			$flushNumber[$row['id']] = $GLOBALS['MiscObj']->femaleShortName($row['full_name']).' - '.$row['donor_dam_full_reg_number'] ." - " .date('M d, Y',strtotime($row['flush_date']));
 		}
 
 		 //grab a list of all sires.
@@ -266,7 +254,7 @@ function addEmbryoStrawToInventory() {
 		} //end validation
 
 		$form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
 
 	}
 
@@ -274,53 +262,57 @@ function addEmbryoStrawToInventory() {
 
 	function displayListOfEmbryoImplantations($mode='default') {
 
-            
-            
-
-
-		// Setup your database connection
-		$sql="SELECT embryo_implant.id,bovine.id as bovine_id,bovine.local_number,bovine.full_name,event_time,implanter_userid,embryo_implant.userid as userid,estimated_event_time as event_time2,estimated_event_userid,embryo_implant_comment.comment,bin,straw_number,donor_dam_full_reg_number,embryo_straw.sire_full_reg_number
+         
+             $sql = <<<SQL
+SELECT embryo_implant.id,bovine.id as bovine_id,bovine.local_number,bovine.full_name,event_time,implanter_userid,embryo_implant.userid as userid,estimated_event_time as event_time2,estimated_event_userid,embryo_implant_comment.comment,bin,straw_number,donor_dam_full_reg_number,embryo_straw.sire_full_reg_number
 FROM bovinemanagement.embryo_implant
 LEFT JOIN bovinemanagement.bovine ON embryo_implant.bovine_id = bovine.id
 LEFT JOIN bovinemanagement.embryo_straw ON embryo_straw.id = embryo_implant.embryo_straw_id
 LEFT JOIN bovinemanagement.embryo_implant_comment ON embryo_implant.comment_id=embryo_implant_comment.id
 LEFT JOIN bovinemanagement.embryo_flush ON embryo_flush.id=embryo_straw.embryo_flush_id
-ORDER BY event_time DESC";
+ORDER BY event_time DESC
+SQL;
 
-              
 
-                
-                $dg1 = new DataGridLR_Ext($sql, 1000);
-               
-                $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''),null,array('DataGridHelper','printFormattedBovineNameAndNumber()')));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Implanter', 'implanter_userid', '', array('' => ''), null, null));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Userid', 'userid', '', array('' => ''), null, null));
-                $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Est. Time', 'event_time2', 'event_time2', array('' => ''), null, array('DataGridHelper','printFormattedTime2()')));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Est. Event Userid', 'estimated_event_userid', '', array('' => ''), null, null));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', '', array('' => ''), null, null));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Bin', 'bin', '', array('' => ''), null, null));
-		$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Straw #', 'straw_number', '', array('' => ''), null, null));
-                $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Donor Dam Number', 'donor_dam_full_reg_number','', array('' => ''), null, array('EstrusEmbryo','printCDNLink()')));
-                $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Sire', 'sire_full_reg_number','', array('' => ''), null, array('EstrusEmbryo','printCDNLinkSire()')));      
-		
-			
-		  		
-		if ($mode=='default') {
-                     $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action2', null, '', array('' => ''), null, array('EstrusEmbryo', 'printActionButtons2()')));
-			
-		}
-                    
-                print($dg1->render('datagrid',true,$GLOBALS['config']['COLOUR']['important']));
-                $dg1->pager(); 
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);  
+            $rowOut['Implanter'] = $row['implanter_userid'];
+            $rowOut['Employee'] = $row['userid'];
+            $rowOut['Est Time'] = JQueryDataTable::formattedDate($row['event_time2']);
+            $rowOut['Est Event Employee'] = $row['estimated_event_userid'];
+            $rowOut['Comment'] = $row['comment'];
+            $rowOut['Bin'] = $row['bin'];
+            $rowOut['Straw #'] = $row['straw_number'];
+            $rowOut['Donor Dam Number'] = $row['donor_dam_full_reg_number'];
+            $rowOut['Sire'] = $row['sire_full_reg_number'];
+            if ($mode == 'default') {
+                $rowOut['Action'] = $this->printActionButtons2($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            }
+
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+      
+
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         return implode($out); 
+      
             
-                
                 
         }
 
 	function printPartialName($params)
 	{
 		extract($params);
-		$animalShortName=Misc::femaleShortName($row['full_name']);
+		$animalShortName=$GLOBALS['MiscObj']->femaleShortName($row['full_name']);
 		return $animalShortName;
 	}
 
@@ -329,18 +321,16 @@ ORDER BY event_time DESC";
          /** **********************************************************
 	   * see whether to print completed button for scheduled medicine 
 	   *********************************************************** */
-   function printActionButtons2($params)
+   function printActionButtons2($record,$callBackURL)
 	  {
-	    extract($params);
-	    $currentUserid=$GLOBALS['auth']->getUsername();
 	    
-	   
-	 
+	    $currentUserid=$GLOBALS['auth']->getUsername();
+
 	       $returnButtonsAsString=null;
 
 	    if (((in_array('owner',$GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin',$GLOBALS['auth']->getAuthData('groups')) == TRUE)) AND ($record['event_time']==null))
 	      {
-		$returnButtonsAsString=self::deleteQuickForm($record['id'],'embryo_implant'); //show delete button, with Breeding table id as index for delete.
+		$returnButtonsAsString=self::deleteQuickForm($record['id'],'embryo_implant',$callBackURL); //show delete button, with Breeding table id as index for delete.
 	      }
 	  
 	    
@@ -351,7 +341,7 @@ ORDER BY event_time DESC";
           /** *******************************************
 	  * Delete Button Quickform
 	  **********************************************/
-	  function deleteQuickForm($tableid,$tablename)
+	  function deleteQuickForm($tableid,$tablename,$callBackURL)
 	  {
 	    
 	    $form = new HTML_QuickForm("medSchedDeleteButton",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -385,7 +375,7 @@ ORDER BY event_time DESC";
                 echo "Failed: " . $e->getMessage();
             }
 	      
-	      header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+	      header($callBackURL);
 	      exit();
 	      
 	      }
@@ -401,8 +391,8 @@ ORDER BY event_time DESC";
 	function markCowAsImplantedQuickform()
 	{
 
-		//$dateArray=Misc::createHourlyDatesForLastTwoDays(); //hourly array, with unix timestamp as index.
-		$dateArray=Misc::createHourlyDatesForLastFourDays();
+		//$dateArray=$GLOBALS['MiscObj']->createHourlyDatesForLastTwoDays(); //hourly array, with unix timestamp as index.
+		$dateArray=$GLOBALS['MiscObj']->createHourlyDatesForLastFourDays();
 
 		//grab a list of cows who have ben chosen to be bred and have semen chosen.
 		$sql="SELECT embryo_implant.id,bovine_id,local_number,full_name,estimated_event_time
@@ -414,7 +404,7 @@ WHERE embryo_implant.event_time is null";
 		$aniNumber[null] = "Please Select one..."; //dummy value
 		while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 			//parse for last word of name and then make an array for the select list.
-			$aniNumber[$row['id']] = $row['local_number'] ." - " .Misc::femaleShortName($row['full_name'])."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;". date("D, M j", strtotime($row['estimated_event_time']));
+			$aniNumber[$row['id']] = $row['local_number'] ." - " .$GLOBALS['MiscObj']->femaleShortName($row['full_name'])."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;". date("D, M j", strtotime($row['estimated_event_time']));
 		}
 
 		//grab a list of  comments
@@ -496,7 +486,7 @@ WHERE groups.name='embryo_implant'";
 		} //end validation
 
 		$form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
 
 
 	}
@@ -507,7 +497,7 @@ WHERE groups.name='embryo_implant'";
 	function markCowToReceiveEmbryoQuickForm()
 	{
 
-		$dateArray=Misc::createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
+		$dateArray=$GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForNextNineAndSomePrevDays();//hourly array, with unix timestamp as index.
 
 		//grab a list of cows.
 		$res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number from bovinemanagement.bovine WHERE death_date IS NULL ORDER BY local_number");
@@ -515,7 +505,7 @@ WHERE groups.name='embryo_implant'";
 		$aniNumber[null] = "Please Select one..."; //dummy value
 		while (($row = $res->fetch())) {
 			//parse for last word of name and then make an array for the select list.
-			$aniNumber[$row[0]] = $row[2] ." - " . Misc::femaleShortName($row[1]);
+			$aniNumber[$row[0]] = $row[2] ." - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
 		}
 
 		//grab a list of embro straws.
@@ -532,7 +522,7 @@ ORDER BY flush_date DESC,straw_number ASC";
 		$embryoStraw[null] = "Please Select one..."; //dummy value
 		while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 			//parse for last word of name and then make an array for the select list.
-			$embryoStraw[$row['id']] = Misc::femaleShortName($row['full_name']) ." - ".$row['donor_dam_full_reg_number'] ." - " . date('M d, Y',strtotime($row['flush_date'])) . ' to '. ''. $row['sire_short_name'] . ' straw # '.$row['straw_number'];
+			$embryoStraw[$row['id']] = $GLOBALS['MiscObj']->femaleShortName($row['full_name']) ." - ".$row['donor_dam_full_reg_number'] ." - " . date('M d, Y',strtotime($row['flush_date'])) . ' to '. ''. $row['sire_short_name'] . ' straw # '.$row['straw_number'];
 		}
 
 
@@ -589,7 +579,7 @@ ORDER BY flush_date DESC,straw_number ASC";
 		} //end validation
 
 		$form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
 
 	}
 
@@ -598,61 +588,50 @@ ORDER BY flush_date DESC,straw_number ASC";
 
 	function displayListOfEmbryoStraws($mode='default') {
 		
-		// Setup your database connection
-		$sql="SELECT embryo_straw.id,embryo_straw.cane,embryo_straw.comment,embryo_flush.donor_dam_full_reg_number,bovine.local_number as donor_dam_local_number,embryo_flush.flush_date as event_time2,embryo_straw.sire_full_reg_number,embryo_straw.straw_number,embryo_straw.bin,embryo_implant.event_time, local_number,bovine.id as bovine_id, bovine.full_name,sire.short_name
+                
+             $sql = <<<SQL
+SELECT embryo_straw.id,embryo_straw.cane,embryo_straw.comment,embryo_flush.donor_dam_full_reg_number,bovine.local_number as donor_dam_local_number,embryo_flush.flush_date as event_time2,embryo_straw.sire_full_reg_number,embryo_straw.straw_number,embryo_straw.bin,embryo_implant.event_time, local_number,bovine.id as bovine_id, bovine.full_name,sire.short_name
 FROM bovinemanagement.embryo_flush
 LEFT JOIN bovinemanagement.embryo_straw ON embryo_flush.id = embryo_straw.embryo_flush_id
 LEFT JOIN bovinemanagement.embryo_implant ON embryo_implant.embryo_straw_id = embryo_straw.id
 LEFT JOIN bovinemanagement.bovine ON embryo_flush.donor_dam_full_reg_number = full_reg_number
 LEFT JOIN bovinemanagement.sire ON embryo_straw.sire_full_reg_number = sire.full_reg_number
 WHERE embryo_implant.event_time IS NULL
-ORDER BY flush_date DESC,straw_number ASC";
+ORDER BY flush_date DESC,straw_number ASC
+SQL;
 
 
- $dg = new DataGridLR($sql, 50);
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Flush Date', 'Flush Date', '', array('' => ''), null, array('DataGridHelper','printFormattedTime2()')));
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Donor Dam', 'Donor Dam', '', array('' => ''), null, array('DataGridHelper','printFormattedBovineNameAndNumber()')));
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Donor Dam Number', 'donor_dam_full_reg_number','', array('' => ''), null, array('EstrusEmbryo','printCDNLink()')));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sire Name', 'short_name', '', array('' => ''), null, null));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sire Number', 'sire_full_reg_number','', array('' => ''), null, array('EstrusEmbryo','printCDNLinkSire()')));      		
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Bin', 'bin', '', array('' => ''), null, null));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Cane', 'cane', 'cane', array('' => ''), null, null));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Straw #', 'straw_number', '', array('' => ''), null, null));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, null));
-		
-		
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    print("<h3>Embryo Inventory</h3>");
-     print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+
+
+            $rowOut['Flush Date'] = JQueryDataTable::formattedDate($row['event_time2']);
+            $rowOut['Donor Dam'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Donor Dam Number'] = $row['donor_dam_full_reg_number'];
+            $rowOut['Sire Name'] = $row['short_name'];
+            $rowOut['Sire Number'] = $row['sire_full_reg_number'];
+            $rowOut['Bin #'] = $row['bin'];
+            $rowOut['Cane #'] = $row['cane'];
+            $rowOut['Straw #'] = $row['straw_number'];
+            $rowOut['Comment'] = $row['comment'];
+
+            $resultsOut[] = $rowOut;
         }
-    
-   
+
+        //output
+        $dataArr = $resultsOut;
+      
+        $out[]="<h3>Embryo Inventory</h3>";
+        $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+        return implode($out); 
+      
 	}
 
-        function printCDNLink($params)
-	{
-		extract($params);
-               $number=('<a href="' . Misc::createListOfAllCowsMilking($record['donor_dam_full_reg_number']) . '">'.$record['donor_dam_full_reg_number'].'</a>');
-			return $number;
-	}
-        
-        function printCDNLinkSire($params)
-	{
-		extract($params);
-               $number=('<a href="' . Misc::createListOfAllCowsMilking($record['sire_full_reg_number']) . '">'.$record['sire_full_reg_number'].'</a>');
-			return $number;
-	}
-        
-	function printFormattedTime($params)
-	{
-		extract($params);
-		return date("M d Y",strtotime($record['update_time']));
-	}
-	/////////////////////////////////////////////////////////////////////
-
-
+      
 
 }//end class
 ?>

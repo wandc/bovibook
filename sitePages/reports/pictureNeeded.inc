@@ -184,7 +184,7 @@ Class QF2_UploadPicture extends Quickform2Helper {
     private function listOfAnimalsForPicture($type = 'default') {
         if ($type == 'default') {
 
-            $aniNumber = Misc::createListOfAllAliveCows();
+            $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         } elseif ($type == 'notdone') {
 
 
@@ -199,7 +199,7 @@ ORDER BY local_number";
 
             while (($row = $res->fetch())) {
 //parse for last word of name and then make an array for the select list.
-                $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+                $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
             }
         } else {
             throw new Exception("Programming Error: Type input for picture not specified\n");

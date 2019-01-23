@@ -12,10 +12,8 @@ if (defined('STDIN')) { //when called from cli, command line define constant.
 $iniFile = 'local/config/config.ini'; //load custom config
 
 
-
-require_once('HTML/QuickForm.php'); //one off loader for old deprecated pear class. remove forms then delete this. FIXME
-require_once 'HTML/QuickForm/Renderer/Tableless.php'; //one off loader for old deprecated pear class. remove forms then delete this. FIXME
-
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 //autoloader
 new IntAutoLoader(); //bovibook loader
@@ -123,7 +121,7 @@ class IntAutoLoader {
 
     function __construct() {
                         
-        $this->_directoriesToLook= preg_filter('/^/', $_SERVER['DOCUMENT_ROOT'], array("auth/","sitePages/bovineManagement/",  "sitePages/cropping/",  "sitePages/heifer/",  "sitePages/hr/",  "sitePages/machinery/",  "sitePages/medical/",  "sitePages/misc/",  "sitePages/nutrition/",  "sitePages/parlor/",  "sitePages/reports/",  "sitePages/reproduction/",  "sitePages/structure/", "sitePages/transition/", "sitePages/", "functions/", "template/", "phpCronScripts/"));
+        $this->_directoriesToLook= preg_filter('/^/', $_SERVER['DOCUMENT_ROOT'], array("auth/","sitePages/bovineManagement/",  "sitePages/cropping/",  "sitePages/heifer/",  "sitePages/hr/",  "sitePages/machinery/",  "sitePages/medical/",  "sitePages/misc/",  "sitePages/nutrition/",  "sitePages/parlor/",  "sitePages/reports/",  "sitePages/reproduction/",  "sitePages/structure/", "sitePages/transition/", "sitePages/", "functions/google/", "functions/",  "template/", "phpCronScripts/"));
        // echo(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $this->_directoriesToLook));
      // print_r($this->_directoriesToLook);
        $a= set_include_path(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $this->_directoriesToLook));

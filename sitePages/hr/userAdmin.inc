@@ -368,20 +368,5 @@ ORDER BY client_id
 
 }
 
-//end class
-//extends datgrid class with specific logic to colour the line.
-class DataGridLR_Ext_R extends DataGridLR {
-
-    function colourLineCriteria($row) {
-        $row['active'] = isset($row['active']) ? $row['active'] : '';
-   
-        if ($row['active'] == 't' AND $row['onfarm'] == 't') {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-}
 
 ?>

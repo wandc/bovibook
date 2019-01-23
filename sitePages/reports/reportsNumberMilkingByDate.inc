@@ -2,46 +2,45 @@
 /**
  Show number of cows milking on specific date for payroll purposes.
  */
-
+//FIXME move this somewhere else. waste of a page. add chart too?
 
 
 class ReportsNumberMilkingByDate extends BasePage {
 
 	
 	public function defaultDisplay() {
-		$this->displayNumberMilking();
+		print($this->displayNumberMilking());
 	}
 
 
 	function displayNumberMilking($mode = 'default') {
 		
+                
+$sql = <<<SQL
+SELECT date,number_of_cows FROM batch.daily_number_cows_milking ORDER by date DESC LIMIT 100
+SQL;
 
-		$numberToshow=100;
 
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-
-		// Setup your database connection
-		$sql ="SELECT date,number_of_cows FROM batch.daily_number_cows_milking ORDER by date DESC LIMIT 100";
-       $dg = new DataGridLR($sql, $numberToshow);
-
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''),null,array('ReportsNumberMilkingByDate','printFormattedDate()')));
-		$dg->datagrid->addColumn(new Structures_DataGrid_Column('Number Milking', 'number_of_cows', '', array('' => ''), null, null));
-
-		
-
-    print("<h2>Number of Cows Milking on a Specific Date</h2>");
-    // Output table and paging links
-print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+          $rowOut['date']=JQueryDataTable::formattedDate($row['date']);        
+          $rowOut['Number of Cows']=  $row['number_of_cows'];
+          $resultsOut[]=$rowOut;  
         }
-     
-	}
-
-	function printFormattedDate($params)
-	{
-		extract($params);
-		return date("l M d Y",strtotime($record['date']));
-	}
+            
+        //output
+        $dataArr = $resultsOut;
+      
+         $out[]='<h3>Number of Cows Milking on a Specific Date</h3>';
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         return implode($out); 
+            
+            
+        }
+	
 
 }//end class

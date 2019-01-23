@@ -308,7 +308,7 @@ EX;
 
     public static function newVetToCheckForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
 
-        $timeArray = Misc::createDailyDatesForLastSevenDays();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastSevenDays();
         unset($timeArray [null]); // remove null value.
         // list of pre-canned comments
         $preCannedComment = array(null => 'Please Select one...', 'ok.' => 'ok.', 'recheck.' => 'recheck.');
@@ -322,7 +322,7 @@ EX;
 
         // depending on if we are called from aninmal query page or medical treament page.
         if ($mode == 'group') {
-            $aniNumber = Misc::createListOfAllAliveCows();     //grab a list of cows with open medical cases.
+            $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();     //grab a list of cows with open medical cases.
             
             $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
             $form->setDefaults(array('animalNumber' => 0)); //set default to no variety.
@@ -414,14 +414,14 @@ EX;
         } // Always check that result is not an error
         while (($row = $res->fetch())) {
 //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
         return $aniNumber;
     }
 
     function vetCheckCompletedQuickForm($mode = 'group', $bovine_id = null) {
 
-        $timeArray = Misc::createDailyDatesForLastSevenDays();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastSevenDays();
         unset($timeArray [null]); // remove null value.
         // list of pre-canned comments
         $preCannedComment = array(null => 'Please Select one...', 'ok.' => 'ok.', 'recheck.' => 'recheck.');

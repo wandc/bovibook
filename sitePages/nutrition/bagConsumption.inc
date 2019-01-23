@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 //Lists straws of semen in our inventory
 
@@ -18,11 +18,10 @@ class BagConsumption extends TabPage {
             //sometimes called from another class, ie sidebar, thus we need to dyniamically find the page_id.
             $this->pageid = findFileNameOfClass(strtolower(get_class($this)));
         }
-        if (isset( $_REQUEST['date_of_interest']) AND ($_REQUEST['date_of_interest'] != null)) {
+        if (isset($_REQUEST['date_of_interest']) AND ( $_REQUEST['date_of_interest'] != null)) {
             $this->date_of_interest = $_REQUEST['date_of_interest'];
         }
     }
-
 
     public function defaultDisplay() {
         $tabArray[1]['name'] = 'Consumption';
@@ -34,13 +33,13 @@ class BagConsumption extends TabPage {
 
     protected function tab1() {
         //draw bag picture
-        $DrawSVGBags = new DrawSVGBags(date('Y-m-d', strtotime("now") + 86400 )); //use one day in the future to get around times of midnight vs some point in the day.
+        $DrawSVGBags = new DrawSVGBags(date('Y-m-d', strtotime("now") + 86400)); //use one day in the future to get around times of midnight vs some point in the day.
         $DrawSVGBags->main();
         print('<br/>');
         print('<br/>');
         if (in_array('nutritionist', $GLOBALS['auth']->getAuthData('groups')) == FALSE) { //don't allow nutrtionist to edit anything.
             $this->addBagConsumptionQuickform();
-            $this->displayBagConsumptionLog();
+            print($this->displayBagConsumptionLog());
         }
         $this->displayBagConsumptionProjection();
         print("<img src='images/sop/relative_forage_quality_RFQ.jpg'/>"); // source: http://extension.uga.edu/publications/detail.cfm?number=B1425
@@ -60,43 +59,56 @@ class BagConsumption extends TabPage {
             $this->dateSelectQuickForm();
         }
     }
-    
-    
+
     //show yield be field and type for a whole year.
-    protected function tab3() 
-    
-    {
-        
+    protected function tab3() {
+
         /* shows yield from the bags by looking at all the fields, what year they were ensiled, there field areas at that time and then sums it up to show area cut of each type of forage */
-        
-        $sql="
+        $sql = <<<SQL
 with temp as (
 SELECT alpha_numeric_id,bag.event_time,bag_id,field_id,footage_start,footage_finish,nutrition.bag_ensile_date_at_footage(bag_id,footage_finish-footage_start), cropping.field_border_at_timestamp(field_id, nutrition.bag_ensile_date_at_footage(bag_id,footage_finish-footage_start)),nutrition.bag_feed_name_at_footage (bag_id, (footage_finish-footage_start)::integer)
-
 FROM nutrition.bag_field 
 LEFT JOIN nutrition.bag on bag_id=bag.id
 LEFT JOIN cropping.field ON field.id=field_id
 ), temp2 as (
 SELECT temp.*,EXTRACT(YEAR FROM bag_ensile_date_at_footage) as year,cropping.datum_area(datum.id) as area from temp
 LEFT JOIN cropping.datum ON datum.id=field_border_at_timestamp
+), temp3 as (
+SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_name_at_footage) from temp2
 )
-SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_name_at_footage) from temp2";
-        
-      include_once($_SERVER['DOCUMENT_ROOT'].'functions/dataGridHelper.php');
-                 $dg=new DataGridLR($sql,500);
-        
-           print($dg->render());
-           $dg->pager();  
-        
-        
-        
+SELECT distinct(year,bag_feed_name_at_footage,sum) , year,bag_feed_name_at_footage,sum  FROM temp3 ORDER BY year DESC
+SQL;
+
+       $statement = $GLOBALS['pdo']->prepare($sql);
+       $statement->execute();
+       $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Year'] = ($row['year']);
+            $rowOut['Feed'] = ($row['bag_feed_name_at_footage']);
+            $rowOut['Sum'] = ($row['sum']);
+            
+            $resultsOut[] = $rowOut;
+        }
+
+
+        //output
+        $dataArr = $resultsOut;
+
+        $out[] = ('<h3>Amount of Feed in Bags Over Time</h3>');
+         $out[] = ('<h3>FIXME: Data looks incorrect.</h3>');
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order:false'));
+        print implode($out);
+      
     }
 
     /**
      * Small form that selects the field.
      */
     public function dateSelectQuickForm($mode = 'default') {
-        $datesArray = Misc::createMonthlyDatesForPrev56Months();
+        $datesArray = $GLOBALS['MiscObj']->createMonthlyDatesForPrev56Months();
 
         //javascript to allow submission on change of select element.
         $attrs = array('style' => "width: 95px", 'onchange' => "javascript:location.href='?date_of_interest='+this.options[this.selectedIndex].value+'&pageid={$this->pageid}';$('#example > ul').tabs('select', 0);");
@@ -104,7 +116,8 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
         //javascript to allow submission when enter is pressed within select form
         //$attrs= array('onKeyPress' => "javascript:if(event.keyCode=='13'){document.frmTest.submit();}");
 
-        $form = new HTML_QuickForm("frmFieldQuickSelect",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("frmFieldQuickSelect", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         //$form->addElement('header', 'hdrQuickfrmFieldQuickSelect','Select a Field');
         $form->addElement('select', 'dateInterest', '', $datesArray, $attrs);
@@ -132,7 +145,7 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
     function addBagConsumptionQuickform() {
 
         //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesAtDailyIntervalsForLastSevenDays();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays();
 
 
         //get open bags with footages availble in bag.
@@ -141,12 +154,13 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
         $listOfFootages = $retArr[1];
 
 
-        $form = new HTML_QuickForm("addBagConsumptionQuickform",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("addBagConsumptionQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'hdrQuickform', 'Add Consumption Note About Ag Bag');
         //Hierarchical select list
         $opts[] = $listOfBags;
         $opts[] = $listOfFootages;
-        $hs = $form->addElement('hierselect', 'whichBag', 'Bag & Footage', array('style' => 'width: 20em;'), '<br />');
+        $hs = $form->addElement('hierselect', 'whichBag', 'Bag & Footage');
         $hs->setOptions($opts);
 
         $form->addElement('select', 'direction', 'which end open', array('forward' => 'forward', 'reverse' => 'reverse'));
@@ -178,9 +192,9 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
             $bag = $bagAndFootage[0];
             $footage = $bagAndFootage[1];
             //
-             //break out the id.
-                        $bagArr=explode( "|",$bag);
-                        $bag=$bagArr[0];
+            //break out the id.
+            $bagArr = explode("|", $bag);
+            $bag = $bagArr[0];
             $tempArray = $form->getElementValue('dateEvent');
             ;
             $event_date = date('Y-m-d H:i:sO', $tempArray[0]);
@@ -191,12 +205,9 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
 
             //don't put id value, uses next one in DB.
             $query = "INSERT INTO nutrition.bag_consumption (bag_id,footage,event_time,userid,direction) VALUES ($bag,$footage,'$event_date','{$GLOBALS['auth']->getUsername()}','$direction')";
-            
-            $res = $GLOBALS['pdo']->exec($query);
 
-            {
+            $res = $GLOBALS['pdo']->exec($query); {
                 print_r($res);
-              
             }
 
             $host = $_SERVER['HTTP_HOST'];
@@ -209,33 +220,41 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
     }
 
     function displayBagConsumptionLog() {
-  
-        $numberPerPage = 20;
- 
 
-        // Setup your database connection
-        $sql = "SELECT bag_id,bag_consumption.footage,bag_consumption.event_time,location,slot,current_feed,bag_consumption.userid,direction
+        $sql = <<<SQL
+SELECT bag_id,bag_consumption.footage,bag_consumption.event_time,location,slot,current_feed,bag_consumption.userid,direction
 		FROM nutrition.bag_consumption
-                LEFT JOIN nutrition.bag_with_current_feed ON bag_with_current_feed.id = bag_consumption.bag_id ORDER BY event_time DESC,bag_id";
+                LEFT JOIN nutrition.bag_with_current_feed ON bag_with_current_feed.id = bag_consumption.bag_id ORDER BY event_time DESC,bag_id
+SQL;
 
-            $dg = new DataGridLR($sql, $numberPerPage);
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''), null, array('BagConsumption', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Bag #', 'slot', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Feed', 'current_feed', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Footage', 'footage', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Direction', 'direction', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('User', 'userid', '', array('' => ''), null, null));
+        //change presentation
+        foreach ($results as &$row) {
 
-        print("<h3>Consumption of Feed in Ag Bags</h3>");
-         print($dg->render('datagrid datagridNarrow'));
-        $dg->pager();
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Bag #'] = ($row['slot']);
+            $rowOut['Feed'] = ($row['current_feed']);
+            $rowOut['Footage'] = ($row['footage']);
+            $rowOut['Direction'] = ($row['direction']);
+            $rowOut['Employee'] = ($row['userid']);
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+
+        $out[] = ('<h3>Consumption of Feed in Ag Bags</h3>');
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order:false'));
+        return implode($out);
     }
 
     public function openBagsWithValidFootages($removeFirstFootage = false, $sql = false) {
 
-        $debug=false; //turn on to see debug code.
-        
+        $debug = false; //turn on to see debug code.
 //allow default sql to be overridden.
         if ($sql != false) {
             $sqlQuery = $sql;
@@ -246,20 +265,18 @@ SELECT year,bag_feed_name_at_footage,sum(area) over (partition by year,bag_feed_
 
         /** If the Bag is being consumed in the normal forward direction */
         //grab a list of currently open bags and what there feed is
-        $res = $GLOBALS['pdo']->query($sqlQuery);
-        {
-          
+        $res = $GLOBALS['pdo']->query($sqlQuery); {
+            
         } // Always check that result is not an error
         $listOfBags[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 
-            $listOfBags[$row['id2']] = 'Bag: ' .$row['location'].' '. $row['slot'] .' | ' .$row['direction'] . ' - ' . $row['current_feed'] . ' - ' . date('M j/y', strtotime($row['event_time']));
-            
-            
+            $listOfBags[$row['id2']] = 'Bag: ' . $row['location'] . ' ' . $row['slot'] . ' | ' . $row['direction'] . ' - ' . $row['current_feed'] . ' - ' . date('M j/y', strtotime($row['event_time']));
+
+
             // has to be done this way because of hierselect.
 
             /** Find max and min consumption notes and direction */
-            
             //supports bag with both ends open
             $res2 = $GLOBALS['pdo']->query("
                 WITH tt as(
@@ -273,7 +290,7 @@ SELECT max(max_consumption_footage) as max_consumption_footage FROM tt
 ");
             $row2 = $res2->fetch(PDO::FETCH_ASSOC);
             $max_consumption_footage = $row2['max_consumption_footage'];
-            
+
             //supports bag with both ends open
             $res3 = $GLOBALS['pdo']->query(" WITH tt as(
 SELECT max(bag_consumption.footage) as min_consumption_footage,direction FROM nutrition.bag_consumption  WHERE bag_id={$row['id']} AND direction='forward'
@@ -286,43 +303,45 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
 ");
             $row3 = $res3->fetch(PDO::FETCH_ASSOC);
             $min_consumption_footage = $row3['min_consumption_footage'];
-            
+
             $res5 = $GLOBALS['pdo']->query("SELECT max(bag_feed.footage_finish) as max_feed_footage FROM nutrition.bag_feed WHERE bag_id={$row['id']}");
             $row5 = $res5->fetch(PDO::FETCH_ASSOC);
             $max_feed_footage = $row5['max_feed_footage'];
-            
+
             $res6 = $GLOBALS['pdo']->query("SELECT min(bag_feed.footage_start) as min_feed_footage FROM nutrition.bag_feed WHERE bag_id={$row['id']}");
             $row6 = $res6->fetch(PDO::FETCH_ASSOC);
             $min_feed_footage = $row6['min_feed_footage'];
 
-            
+
             //debug
-           if($debug==true){ print("<br/>Bag:{$row['id2']} slot:".$row['slot'] .' | ' .$row['location']."<br/>");
-            print("max_consumption_footage:$max_consumption_footage<br/>");
-            print("min_consumption_footage:$min_consumption_footage<br/>");
-            print("max_feed_footage:$max_feed_footage<br/>");
-           print("min_feed_footage:$min_feed_footage<br/>");}
-                      
+            if ($debug == true) {
+                print("<br/>Bag:{$row['id2']} slot:" . $row['slot'] . ' | ' . $row['location'] . "<br/>");
+                print("max_consumption_footage:$max_consumption_footage<br/>");
+                print("min_consumption_footage:$min_consumption_footage<br/>");
+                print("max_feed_footage:$max_feed_footage<br/>");
+                print("min_feed_footage:$min_feed_footage<br/>");
+            }
+
             //since bags with two directions are on the list twice (forward and reverse), we do each individually.
             $direction = $row['direction'];
 
-            if($debug==true){print("Direction:$direction<br/>");}
+            if ($debug == true) {
+                print("Direction:$direction<br/>");
+            }
 
             //do a query to see if bag has both ends open.
             $res8 = $GLOBALS['pdo']->query("SELECT DISTINCT(direction) FROM nutrition.bag_consumption WHERE bag_id={$row['id']}");
-            if ($res8->rowCount()==2) {
-                $bothEnds=true;
-            }
-            else {
-                 $bothEnds=false;
+            if ($res8->rowCount() == 2) {
+                $bothEnds = true;
+            } else {
+                $bothEnds = false;
             }
 
-            
+
             if ($direction == "") {
-              $final_footage_min = $min_feed_footage;
-              $final_footage_max = $max_feed_footage;   
-            }
-            elseif (($direction == 'forward') && ($bothEnds==false)) {
+                $final_footage_min = $min_feed_footage;
+                $final_footage_max = $max_feed_footage;
+            } elseif (($direction == 'forward') && ($bothEnds == false)) {
 
                 /** three cases:
                   Case 1. bag is not opened yet.
@@ -335,31 +354,33 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
                     $final_footage_max = $max_feed_footage;
                 }
                 //CASE 2 
-                elseif (is_numeric($max_consumption_footage) == true AND ($max_consumption_footage <= $max_feed_footage)) {                
-                     $final_footage_min = $max_consumption_footage;
+                elseif (is_numeric($max_consumption_footage) == true AND ( $max_consumption_footage <= $max_feed_footage)) {
+                    $final_footage_min = $max_consumption_footage;
                     $final_footage_max = $max_feed_footage;
-                    
+
                     //for consumption remove the first footage as it is already used.
                     if ($removeFirstFootage == true) {
                         $final_footage_min = $final_footage_min + 1;
                     }
                 }
                 //CASE 3
-                elseif (is_numeric($max_consumption_footage) == true AND ($max_consumption_footage = $max_feed_footage)) {
+                elseif (is_numeric($max_consumption_footage) == true AND ( $max_consumption_footage = $max_feed_footage)) {
                     $final_footage_min = $max_feed_footage;
                     $final_footage_max = $max_feed_footage;
                 } else {
                     throw new Exception("Error: Should never be called. For Bag consumption Direction $direction the programming logic is wrong!");
                 }
-                
-                if($debug==true){print("footMin:$final_footage_min::footMax:$final_footage_max<br>");}
-                
+
+                if ($debug == true) {
+                    print("footMin:$final_footage_min::footMax:$final_footage_max<br>");
+                }
+
                 //forward direction
                 for ($i = $final_footage_min; $i <= $final_footage_max; $i++) {
                     $listOfFootages[$row['id2']][$i] = "$i'";
                 }
             }//end forward
-             elseif (($direction == 'reverse') && ($bothEnds==false)) {
+            elseif (($direction == 'reverse') && ($bothEnds == false)) {
                 /** three cases:
                   Case 1. bag is not opened yet.
                   Case 2. bag has started to be consumed.
@@ -371,30 +392,32 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
                     $final_footage_max = $min_feed_footage;
                 }
                 //CASE 2 
-                elseif (is_numeric($min_consumption_footage) == true AND ($min_consumption_footage >= $min_feed_footage)) {
-                   
+                elseif (is_numeric($min_consumption_footage) == true AND ( $min_consumption_footage >= $min_feed_footage)) {
+
                     $final_footage_min = $max_consumption_footage;
                     $final_footage_max = $min_feed_footage;
-                                  
+
                     //for consumption remove the first footage as it is already used.
                     if ($removeFirstFootage == true) {
                         $final_footage_min = $final_footage_min - 1;
                     }
                 }
                 //CASE 3
-                elseif (is_numeric($min_consumption_footage) == true AND ($min_consumption_footage = $min_feed_footage)) {
+                elseif (is_numeric($min_consumption_footage) == true AND ( $min_consumption_footage = $min_feed_footage)) {
                     $final_footage_min = $max_feed_footage;
                     $final_footage_max = $max_feed_footage;
                 } else {
                     throw new Exception("Error: Should never be called. For Bag consumption Direction $direction the programming logic is wrong!");
                 }
-                if($debug==true){print("footMin:$final_footage_min::footMax:$final_footage_max<br>");}
+                if ($debug == true) {
+                    print("footMin:$final_footage_min::footMax:$final_footage_max<br>");
+                }
                 //reverse direction
                 for ($i = $final_footage_min; $i >= $final_footage_max; $i--) {
                     $listOfFootages[$row['id2']][$i] = "$i'";
                 }
             }//end reverse
-            elseif ($bothEnds==true) {
+            elseif ($bothEnds == true) {
                 /** three cases:
                   Case 1. bag is not opened yet.
                   Case 2. bag has started to be consumed.
@@ -406,14 +429,14 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
                     $final_footage_max = $max_feed_footage;
                 }
                 //CASE 2 
-                elseif (is_numeric($min_consumption_footage) == true AND ($min_consumption_footage >= $min_feed_footage)) {
-                  
+                elseif (is_numeric($min_consumption_footage) == true AND ( $min_consumption_footage >= $min_feed_footage)) {
+
                     //when both ends are being consumed.
-                  
+
                     $final_footage_min = $min_consumption_footage;
-                    $final_footage_max = $max_consumption_footage;                        
-                  
-                    
+                    $final_footage_max = $max_consumption_footage;
+
+
                     //for consumption remove the first footage as it is already used.
                     if ($removeFirstFootage == true) {
                         $final_footage_max = $final_footage_max - 1;
@@ -421,51 +444,40 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
                     }
                 }
                 //CASE 3
-                elseif (is_numeric($min_consumption_footage) == true AND ($min_consumption_footage = $min_feed_footage)) {
+                elseif (is_numeric($min_consumption_footage) == true AND ( $min_consumption_footage = $min_feed_footage)) {
                     $final_footage_min = $max_feed_footage;
                     $final_footage_max = $max_feed_footage;
                 } else {
                     throw new Exception("Error: Should never be called. For Bag consumption Direction $direction the programming logic is wrong!");
                 }
-                
-                if($debug==true){print("footMin:$final_footage_min::footMax:$final_footage_max<br>");}
-                
-                if ($direction=='forward') {
-                //forward direction of both ends
-                for ($i = $final_footage_min; $i <= $final_footage_max; $i++) {
-                    $listOfFootages[$row['id2']][$i] = "$i'";
+
+                if ($debug == true) {
+                    print("footMin:$final_footage_min::footMax:$final_footage_max<br>");
                 }
+
+                if ($direction == 'forward') {
+                    //forward direction of both ends
+                    for ($i = $final_footage_min; $i <= $final_footage_max; $i++) {
+                        $listOfFootages[$row['id2']][$i] = "$i'";
+                    }
+                } elseif ($direction == 'reverse') {
+                    //reverse direction of both ends
+                    for ($i = $final_footage_max; $i >= $final_footage_min; $i--) {
+                        $listOfFootages[$row['id2']][$i] = "$i'";
+                    }
+                } else {
+                    throw new Exception("Error: Should never be called. Bag Direction not forward or reverse");
                 }
-                elseif ($direction=='reverse') {
-                //reverse direction of both ends
-                for ($i = $final_footage_max; $i >= $final_footage_min; $i--) {
-                    $listOfFootages[$row['id2']][$i] = "$i'";
-                }}
-                else {
-                    throw new Exception("Error: Should never be called. Bag Direction not forward or reverse"); 
-                }
-                
-                
-                
-                
-                
             }//end  both ways
-            
-            
             else {
                 throw new Exception("Error: Should never be called. Bag Direction not forward or reverse");
             }
         }
         //print_r($listOfFootages[$row['id2']]);
-        
+
         $retArray[] = $listOfBags;
         $retArray[] = $listOfFootages;
         return $retArray;
-    }
-
-    function printFormattedTime($params) {
-        extract($params);
-        return date("M j, Y", strtotime($record['event_time']));
     }
 
     /* predict when currently open bags will run out of feed at current feeding rates. Very simplistic. */

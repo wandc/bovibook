@@ -1,8 +1,6 @@
 <?php 
 /* display data from DB on current beef prices */
 
-    require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'template/basePage.php');
     class BeefReport extends BasePage{            
              
          function defaultDisplay() {

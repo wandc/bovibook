@@ -28,11 +28,20 @@ class BodyConditionScore extends BasePage {
     }
     
     public function defaultDisplay() {
-        $this->displayBodyCondQuickForm(self::$bovineID);
-          print('<div id="twoColumnLayout">');
-        $this->displayBodyCondActionList();
-        $this->displayBodyCondCasesLog();
-          print('</div>');
+     
+           $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>
+            {$this->displayBodyCondQuickForm(self::$bovineID)}
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'> 
+            {$this->displayBodyCondActionList()}
+            {$this->displayBodyCondCasesLog()}
+        </div>
+    </div>    
+HTML;
+    
+        print($html);
     }
 
     public static function currentBCSforAnimal($bovineID) {
@@ -48,7 +57,7 @@ class BodyConditionScore extends BasePage {
 
     function displayBodyCondQuickForm($bovine_id=null) {
         //only do this for milking cows.
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
 
         $conditionScores = array();
         //condition scores at 0.1 intervals
@@ -57,7 +66,7 @@ class BodyConditionScore extends BasePage {
             $conditionScores["$num"] = $num;
         }
 
-        $timeArray = Misc::createDailyDatesForLastSevenDays();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastSevenDays();
         unset($timeArray[null]); //remove null value.
 
         $form = new HTML_QuickForm("bodyCondQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -123,7 +132,7 @@ class BodyConditionScore extends BasePage {
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     //list any cows who have not been body scored after being 60 DIM.
@@ -146,14 +155,27 @@ WHERE fresh_date IS NOT null AND (age(fresh_date) >= interval '60 days')
 SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY location_id DESC,local_number ASC
 		";
 
-        $dg1 = new DataGridLR($sql, 40);
-
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Current Location', 'location_name', '', array('' => ''), null, null));
+            $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
  
-        print("<h3>Need to be Scored</h3>");
-        print($dg1->render('datagrid datagridNarrow'));
-        $dg1->pager();
+            
+              $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+              $rowOut['Location'] = ($row['location_name']);
+             
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Need to be BC Scored</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
     }
 
     /*     * ******************************* */
@@ -162,10 +184,6 @@ SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY locat
 
     function displayBodyCondCasesLog($mode = 'default') {
 
-       
-
-        // Setup your database connection
-
         $sql = "SELECT body_condition_score_event.id as body_condition_score_event_id,body_condition_score_event.bovine_id,body_condition_score_event.event_time,body_condition_score_event.score,local_number,full_name,comment,userid,locationcurr.name  as location_name 
                 FROM bovinemanagement.body_condition_score_event		
 		LEFT JOIN bovinemanagement.bovine ON bovine.id = body_condition_score_event.bovine_id
@@ -173,24 +191,37 @@ SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY locat
 		WHERE bovine.death_date is null
 		ORDER BY body_condition_score_event.event_time DESC";
 
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-        $dg1 = new DataGridLR($sql, 40);
+        
+          $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Location'] = ($row['location_name']);
+            $rowOut['Score'] = ($row['score']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Current Location', 'location_name', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('score', 'score', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('comment', 'comment', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Event Time', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedTime()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('BodyConditionScore', 'printActionButtons()')));
+            $resultsOut[] = $rowOut;
+        }
 
-         print("<h3>Body Condition Score Log</h3>");
-        print($dg1->render('datagrid'));
-        $dg1->pager();
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Body Condition Score Log</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
     }
 
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+    
         $currentUserid = $GLOBALS ['auth']->getUsername();
 
 
@@ -198,14 +229,14 @@ SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY locat
         $row = $res->fetch(PDO::FETCH_ASSOC);
 $returnButtonsAsString='';
         if (($record ['body_condition_score_event_id'] == $row ['id'])) {
-            $returnButtonsAsString = self::deleteQuickForm($row ['id'], $row ['tablename']); // show
+            $returnButtonsAsString = self::deleteQuickForm($row ['id'], $row ['tablename'],$callBackURL); // show
             //delete button, with _____ table id as index for delete.
         }
 
         return $returnButtonsAsString;
     }
 
-    function deleteQuickForm($tableid, $tablename) {
+    function deleteQuickForm($tableid, $tablename,$callBackURL) {
 
         $form = new HTML_QuickForm("genericEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         
@@ -240,7 +271,7 @@ $returnButtonsAsString='';
                 echo "Failed: " . $e->getMessage();
             }
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
+            header($callBackURL);
             exit();
         }
         $form->accept($renderer);

@@ -29,7 +29,7 @@ class EstrusHormone extends BasePage {
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
 
@@ -40,7 +40,7 @@ class EstrusHormone extends BasePage {
             $medArray[$row[0]] = $row[1];
         }
 
-        $timeArray = Misc::createHourlyDatesForLastDay();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay();
         unset($timeArray[null]); //remove null value.
         //the action=request_uri is the key for this to work with callbacks and tabs. 
         $form = new HTML_QuickForm("hormoneQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();

@@ -111,8 +111,8 @@ class Cqm extends TabPage {
 
     function record13Quickform() {
 
-        $timeArray = Misc::createHourlyDatesForLastFourDays();
-        $timeArray = Misc::createDailyDatesForLastYearAtNoon();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForLastFourDays();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
         unset($timeArray[null]); //remove null value.
         //list of pre-canned comments
         $cannedComment = array(null => 'Please Select one...', 'Cleaned Dirty Parts.' => 'Cleaned Dirty Parts.');
@@ -320,8 +320,8 @@ SELECT * FROM misc.cqm_record13 ORDER BY event_time DESC;
 
     function record17Quickform() {
 
-        $timeArray = Misc::createHourlyDatesForLastFourDays();
-        $timeArray = Misc::createDailyDatesForLastYearAtNoon();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForLastFourDays();
+        $timeArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
         unset($timeArray[null]); //remove null value.
         //list of pre-canned comments
         $cannedComment = array(null => 'Please Select one...', 'Tank A improperly washed.' => 'Tank A improperly washed.', 'Tank B improperly washed.' => 'Tank B improperly washed.', 'Treated Milk in Tank A.' => 'Treated Milk in Tank A.', 'Treated Milk in Tank B.' => 'Treated Milk in Tank B.');

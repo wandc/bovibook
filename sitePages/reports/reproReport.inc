@@ -90,7 +90,7 @@ function plotChart($dataArray,$timeWindow,$chartTitle) {
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Preg Rate'] = 'number';
-                $x=new GoogleVisLine(null,$headerStrArr,$dataArray);
+                $x=new GoogleVisualizationLine(null,$headerStrArr,$dataArray);
                 print($x->toString());
 		
                 

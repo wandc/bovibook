@@ -16,16 +16,29 @@ class SoilSample extends TabPage {
     }
 
     protected function tab1() {
-        $this->P_Phosphorus_Calibration_Olsen(17);
-        print ("<a href=\"http://maps.google.com/maps?q=http://int.littleriver.ca/sitePages/landManagement/soilSampleMap.php\">gmaps</a>");
-        $this->soilTestQuickForm();
-        $this->displaySoilSamples('default');
+        
+        
+           $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-2 col-sm-push-10'>                
+            {$this->soilTestQuickForm()}
+        </div>
+        <div class='col-sm-10 col-sm-pull-2'> 
+            {$this->P_Phosphorus_Calibration_Olsen(17)}
+            {$this->displaySoilSamples('default')}
+        </div>
+    </div>    
+HTML;
+    
+        print($html);
+        
+       
     }
 
     protected function tab2() {
         $xxx = new PlantTissue();
         $xxx->plantTissueTestQuickForm();
-        $xxx->displayPlantTissueSamples('default');
+        print($xxx->displayPlantTissueSamples('default'));
     }
 
     protected function tab3() {
@@ -131,7 +144,7 @@ EX;
         $headerStrArr = array();
         $headerStrArr['Element'] = 'number'; //BACKWARDS
         $headerStrArr['Percent'] = 'number';
-        $x = new GoogleVisPie($opt, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationPie($opt, $headerStrArr, $one, $two);
         print($x->toString());
     }
 
@@ -400,32 +413,48 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 	WHERE field_id=$field_id
 	ORDER BY event_time DESC";
         }
+        
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Report Date'] = JQueryDataTable::formattedDate($row['report_date']);
+            $rowOut['pH'] = $this->printPh($row);
+            $rowOut['Organic %'] = ($row['organic_matter']);
+            $rowOut['Phosphorus (P)'] = ($row['phosphorus']);
+            $rowOut['Potassium (K)'] = ($row['potassium']);
+            $rowOut['Calcium'] = ($row['calcium']);
+            $rowOut['Magnesium (Mg)'] = $this->printMagnesium($row);
+            $rowOut['Boron'] = ($row['boron']);
+            $rowOut['Copper'] = ($row['copper']);
+            $rowOut['Zinc'] = $this->printZinc($row);
+            $rowOut['Sulphur'] = $this->printSulphur($row);
+            $rowOut['Manganese (Mn)'] = $this->printManganese($row);
+            $rowOut['Iron'] = ($row['iron']);
+            $rowOut['Aluminum'] = $this->printAluminum($row);
+            $rowOut['Sodium'] = ($row['sodium']);
+            $rowOut['Buffer pH'] = ($row['buffer_ph']);
+            $rowOut['Base Sat'] = $this->CECCalculation($row);
+            $rowOut['Employee'] = ($row['userid']);
 
-        $dg = new DataGridLR($sql, 120);
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'field_id', 'field_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('common name', 'common_name', 'common_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('report date', 'report_date', 'report_date', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('ph', 'ph', 'ph', array('' => ''), null, array('SoilSample', 'printPh(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('organic %', 'organic_matter', 'organic_matter', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('phosphorus (P]', 'phosphorus', 'phosphorus', array('' => ''), null, array('SoilSample', 'printPhosphorus(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('potassium (K]', 'potassium', 'potassium', array('' => ''), null, array('SoilSample', 'printPotassium(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('calcium', 'calcium', 'calcium', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('magnesium (Mg]', 'magnesium', 'magnesium', array('' => ''), null, array('SoilSample', 'printMagnesium(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('boron', 'boron', 'boron', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('copper', 'copper', 'copper', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('zinc', 'zinc', 'zinc', array('' => ''), null, array('SoilSample', 'printZinc(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('sulphur', 'sulphur', 'sulphur', array('' => ''), null, array('SoilSample', 'printSulphur(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('manganese (Mn]', 'manganese', 'manganese', array('' => ''), null, array('SoilSample', 'printManganese(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('iron', 'iron', 'iron', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('aluminum', 'aluminum', 'aluminum', array('' => ''), null, array('SoilSample', 'printAluminum(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('sodium', 'sodium', 'sodium', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('buffer_ph', 'buffer_ph', 'buffer_ph', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Base Sat', 'cec2', 'cec2', array('' => ''), null, array('SoilSample', 'CECCalculation(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', 'userid', array('' => ''), null, null));
+            $resultsOut[] = $rowOut;
+        }
 
-        print($dg->render());
-        $dg->pager();
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Soil Samples</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
     }
 
     function FertilizerRecommendationPerCrop($obj, $crop = null) {
@@ -469,7 +498,7 @@ ORDER BY alpha_numeric_id
 
         print("<h3>Note: PEI lab uses Phosphate and Potash and not P and K like NB lab use to. We now enter things as Phosphate and Potash and the software converts to P and K and uses P and K from then on.</h3>");
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); // daily dates rray, with
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); // daily dates rray, with
         // unix timestamp as index.
         // grab a list of current fields.
         $sql = "SELECT id,alpha_numeric_id,common_name FROM cropping.fieldcurr";
@@ -628,7 +657,7 @@ ORDER BY alpha_numeric_id
         } // end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     //prints lime recomendations for a field.
@@ -675,8 +704,8 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     //add level value to report.
-    function printPh($params) {
-        extract($params);
+    function printPh($record) {
+  
 
         $level = self::Ph_Ph_Calibration_NB($record['ph']);
 
@@ -684,8 +713,8 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     //add level value to report.
-    function printPhosphorus($params) {
-        extract($params);
+    function printPhosphorus($record) {
+        
 
         $level = self::P_Phosphorus_Calibration_NB($record['phosphorus']);
 
@@ -693,16 +722,16 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     //add level value to report.
-    function printPotassium($params) {
-        extract($params);
+    function printPotassium($record) {
+
 
         $level = self::K_Potassium_Calibration_NB($record['potassium']);
 
         return $record['potassium'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
 
-    function printMagnesium($params) {
-        extract($params);
+    function printMagnesium($record) {
+      
 
         $level = self::Mg_Magnesium_Calibration_NB($record['magnesium']);
         if ($record['magnesium'] != '') {
@@ -712,32 +741,32 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
         }
     }
 
-    function printZinc($params) {
-        extract($params);
+    function printZinc($record) {
+       
 
         $level = self::Zn_Zinc_Calibration_Wisc($record['zinc']);
 
         return $record['zinc'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
 
-    function printManganese($params) {
-        extract($params);
+    function printManganese($record) {
+       
 
         $level = self::Mn_Manganese_Calibration_Wisc($record['manganese']);
 
         return $record['manganese'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
 
-    function printSulphur($params) {
-        extract($params);
+    function printSulphur($record) {
+   
 
         $level = self::S_Sulphur_Calibration_Wisc($record['sulphur']);
 
         return $record['sulphur'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
 
-    function printAluminum($params) {
-        extract($params);
+    function printAluminum($record) {
+      
         $level = self::Al_Aluminum_Calibration_AL($record['aluminum']);
         return $record['aluminum'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
@@ -965,14 +994,14 @@ WHERE field_id=$field_id
     }
 
     //used in quickforms to print a lime req.
-    function printLimeRequirementsQuickform($params, $required_ph = 6.8) {
-        extract($params);
+    function printLimeRequirementsQuickform($record, $required_ph = 6.8) {
+  
         // t /ha 
         return self::printLimeRequirementsNB($record['ph'], $record['buffer_ph'], $required_ph);
     }
  
-    function CECCalculation($params) {
-        extract($params);
+    function CECCalculation($record) {
+
         return "CEC:{$record['cec']} meq/100g K:{$record['k_base_sat']} % Mg:{$record['mg_base_sat']} % Ca:{$record['ca_base_sat']} % Na:{$record['na_base_sat']} %  H:{$record['h_base_sat']} % Total:{$record['total_base_sat']} %";
     }
 
@@ -1410,7 +1439,7 @@ class PlantTissue {
     function plantTissueTestQuickForm() {
 
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); // daily dates rray, with
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); // daily dates rray, with
         // unix timestamp as index.
         // grab a list of current fields.
         $sql = "SELECT id,alpha_numeric_id,common_name FROM cropping.fieldcurr";
@@ -1580,9 +1609,9 @@ ORDER BY specific_type";
         // Setup your database connection
 
         if ($mode == 'default') {
-            print("<hr>");
-            print("<h2>Tissue Samples Log</h2>");
-            print("<h3>Note:VL and VH are out of sufficency range. VH is probably not a problem. VL probably <b>is</b> a problem.</h3>");
+           
+             $out[]=("<h3>Tissue Samples Log</h3>");
+             $out[]=("<h3>Note:VL and VH are out of sufficency range. VH is probably not a problem. VL probably <b>is</b> a problem.</h3>");
 
             $sql = "SELECT field_id,alpha_numeric_id,common_name,report_date,comment,nitrogen,phosphorus,potassium,calcium,magnesium,boron,copper,zinc,manganese,iron,sodium,sulphur,userid,plant_tissue_parameter_id, specific_type,crop_growth_phase
 FROM cropping.plant_tissue_event
@@ -1600,40 +1629,50 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
 	ORDER BY event_time DESC";
         }
 
+        
+          $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Report Date'] = JQueryDataTable::formattedDate($row['report_date']);
+            
 
-        $dg = new DataGridLR($sql, 120);
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'field_id', 'field_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric(]')));
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('common_name', 'common_name', 'common_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('report_date', 'report_date', 'report_date', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('comment', 'comment', 'comment', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('specific_type', 'specific_type', 'specific_type', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('crop_growth_phase', 'crop_growth_phase', 'crop_growth_phase', array('' => ''), null, null));
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('nitrogen', 'nitrogen', 'nitrogen', array('' => ''), null, array('PlantTissue', 'printNitrogenTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('phosphorus (P]', 'phosphorus', 'phosphorus', array('' => ''), null, array('PlantTissue', 'printPhosphorusTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('potassium (K]', 'potassium', 'potassium', array('' => ''), null, array('PlantTissue', 'printPotassiumTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('calcium', 'calcium', 'calcium', array('' => ''), null, array('PlantTissue', 'printCalciumTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('magnesium', 'magnesium', 'magnesium', array('' => ''), null, array('PlantTissue', 'printMagnesiumTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('boron', 'boron', 'boron', array('' => ''), null, array('PlantTissue', 'printBoronTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('copper', 'copper', 'copper', array('' => ''), null, array('PlantTissue', 'printCopperTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('zinc', 'zinc', 'zinc', array('' => ''), null, array('PlantTissue', 'printZincTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('manganese', 'manganese', 'manganese', array('' => ''), null, array('PlantTissue', 'printManganeseTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('iron', 'iron', 'iron', array('' => ''), null, array('PlantTissue', 'printIronTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('sodium', 'sodium', 'sodium', array('' => ''), null, array('PlantTissue', 'printSodiumTissue(]')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('sulphur', 'sulphur', 'sulphur', array('' => ''), null, null)); //FIXME: add sulphur test
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', 'userid', array('' => ''), null, null));
+            $rowOut['nitrogen'] = $this->printNitrogenTissue($row);
+            $rowOut['Phosphorus (P)'] = $this->printPhosphorusTissue($row);
+            $rowOut['Potassium (K)'] = $this->printPotassiumTissue($row);
+            $rowOut['Calcium'] = $this->printCalciumTissue($row);
+            $rowOut['Magnesium (Mg)'] = $this->printMagnesiumTissue($row);
+            $rowOut['Boron'] = $this->printBoronTissue($row);
+            $rowOut['Copper'] = $this->printCopperTissue($row);
+            $rowOut['Zinc'] = $this->printZincTissue($row);
+            $rowOut['Manganese (Mn)'] = $this->printManganeseTissue($row);
+            $rowOut['Iron'] = $this->printIronTissue($row);
+            $rowOut['Sodium'] = $this->printSodiumTissue($row);
+            $rowOut['Sulphur'] = $row['sulphur'];
+            $rowOut['Employee'] = ($row['userid']);
 
 
+            $resultsOut[] = $rowOut;
+        }
 
-        print($dg->render());
-        $dg->pager();
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
+       
     }
 
     //paramaters from: http://www.soils.wisc.edu/extension/wcmc/2007/pap/Peters.pdf
-    function printNitrogenTissue($params) {
-        extract($params);
+    function printNitrogenTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['nitrogen'];
         $type = 'nitrogen';
@@ -1643,8 +1682,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printPhosphorusTissue($params) {
-        extract($params);
+    function printPhosphorusTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['phosphorus'];
         $type = 'phosphorus';
@@ -1655,8 +1694,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printPotassiumTissue($params) {
-        extract($params);
+    function printPotassiumTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['potassium'];
         $type = 'potassium';
@@ -1666,8 +1705,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printCalciumTissue($params) {
-        extract($params);
+    function printCalciumTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['calcium'];
         $type = 'calcium';
@@ -1677,8 +1716,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printMagnesiumTissue($params) {
-        extract($params);
+    function printMagnesiumTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['magnesium'];
         $type = 'magnesium';
@@ -1688,8 +1727,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printBoronTissue($params) {
-        extract($params);
+    function printBoronTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['boron'];
         $type = 'boron';
@@ -1699,8 +1738,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printCopperTissue($params) {
-        extract($params);
+    function printCopperTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['copper'];
         $type = 'copper';
@@ -1710,8 +1749,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printZincTissue($params) {
-        extract($params);
+    function printZincTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['zinc'];
         $type = 'zinc';
@@ -1721,8 +1760,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printIronTissue($params) {
-        extract($params);
+    function printIronTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['iron'];
         $type = 'iron';
@@ -1732,8 +1771,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printManganeseTissue($params) {
-        extract($params);
+    function printManganeseTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['manganese'];
         $type = 'manganese';
@@ -1743,8 +1782,8 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
     }
 
-    function printSodiumTissue($params) {
-        extract($params);
+    function printSodiumTissue($record) {
+        
         //chnaging paramaters.
         $value = $record['sodium'];
         $type = 'sodium';

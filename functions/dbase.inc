@@ -307,10 +307,6 @@ ORDER BY preg_check_event.id DESC;");
 
     function dBaseExportBreedingChoices() {
 
-        $_SERVER['DOCUMENT_ROOT'] = '/var/www/int';
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-        include_once ($_SERVER['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
 
 
         $sql = "SELECT * FROM bovinemanagement.bovinecurr";

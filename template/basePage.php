@@ -162,7 +162,7 @@ abstract Class BasePage {
         $this->allPageJavascript();
         $this->pageHeadJavascript(); //from page class
         $this->pageHeadContent(); //from page class
-        $this->allPageHeadContent();
+        basePage::allPageHeadContent(); //must be static
         print('<title>LR - ' . self::getPageTitleStr() . '</title>' . "\n");
 
         $this->customCSS();
@@ -177,13 +177,11 @@ abstract Class BasePage {
 
 
         /** Header */
-        include_once('template/header.inc');
         $header = new Header();
         $header->headerContent();
         ///////////////////////////
 
         /** Side bar * */
-        include_once('template/sideBar.inc');
         $sideBar = new SideBar();
         $sideBar->sideBarContent();
         ?>
@@ -196,8 +194,8 @@ abstract Class BasePage {
                <!--   <small>Optional description</small> -->
                 </h1>
                 <ol class="breadcrumb">
-                    <li><a href="#"><i class="fa fa-dashboard"></i> Level</a></li>
-                    <li class="active">Here</li>
+                    <li><a href="#"><i class="fa fa-dashboard"></i> <?php print(self::getPageTitleStr()); ?></a></li>
+                    <li class="active"><?php print(self::getPageLevel()); ?></li>
                 </ol>
             </section>
 
@@ -215,14 +213,12 @@ abstract Class BasePage {
 
 
         <?php
-       include_once('template/footer.inc');
         $footer = new Footer;
         $footer->footerContent();
 
 
         /** Side bar * */
         //goes after footer
-        include_once('template/sideBarRight.inc');
         $sideBar = new SideBarRight();
         $sideBar->sideBarRightContent();
 
@@ -301,7 +297,7 @@ abstract Class BasePage {
         
     }
 
-    function allPageHeadContent() {
+    static function allPageHeadContent() {
         ?>
 
 
@@ -394,6 +390,23 @@ abstract Class BasePage {
         return $row['title'];
     }
 
+       static public function getPageLevel($pageid = null) {
+        if ($pageid != null) {
+            $pageidreal = $pageid;
+        } elseif ($_REQUEST['pageid'] != null) {
+            $pageidreal = $_REQUEST['pageid'];
+        }
+
+        $sql="SELECT title from intwebsite.page where pageid=(SELECT parent_id from intwebsite.page where pageid=$pageidreal) limit 1";
+        
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+
+        return $row['title'];
+    }
+    
+    
+    
     /*
       Override in child class.
      */

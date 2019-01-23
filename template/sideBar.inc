@@ -2,9 +2,7 @@
 
 /** Header at top of every normal secure page
  */
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //need to include here for javascript refresh.
 
-require_once($_SERVER['DOCUMENT_ROOT'] . 'template/basePage.php');
 
 class SideBar {
 
@@ -71,7 +69,7 @@ class SideBar {
 
       <!-- search form (Optional) -->
       <?php
-       require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/structure/search.inc');
+       
                 $s = new Search();
                  print($s->searchForm());
             
@@ -100,7 +98,6 @@ class SideBar {
      
         <?php
 
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/verticalMenu.inc');
     print(VerticalMenu::createMenuList());
     print("Hello2");
    ?> 

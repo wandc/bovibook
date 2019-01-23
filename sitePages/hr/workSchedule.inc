@@ -36,7 +36,7 @@ admin function to add single work schedule dates to calendar
 */
 function addSingleWorkShiftQuickform() {
 //daily dates array, with unix timestamp as index.
-  $dateArray=Misc::createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
+  $dateArray=$GLOBALS['MiscObj']->createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
   $todayNoonTimeStamp=strtotime(date('Y-m-d 12:00:00',( strtotime('now')))); //so we can set today to the default.
   
   	//grab a list ofemployees
@@ -143,7 +143,7 @@ admin function add work schedule dates to calendar
 function add63workScheduleDatesQuickform() {
 
   //daily dates array, with unix timestamp as index.
-  $dateArray=Misc::createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
+  $dateArray=$GLOBALS['MiscObj']->createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
   $todayNoonTimeStamp=strtotime(date('Y-m-d 12:00:00',( strtotime('now')))); //so we can set today to the default.
   
   	//grab a list ofemployees
@@ -265,7 +265,7 @@ admin function add 6 2 4 1 work schedule dates to calendar
 function add6241workScheduleDatesQuickform() {
 
   //daily dates array, with unix timestamp as index.
-  $dateArray=Misc::createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
+  $dateArray=$GLOBALS['MiscObj']->createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
   $todayNoonTimeStamp=strtotime(date('Y-m-d 12:00:00',( strtotime('now')))); //so we can set today to the default.
   
   	//grab a list ofemployees
@@ -381,7 +381,7 @@ admin function to add vacation dates to calendar
 function addVacationDayQuickform() {
 
   //daily dates array, with unix timestamp as index.
-  $dateArray=Misc::createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
+  $dateArray=$GLOBALS['MiscObj']->createDailyDatesForNextNineMonthsPrevSixMonthsAtNoon();
   $todayNoonTimeStamp=strtotime(date('Y-m-d 12:00:00',( strtotime('now')))); //so we can set today to the default.
   
   	//grab a list ofemployees

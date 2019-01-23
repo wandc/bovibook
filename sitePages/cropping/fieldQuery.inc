@@ -1,5 +1,4 @@
-<?php 
-
+<?php
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/croppingHelper.inc');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
@@ -9,16 +8,15 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/field.inc');
 require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCharts.inc');
 require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/queryPageHelper.inc');
 
-
 class FieldQuery extends TabPage {
 
     public $field_id;
 
     public function __construct() {
         parent::__construct();
-  if ((isset($_REQUEST['field_id']) == false) || ($_REQUEST['field_id'] == null)) {
-      $_REQUEST['field_id'] =-1;  //dummy value
-  }
+        if ((isset($_REQUEST['field_id']) == false) || ($_REQUEST['field_id'] == null)) {
+            $_REQUEST['field_id'] = -1;  //dummy value
+        }
         if (!filter_var($_REQUEST['field_id'], FILTER_VALIDATE_INT) === false) {
             $this->field_id = $_REQUEST['field_id'];
         } else {
@@ -69,7 +67,7 @@ class FieldQuery extends TabPage {
         print ('</div>');
 
         print ('<div id="fieldQueryTitleImage">');
-        print($this->displayCurrentFieldMap($this->field_id));
+        print(self::displayCurrentFieldMap($this->field_id));
         print ('</div>');
 
         print ('</div>');
@@ -118,24 +116,24 @@ class FieldQuery extends TabPage {
 
     protected function tab2() {
 
-        $ss=new SoilSample();
-        
-        $obj=$ss->getLatestSoilSample($this->field_id);
+        $ss = new SoilSample();
+
+        $obj = $ss->getLatestSoilSample($this->field_id);
         print('<hr/>');
         if ($obj != null) {
-        $ss->displaySingleSoilSampleFancy($obj);
-          print('<hr/>');
+            $ss->displaySingleSoilSampleFancy($obj);
+            print('<hr/>');
         }
-        
+
         $this->displayFieldSoilInfo($this->field_id);
-  print('<hr/>');
+        print('<hr/>');
         $this->displayFieldLimeRequirements($this->field_id);
-         print('<hr/>');
-          if ($obj != null) {
-          $ss->FertilizerRecommendationPerCrop($obj,'soybeans');
-         }
+        print('<hr/>');
+        if ($obj != null) {
+            $ss->FertilizerRecommendationPerCrop($obj, 'soybeans');
+        }
         $this->soybeanNutrientRequirements($this->field_id);
-          print('<hr/>');
+        print('<hr/>');
         $this->displaySoilEventsSummary();
     }
 
@@ -157,7 +155,7 @@ class FieldQuery extends TabPage {
         $x->addNewLimeEventQuickform('default', $this->field_id);
         print('<hr/>');
         require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/manure.inc');
-        $manure=new Manure();
+        $manure = new Manure();
         $manure->addNewManureLoadsEventQuickform('default', $this->field_id);
         print('<hr/>');
         $x->addNewFertilizerEventQuickform('default', $this->field_id);
@@ -219,11 +217,11 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
 
         $str = $str . ("<h6>Nearby Fields:</h6>");
         $res = $GLOBALS['pdo']->query($sql);
-          $str = $str .'<ul>';
+        $str = $str . '<ul>';
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $str = $str . ("<li><small><a href='/index.php?pageid=107&field_id={$row['id']}'>{$row['alpha_numeric_id']} - {$row['common_name']} </a></small></li>");
         }
-      $str = $str .'</ul>';
+        $str = $str . '</ul>';
         return $str;
     }
 
@@ -275,7 +273,6 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
         }
     }
 
-    
     //////////////////////////////////////////////////////
 
     /**
@@ -343,7 +340,7 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
         }
     }
 
-    public function displayCurrentFieldMap($field_id,$zoom=16) {
+    public static function displayCurrentFieldMap($field_id, $zoom = 16) {
         //lookup the current border of the field.
         $sql = "
  	SELECT gis.ST_AsText(gis.ST_Boundary(border_geom)) as linestring FROM cropping.fieldcurr WHERE id=$field_id LIMIT 1
@@ -352,7 +349,7 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
 
         if ($res->rowCount() > 0) {
             $row = $res->fetch(PDO::FETCH_ASSOC);
-            return self::fieldMap($row['linestring'],'0xff0000ff','0xFF33CC33',$zoom);
+            return self::fieldMap($row['linestring'], '0xff0000ff', '0xFF33CC33', $zoom);
         } else {
             throw new Exception("Field does not have a default border defined.");
         }
@@ -361,11 +358,11 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
     /**
      * shows a map of any polygon requested.
      */
-    private function fieldMap($linestring, $borderColour = '0xff0000ff',  $fillColour = '0xFF33CC33', $zoom=17) {
+    private static function fieldMap($linestring, $borderColour = '0xff0000ff', $fillColour = '0xFF33CC33', $zoom = 17) {
 
         //convert to format for google maps
-        $latlon = GoogleChartsHelper::postgresLineStringToLatLongArray($linestring);
-        $str = GoogleChartsHelper::latLongArrayToGoogleMapsEncodedPolyline($latlon);
+        $latlon = (new GoogleChartsHelper)->postgresLineStringToLatLongArray($linestring);
+        $str = (new GoogleChartsHelper)->latLongArrayToGoogleMapsEncodedPolyline($latlon);
 
         return ("<img id='fieldHeaderMap' src='https://maps.googleapis.com/maps/api/staticmap?key={$GLOBALS['config']['GOOGLE_MAPS']['API_KEY']}&path=color:$borderColour%7Cfillcolor:$fillColour%7cweight:2%7C$str&size=520x300&sensor=false&maptype=hybrid&zoom=$zoom'/>");
     }
@@ -400,7 +397,7 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
             $time = strtotime($row['event_time']);
             $ftime = date('M j, Y', $time);
 
-            $str = $str . "<b>{$row['event_name']}</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b>  {$row['id']}<br/>";
+            $str = $str . "<b>{$row['event_name']}</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b>  {$row['id']}<br/>";
         }
         return $str;
     }
@@ -418,7 +415,7 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
      * 
      */
     function displayFieldSoilInfo($field_id) {
-        SoilSample::displaySoilSamples('field_id', $field_id);
+        print((new SoilSample)->displaySoilSamples('field_id', $field_id));
     }
 
     /**
@@ -487,11 +484,11 @@ WHERE Id !=$field_id ORDER BY min_distance LIMIT 4";
         // seed_event_scheduled.event_time >= (select extract (year from current_date) || '-01-01')::timestamp AND
 
         $res = $GLOBALS['pdo']->query($sql);
-        $partial='';
+        $partial = '';
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<a class='tooltip' href='#'>Seeding Scheduled<span class='custom info'><img src='/images/tooltip/info.png' alt='Error' height='48' width='48' /><em>Info</em>Seed Event Id: {$row['seed_event_scheduled_id']}." /* .$this->fieldMap( $row['polygon']) */ . "</span></a>" . ": " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
+            $str = "<a class='tooltip' href='#'>Seeding Scheduled<span class='custom info'><img src='/images/tooltip/info.png' alt='Error' height='48' width='48' /><em>Info</em>Seed Event Id: {$row['seed_event_scheduled_id']}." /* .$this->fieldMap( $row['polygon']) */ . "</span></a>" . ": " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -512,7 +509,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['ensile_date']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Bag Yield</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> Bag #{$row['bag_id']} {$row['feed_type_name']}: {$row['footage_yield']} (feet) {$row['dm_t_yield']} (DM tonnes overall)<br/>";
+            $str = "<b>Bag Yield</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> Bag #{$row['bag_id']} {$row['feed_type_name']}: {$row['footage_yield']} (feet) {$row['dm_t_yield']} (DM tonnes overall)<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -526,7 +523,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Sprayed</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']} (l/ha) by  {$row['sprayer_userid']}<br/>";
+            $str = "<b>Sprayed</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']} (l/ha) by  {$row['sprayer_userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -540,7 +537,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Yield</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']}, {$row['comment']}<br/>";
+            $str = "<b>Yield</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']}, {$row['comment']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -559,7 +556,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
             $partial = $this->checkDatumIsCurrentBorder($this->field_id, $row['datum_id']);
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Seed Event:</b> " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']} @ {$row['combined_amount']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
+            $str = "<b>Seed Event:</b> " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']} @ {$row['combined_amount']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -578,7 +575,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
             $partial = $this->checkDatumIsCurrentBorder($this->field_id, $row['datum_id']);
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Seed Event Scheduled:</b> " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']} @ {$row['combined_amount']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
+            $str = "<b>Seed Event Scheduled:</b> " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $partial {$row['general_type']} {$row['specific_type']} - {$row['company']} {$row['name']} @ {$row['combined_amount']}  by  {$row['userid']} comment: {$row['comment']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -593,7 +590,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
             $fert = $row['fertilizer_display'];
-            $str = "<b>Fertilized</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $fert @ ". round($row['amount']) ." kg/ha , {$row['comment']} by  {$row['userid']}<br/>";
+            $str = "<b>Fertilized</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> $fert @ " . round($row['amount']) . " kg/ha , {$row['comment']} by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -607,7 +604,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Harvest</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']}  by  {$row['userid']}<br/>";
+            $str = "<b>Harvest</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['amount']}  by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -621,7 +618,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Lime</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['lime_amount']} t/ha  by  {$row['userid']}<br/>";
+            $str = "<b>Lime</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} @ {$row['lime_amount']} t/ha  by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -635,7 +632,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Manure</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> @ {$row['manure_amount']} l/ha by  {$row['spreader_userid']} {$row['comment']}<br/>";
+            $str = "<b>Manure</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> @ {$row['manure_amount']} l/ha by  {$row['spreader_userid']} {$row['comment']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -649,7 +646,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Soil Test</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> pH:{$row['ph']} / CEC:{$row['cec']}  by  {$row['userid']}<br/>";
+            $str = "<b>Soil Test</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> pH:{$row['ph']} / CEC:{$row['cec']}  by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -663,7 +660,7 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Tillage</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} : {$row['comment']}  by  {$row['userid']}<br/>";
+            $str = "<b>Tillage</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['name']} : {$row['comment']}  by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -677,15 +674,15 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>General Comment</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['comment']}  by  {$row['userid']}<br/>";
+            $str = "<b>General Comment</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row['comment']}  by  {$row['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
     }
 
     function processForageAnalysisEvents($outArray) {
-     
-                   $sql = <<<SQL
+
+        $sql = <<<SQL
                            with temp as (
                 SELECT nutrition.bag_feed_name_at_footage(bag_id,footage),bag_id,footage,sample_number,raw_report->'DM' as "DM",raw_report->'pH' as "pH",raw_report->'CP' as "CP",raw_report->'SP' as "SP",raw_report->'ADFCP' as "ADFCP",
                     raw_report->'NDFCP' as "NDFCP",raw_report->'ADF' as "ADF",raw_report->'NDF' as "NDF",raw_report->'lignin' as "lignin",raw_report->'NFC' as "NFC",raw_report->'starch' as "starch",raw_report->'CF' as "CF",raw_report->'TDN' as "TDN",
@@ -694,25 +691,27 @@ SELECT *,round(((footage_yield/field_ha)*pi()*(diameter_foot/2)*(diameter_foot/2
                             )
                            SELECT *, nutrition.bag_ensile_date_at_footage (temp.bag_id, footage) as ensile_date FROM TEMP WHERE field_id={$this->field_id};
 SQL;
-   
+
 
         $res = $GLOBALS['pdo']->query($sql);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $pdfUrl = "http://{$_SERVER['HTTP_HOST']}/functions/displayForageAnalysisPdf.php?sample_number={$row['sample_number']}";
             $time = strtotime($row ['ensile_date']);
             $ftime = date('M j, Y', $time);
-            $rfq=''; 
-            $starch='';
+            $rfq = '';
+            $starch = '';
             if (!empty($row['RFQ'])) {
-                $rfq='RFQ: '.$row['RFQ'];
+                $rfq = 'RFQ: ' . $row['RFQ'];
             }
             if (!empty($row['starch'])) {
-                $starch='Starch: '.$row['starch'];
+                $starch = 'Starch: ' . $row['starch'];
             }
-            $str = "<b>Forage Analysis</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> CP {$row['CP']} $rfq  $starch  {$row['comment']}  <a href='$pdfUrl'>test<a><br/>";
+            $str = "<b>Forage Analysis</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> CP {$row['CP']} $rfq  $starch  {$row['comment']}  <a href='$pdfUrl'>test<a><br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
     }
 
-}//end class 
+}
+
+//end class 

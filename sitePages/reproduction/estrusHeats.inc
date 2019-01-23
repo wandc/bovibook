@@ -7,27 +7,22 @@
 class EstrusHeats extends BasePage {
 
     public function defaultDisplay() {
-        print('<div>');
-  
-        print('</div>');
-
-        print("<div class='row'>");
-
-        print("<div class='col-sm-4 col-sm-push-8'>");
-       
-        $a=new QF2_EstrusHeats((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_heatsEntry','Record Heat Event'));       
         
-        $this->displayEstrusDetectorHighProbabilityHeats();
-
-        print("</div>");
-        print("<div class='col-sm-8 col-sm-pull-4'>");
-        $this->displayLast100DaysEstrusEvents();
-        print("</div>");
-
-
-
-        print("</div>");
+    $a=new QF2_EstrusHeats((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        
+    $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>
+            {$a->renderBox('qf2_heatsEntry','Record Heat Event')}
+            {$this->displayEstrusDetectorHighProbabilityHeats()}
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'> 
+            {$this->displayLast100DaysEstrusEvents()}
+        </div>
+    </div>    
+HTML;
+    
+        print($html);
     }
 
     /**
@@ -253,8 +248,9 @@ class EstrusHeats extends BasePage {
         }
            
 EX;
-        print("<h3>Estrus Detector Last 2 Days</h3>");
-        print($dt->start(140, 'highProbabilityHeats', null, $columnsStr));
+        $str.=("<h3>Estrus Detector Last 2 Days</h3>");
+        $str.=($dt->start(140, 'highProbabilityHeats', null, $columnsStr));
+        return  $str;
     }
 
     function displayLast100DaysEstrusEvents() {
@@ -297,7 +293,7 @@ EX;
                 title: "Action"
             }
 EX;
-        print($dt->start(28, 'AllHeats7Days', null, $columnsStr));
+        return($dt->start(28, 'AllHeats7Days', null, $columnsStr));
 
        
     }
@@ -314,9 +310,9 @@ Class QF2_EstrusHeats extends Quickform2Helper {
 
       
 
-        $dateArray = Misc::createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         //grab a list of heat events.
         $res = $GLOBALS['pdo']->query("SELECT id,name from bovinemanagement.estrus_type WHERE display_order > 0 ORDER BY display_order");
 

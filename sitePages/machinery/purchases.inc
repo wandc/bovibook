@@ -1,10 +1,4 @@
 <?php 
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
-
 class Purchases extends TabPage {
 
     public function defaultDisplay() {
@@ -15,15 +9,26 @@ class Purchases extends TabPage {
     }
 
     function tab1() {
-        $this->purchaseRequestQuickform();
-        $this->displayListOfPurchases();
+          $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>
+            {$this->purchaseRequestQuickform()}
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'> 
+            {$this->displayListOfPurchases()}
+        </div>
+    </div>    
+HTML;
+     
+         print($html);
+        
     }
 
     function tab2() {
-        $this->displayListOfPurchasesLog();
+        print($this->displayListOfPurchasesLog());
     }
 
-    public function purchaseCompletedRejected($purchases_id) {
+    public function purchaseCompletedRejected($purchases_id,$callBackURL) {
         $form = new HTML_QuickForm("purchaseCompletedRejectedQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         //$form->addElement('header', 'hdrQuickform','Purchase Completed or Rejected');
@@ -61,17 +66,17 @@ class Purchases extends TabPage {
             $res = $GLOBALS['pdo']->exec($query);
 
             //$_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header($callBackURL);
             exit();
         } //end validation
 
         return $form->toHtml(); //pass on as html string to display later in the table
     }
 
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+       
 
-        $returnButtonsAsString = self::purchaseCompletedRejected($record['id']); //show form
+        $returnButtonsAsString = self::purchaseCompletedRejected($record['id'],$callBackURL); //show form
         //print button
         //$returnButtonsAsString=$returnButtonsAsString;
 
@@ -93,7 +98,7 @@ class Purchases extends TabPage {
         //grab a list of cows with open medical cases.
         //$aniNumber=$this->grabListCowsWithOpenMedicalCase();       
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray[null]); //remove null value.
         //create array of celcius temps.
         $temperatureArray = array(null => 'Please Select One');
@@ -161,7 +166,7 @@ class Purchases extends TabPage {
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     //check at least one supplier was filled in.
@@ -183,57 +188,83 @@ class Purchases extends TabPage {
     }
 
     public function displayListOfPurchases($mode = 'default') {
+        
+         $sql = <<<SQL
+SELECT * FROM misc.purchases WHERE purchasing_userid is null ORDER BY requesting_event_time DESC
+SQL;
 
-        $numberPerPage = 40;
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+       
+            $rowOut['Requesting Time'] = JQueryDataTable::formattedDate($row['requesting_event_time']);
+            $rowOut['Quantity'] = ($row['quantity']);
+            $rowOut['Description'] = ($row['description']);
+            $rowOut['Requesting User'] = ($row['supplier']);
+            $rowOut['Requesting User'] = ($row['requesting_userid']);
+            $rowOut['Action'] = $this->printActionButtons2($row,"Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+             if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+            $rowOut['Completed?'] = $this->printActionButtons($row,"Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+             }
+           
 
-
-
-        $sql = "SELECT * FROM misc.purchases WHERE purchasing_userid is null ORDER BY requesting_event_time DESC";
-
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Time', null, '', array('' => ''), null, array('Purchases', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Quantity', 'quantity', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Description', 'description', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Supplier', 'supplier', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Requesting User', 'requesting_userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Purchases', 'printActionButtons2()')));
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Completed?', null, '', array('' => ''), null, array('Purchases', 'printActionButtons()')));
+            $resultsOut[] = $rowOut;
         }
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Purchase</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+        
     }
 
     public function displayListOfPurchasesLog($mode = 'default') {
 
-        $numberPerPage = 40;
+          $sql = <<<SQL
+SELECT * FROM misc.purchases WHERE purchasing_userid != 'null' ORDER BY requesting_event_time DESC
+SQL;
+
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+       
+            $rowOut['Requesting Time'] = JQueryDataTable::formattedDate($row['requesting_event_time']);
+            $rowOut['Quantity'] = ($row['quantity']);
+            $rowOut['Description'] = ($row['description']);
+            $rowOut['Requesting User'] = ($row['supplier']);
+            $rowOut['Requesting User'] = ($row['requesting_userid']);
+            $rowOut['Purchasing Time'] = JQueryDataTable::formattedDate($row['purchasing_event_time']);
+            $rowOut['Purchasing Comment'] = ($row['purchasing_comment']);
+            $rowOut['Purchasing User'] = ($row['purchasing_userid']);
+            $rowOut['ID'] = ($row['id']);
+            $rowOut['Purchased?'] = ($row['purchased']);
 
 
-        $sql = "SELECT * FROM misc.purchases WHERE purchasing_userid != 'null' ORDER BY requesting_event_time DESC";
-        $dg = new DataGridLR($sql, $numberPerPage);
-
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Requesting Time', 'requesting_event_time', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Quantity', 'quantity', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Description', 'description', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Supplier', 'supplier', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Requesting User', 'requesting_userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Purchasing Time', 'purchasing_event_time', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Purchasing Comment', 'purchasing_comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Purchasing User', 'purchasing_userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('ID', 'id', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Purchased?', 'purchased', '', array('' => ''), null, null));
-
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Purchase Log</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+         
+ 
     }
 
-    function printActionButtons2($params) {
-        extract($params);
+    function printActionButtons2($record,$callBackURL) {
+
         $currentUserid = $GLOBALS['auth']->getUsername();
 
         //find the last entry for the current user and use that as a basais to display the delete button or not.
@@ -243,13 +274,13 @@ class Purchases extends TabPage {
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $deleteButtonAsString = null;
         if ($record['id'] == $row['id']) {
-            $deleteButtonAsString = self::deleteQuickForm($record['id']); //show delete button, with estrus table id as index for delete.
+            $deleteButtonAsString = self::deleteQuickForm($record['id'],$callBackURL); //show delete button, with estrus table id as index for delete.
         }
 
         return $deleteButtonAsString;
     }
 
-    function deleteQuickForm($purchasesID) {
+    function deleteQuickForm($purchasesID,$callBackURL) {
 
         $form = new HTML_QuickForm("purchasesDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
@@ -269,16 +300,13 @@ class Purchases extends TabPage {
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table
     }
 
-    function printFormattedTime($params) {
-        extract($params);
-        return date("l M d", strtotime($record['requesting_event_time']));
-    }
+   
 
 }
 

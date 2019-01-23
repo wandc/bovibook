@@ -249,7 +249,7 @@ class AlproIsoLink {
     }
 
 //from http://php.net/manual/en/function.array-values.php
-    function array_flatten_sep($sep, $array) {
+    static function array_flatten_sep($sep, $array) {
         $result = array();
         $stack = array();
         array_push($stack, array("", $array));

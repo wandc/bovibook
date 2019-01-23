@@ -28,10 +28,7 @@ class ErrorNotifyCron {
     public function main() {
 	print("Starting Error Processing..."."\n\r");
         require_once($this->basePath.'template/basePage.php');
-        
-        //fix a google bug, for temp file creation. This is a poor place for this, but can't think of a better one. 
-        chown('/tmp/Google_Client/', 'www-data'); //make sure permisison is correct on tmp dir
-        
+    
         //load the class search path
         $this->setClassPath();
 
@@ -51,7 +48,7 @@ class ErrorNotifyCron {
             $class_name = str_replace('.inc', '', $value);
              
             //try and make the class inqiue somehow.
-            $n=Misc::uuid_create();
+            $n=$GLOBALS['MiscObj']->uuid_create();
  
             require_once(lcfirst($class_name) . '.inc');
                    
@@ -62,7 +59,7 @@ class ErrorNotifyCron {
             $retArray = $x->error(); //execute error function within the pages class.
 
 
-            if (count($retArray) > 0) {
+            if (!empty($retArray)) {
 
               //do some simple checks to see if it is a valid notifyObj.
                 if (is_array($retArray) == true) {

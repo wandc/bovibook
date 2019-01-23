@@ -71,16 +71,25 @@ class MovementSortGate extends TabPage {
     }
 
     function tab2() {
-        print('<div id="twoColumnLayout">');
+     
         $this->displayCurrentlySetToBeSorted();
-        print('</div>');
+     
     }
 
     function tab3() {
-        print('<div id="twoColumnLayout">');
-        $this->displayAlrpoInstantaneousLog(1);
-        $this->displayAlrpoInstantaneousLog(2);
-        print('</div>');
+      $html = <<<HTML
+                 <div class='row'>
+                    <div class='col-sm-6'>
+                    {$this->displayAlproInstantaneousLog(1)}
+                    </div>
+                    <div class='col-sm-6'>
+                    {$this->displayAlproInstantaneousLog(2)}
+                    </div>             
+                </div>
+HTML;
+      
+ print($html);
+      
     }
 
     /* */
@@ -223,20 +232,23 @@ LEFT JOIN bovinemanagement.locationcurr ON bovine.id=locationcurr.bovine_id
         $tArray = $this->sortHelper->getCowSortInfo(0);
         $fArray = array();
         //sort array out so only ones who are going to be sorted will be displayed.
+        $count=0;
         foreach ($tArray as $key => $value) {
             if (!empty($value[2])) {
             if ($value[2] == 1) {
-                $fArray[$key] = $value;
+                $fArray[$count]['Cow #'] = $value[0];
+                $fArray[$count]['Sort Next Time?'] = $value[1];
+                $fArray[$count]['Sort to Area'] = $value[2];
+                $count++;
             }}
         }
 
-        print("<h2>Cows currently set to be sorted the next time through (according to Alpro).</h2>");
-        $dg = new DataGridLRArray($fArray, 1000);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Cow #', '0', '0', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sort Next Time?', '2', '2', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sort to Area', '1', '1', array('' => ''), null, null));
-        print($dg->render('datagridNarrow'));
-        $dg->pager();
+        $dataArr=$fArray;
+     
+        
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         print implode($out); 
+      
     }
 
    
@@ -402,16 +414,43 @@ WHERE actual_sort_time is null AND estimated_sort_time < current_date";
         echo $renderer->toHtml();
     }
 
-    function displayAlrpoInstantaneousLog($which = 1) {
+    
+    //used by displayAlproInstantaneousLog to have code re-use.
+   private function processLogSQLToArray($sql) {
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+          $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
+          $rowOut['Sorted Time']=JQueryDataTable::formattedDate($row['event_time']);        
+          $rowOut['Sorted Location']=  $row['sorted_location_name'];
+          $rowOut['Comment']=  $this->printGroupDifferent($row);
+         
+          $resultsOut[]=$rowOut;  
+        }
+            
+        //output
+        $dataArr = $resultsOut;
+        
+        return $dataArr;
+    }
+    
+    function displayAlproInstantaneousLog($which = 1) {
 
         if ($which == 1) {
+             $out[]=("<h3> Last Time Read at Sort Gate</h3>");
             $sql = "SELECT *,one.name as home_location_name,two.name as sorted_location_name 
 		       FROM alpro.sort_gate_log_curr
 		       LEFT JOIN bovinemanagement.bovine ON sort_gate_log_curr.bovine_id=bovine.id
 		       LEFT JOIN bovinemanagement.location as one ON one.id=sort_gate_log_curr.home_location_id
 		       LEFT JOIN bovinemanagement.location as two ON two.id=sort_gate_log_curr.sorted_location_id 
 		       ORDER BY local_number";
-        } else {
+            $dataArr=$this->processLogSQLToArray($sql);
+            $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+        } elseif ($which == 2) {
+                $out[]=("<h3>Current Sorts by Time</h3>");
             $sql = "SELECT *,one.name as home_location_name,two.name as sorted_location_name 
 		       FROM alpro.sort_gate_log_curr
 		       LEFT JOIN bovinemanagement.bovine ON sort_gate_log_curr.bovine_id=bovine.id
@@ -419,33 +458,18 @@ WHERE actual_sort_time is null AND estimated_sort_time < current_date";
 		       LEFT JOIN bovinemanagement.location as two ON two.id=sort_gate_log_curr.sorted_location_id 
                        WHERE event_time IS NOT NULL
 		       ORDER BY event_time DESC";
+            $dataArr=$this->processLogSQLToArray($sql);
+             $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+        }else {
+            throw new Excption("Error: pick a sql statement.");
         }
 
-        $dg = new DataGridLR($sql, 500);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sorted Time', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedTimeGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sorted Location', 'sorted_location_name', 'sorted_location_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'Comment', 'Comment', array('' => ''), null, array('MovementSortGate', 'printGroupDifferent()')));
-
-
-
-        if ($dg->datagrid->getRecordCount() > 0) {
-            if ($which == 1) {
-                print("<h3> Last Time Read at Sort Gate</h3>");
-            } else {
-                print("<span style='page-break-after: always;'></span>");
-                print("<h3>Current Sorts by Time</h3>");
-            }
-            // Output table and paging links
-            print($dg->render('datagridNarrow'));
-            $dg->pager();
-        } else {
-            print("<h3>No Current Sorts.</h3>");
-        }
+      
+         return implode($out); 
     }
 
-    function printGroupDifferent($params) {
-        extract($params);
+    function printGroupDifferent($record) {
+    
 
         //when the home location is High/Heif/Low/Sick and they haven't read in a while, that is an error.         
         if ($record['home_location_id'] == 39 || $record['home_location_id'] == 40 || $record['home_location_id'] == 41 || $record['home_location_id'] == 42) {
@@ -525,8 +549,8 @@ Class QF2_SortGate extends Quickform2Helper {
 
     function definition($form) {
        
-        $aniNumber = Misc::createListOfAllAliveCows();        
-        $dateArray = Misc::createDailyDatesForNext12DaysAtMidnightAndNoon(); //AM and PM for 12 days.
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();        
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForNext12DaysAtMidnightAndNoon(); //AM and PM for 12 days.
         
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
         

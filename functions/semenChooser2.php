@@ -1,5 +1,5 @@
 <?php 
-require_once('../../functions/misc.inc');
+
 
 //get reg variable and brek it up into component parts.
 $reg=$_REQUEST['reg'];

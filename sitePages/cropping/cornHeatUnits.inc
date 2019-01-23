@@ -753,7 +753,7 @@ https://chart.googleapis.com/chart
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisLine($opt, $headerStrArr, $milkSoldArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $milkSoldArray);
         print($x->toString());
     }
 

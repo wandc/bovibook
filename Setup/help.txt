@@ -31,5 +31,9 @@ move sertificate out of privcate dir becasue of permissions issue. need to fix t
 sudo cp /etc/ssl/private/apache-selfsigned.key /etc/ssl/apache-selfsigned.key
 
 
-login needs default search path to wcauthentication for c3po , would be better
+login needs default search path to wcauthentication for c3po , would be better because of how Oauth2 was written.
 ALTER USER user SET search_path TO accountschema;
+
+need to change garbage collection time, so we don't need to login all the time, set to 2 weeks.
+sudo nano /etc/php/7.0/apache2/php.ini
+change to: session.gc_maxlifetime = 604800

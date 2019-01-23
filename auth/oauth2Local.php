@@ -338,7 +338,7 @@ JS;
 
         //basePage::doctype();
         print('<head>' . '<!-- Login Page-->' . "\n");
-        basePage::allPageHeadContent();
+        basePage::allPageHeadContent(); //
         print('<title>Login Page</title>' . "\n");
         basePage::pageCSS();
         print('</head>' . "\n");
@@ -427,12 +427,8 @@ HTML;
     /* choose which type of logout button to show based on ip address. Private computers would only want to logout of INT site and not google too. */
 
     public static function logoutButton() {
-        //home mac, work mac, fred pc 
-        if (($_SERVER['REMOTE_ADDR'] == '192.168.8.51') || ($_SERVER['REMOTE_ADDR'] == '192.168.8.28') || ($_SERVER['REMOTE_ADDR'] == '192.168.8.24')) {
-            return self::logoutJustIntButton();
-        } else {
-            return self::logoutGoogleIntButton();
-        }
+        //all computers will just log out of the boviebook, not google too. 
+           return self::logoutJustIntButton();
     }
 
     /* this logs out of just little river int site. Used for PC's that are secure and single user */
@@ -449,7 +445,7 @@ HTML;
     }
 
     /* logs out of google then Int site */
-
+  /* NOT USED AS OF 2019 */
     public static function logoutGoogleIntButton() {
         $str = '';
         /**

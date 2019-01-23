@@ -145,14 +145,14 @@ EX;
         /* eartag Event Form */
         /*         * ******************************* */
 
-        $dateArray = Misc::createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
         //grab a list of cows.
         $res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number from bovinemanagement.bovine WHERE death_date IS NULL ORDER BY local_number");
 
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
             //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
         //sides
@@ -529,7 +529,7 @@ Class QF2_EarTagRangeEntry extends Quickform2Helper {
 
     function definition($form) {
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); //last year.
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //last year.
  
         // create array significant digits
         $sigArr = array(null => 'Please Select One');

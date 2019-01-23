@@ -68,7 +68,7 @@ class AgBagAdmin extends TabPage {
         $listOfBags = $this->listOfBags();
 
         //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
 
 
 
@@ -135,7 +135,7 @@ class AgBagAdmin extends TabPage {
         $listOfBags = $this->listOfBags();
 
         //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
 
 
 
@@ -321,7 +321,7 @@ SELECT id || '|' || direction as meta_id,* FROM temp WHERE bag_min_footage	!= ba
 
 
         //daily dates array, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
 
 
 
@@ -395,7 +395,7 @@ SELECT id || '|' || direction as meta_id,* FROM temp WHERE bag_min_footage	!= ba
     function addBagConsumptionQuickform() {
 
         //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
 
 
         //grab a list of bags.
@@ -571,7 +571,7 @@ SQL;
 
     function addBagQuickform() {
 
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon(); //dates
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //dates
         $slotNumber = array(null => 'Please Select one...', 'N1' => 'N1', 'N2' => 'N2', 'N3' => 'N3', 'N4' => 'N4', 'N5' => 'N5', 'N6' => 'N6', 'N7' => 'N7', 'N8' => 'N8', 'S1' => 'S1 (half concrete)', 'S2' => 'S2', 'S3' => 'S3', 'S4' => 'S4', 'S5' => 'S5', 'S6' => 'S6 (pavement)', 'S7' => 'S7 (cement)', 'S8' => 'S8');
 
         $form = new HTML_QuickForm("addBagQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -639,23 +639,32 @@ SQL;
     }
 
     function displayBagsByLocation($mode = 'default') {
+  $sql = <<<SQL
+SELECT location,slot,event_time,id as bag_id,comment,userid FROM nutrition.bag ORDER BY event_time DESC,location,slot ASC
+SQL;
 
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $numberPerPage = 12;
+        //change presentation
+        foreach ($results as &$row) {
 
-
-
-        // Setup your database connection
-        $sql = "SELECT location,slot,event_time,id as bag_id,comment,userid FROM nutrition.bag ORDER BY event_time DESC,location,slot ASC";
-
-
-        $dg = new DataGridLR($sql, $numberPerPage);
-
-        print("<h3>Current Ag Bags</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Location'] = ($row['location']);
+            $rowOut['Slot #'] = ($row['slot']);
+            $rowOut['Bag ID'] = ($row['bag_id']);
+           
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+
+        $out[] = ('<h3>Current Ag Bags</h3>');
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order:false'));
+        return implode($out);
+        
     }
 
 }
@@ -683,7 +692,7 @@ class AccordionImplementationSilageBagQF extends AccordionSub {
         $a = new AgBagAdmin();
         print('PAGE:' . $a->pageid . '<br>');
         $a->addBagQuickform();
-        $a->displayBagsByLocation();
+        print($a->displayBagsByLocation());
     }
 
     function tab2() {

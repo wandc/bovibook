@@ -1,10 +1,5 @@
 <?php
 
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
-;
-
 /** reports for Fred that are like his old dBase reports */
 class DBaseReports extends TabPage {
 
@@ -48,7 +43,7 @@ ORDER BY fresh_date ASC;
             //$row['note'] = $this->reasonsNotToBreed($row['bovine_id'],$row['event_time'],$row['birth_date']);
             //$row['action'] = $this->printActionButtons2($row['estrus_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             $row['fresh_date'] = date("Y-m-d", strtotime($row['fresh_date']));  //has to be at end.
-            $retArr = BovineQueryBreedingChoice::nextBreedingAction($row['bovine_id'], false);
+            $retArr = (new BovineQueryBreedingChoice)->nextBreedingAction($row['bovine_id'], false);
             $row['breed_to'] = $retArr['nextActionTxt'];
         }
 
@@ -115,7 +110,7 @@ ORDER BY fresh_date ASC;
             //$row['note'] = $this->reasonsNotToBreed($row['bovine_id'],$row['event_time'],$row['birth_date']);
             //$row['action'] = $this->printActionButtons2($row['estrus_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             $row['fresh_date'] = date("Y-m-d", strtotime($row['fresh_date']));  //has to be at end.
-            $retArr = bovineQueryBreedingChoice::nextBreedingAction($row['bovine_id'], false);
+            $retArr = (new BovineQueryBreedingChoice)->nextBreedingAction($row['bovine_id'], false);
             $row['breed_to'] = $retArr['nextActionTxt'];
         }
 

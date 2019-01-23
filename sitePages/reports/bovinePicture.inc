@@ -1,10 +1,5 @@
 <?php 
 
-
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/debug.php');
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/dataGridHelper.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
 /** records an actual cull from the herd and why */
 
 
@@ -55,7 +50,7 @@ function displayListOfBovinePictures($group_id) {
    
    print("<div id='bovinePic'>");
    print("<b>{$row['local_number']}</b><br/>");
-   print("<a href=\"".Misc::hrefToBovinePage($row['bovine_id'])."\"><img width=\"160px\" height=\"120px\" src='/functions/displayBovinePic.php?bovine_id={$row['bovine_id']}'/></a>");
+   print("<a href=\"".$GLOBALS['MiscObj']->hrefToBovinePage($row['bovine_id'])."\"><img width=\"160px\" height=\"120px\" src='/functions/displayBovinePic.php?bovine_id={$row['bovine_id']}'/></a>");
    print('</div>');
    print('<br/>');
    }

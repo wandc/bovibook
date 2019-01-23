@@ -5,9 +5,6 @@
  * and holds the logic.
  */
 
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //need to include here for javascript refresh.
-
-include_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php'); //for ajax usage
 
 class Search Extends BasePage {
 

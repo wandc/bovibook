@@ -52,7 +52,7 @@ class BovineQueryMedicalLog {
         while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row2 ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<b>Foot</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row2['foot']}</b> with action/diagnois of <b>{$row2['diagnosis']}</b> and comment \"{$row2['comment']}\" by {$row2['userid']}<br/>";
+            $str = "<b>Foot</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> <b>{$row2['foot']}</b> with action/diagnois of <b>{$row2['diagnosis']}</b> and comment \"{$row2['comment']}\" by {$row2['userid']}<br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;
@@ -100,7 +100,7 @@ class BovineQueryMedicalLog {
             //
             $time = strtotime($row10 ['event_time']);
             $ftime = date('M j, Y', $time);
-            $str = "<span><b>{$row10['type']}</b>: " . Misc::daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row10['text']} </b>  by {$row10['userid']}. $deleteButton</span><br/>";
+            $str = "<span><b>{$row10['type']}</b>: " . $GLOBALS['MiscObj']->daysOrHoursAgo($time) . " <b class=\"smallish\">($ftime)</b> {$row10['text']} </b>  by {$row10['userid']}. $deleteButton</span><br/>";
             $outArray = makeTimeString($outArray, $time, $str);
         }
         return $outArray;

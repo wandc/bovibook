@@ -125,13 +125,13 @@ ORDER BY event_time ASC";
                 
           
     
-  function dimGoogleVisLineChart($massArray) {
+  function dimGoogleVisualizationLineChart($massArray) {
 
         $headerStrArr = array();
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Display Weight (kg)'] = 'number';
          $opt='';
-        $x = new GoogleVisLine($opt, $headerStrArr, $massArray);
+        $x = new GoogleVisualizationLine($opt, $headerStrArr, $massArray);
         print($x->toString());
     }
 }

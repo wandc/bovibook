@@ -1,15 +1,5 @@
 <?php 
-
 //Lists cow genetic info
-
-
-
-
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
-include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaHelper.inc');
-;
-
 class Genetics extends BasePage {
 
   
@@ -101,7 +91,7 @@ SELECT * from bovinemanagement.herdgenetics";
             $row['score'] = $row['score'];
             $row['local_number'] =JQueryDataTable::formattedAnimalNameLink($row['id'],$row['local_number'],$row['full_name']);
             $row['HC'] = ('<a href="' . HolsteinCanadaHelper::createHolsteinCanadaQuery($row['full_reg_number']) . '">' . '<img  width="28" height="20" src="/images/holsCanadaBWSmall.svg" />' . "</a>" . "\n\r");
-            $row['CDN'] = ('<a href="' . Misc::createListOfAllCowsMilking($row['full_reg_number']) . '"><img   width="50" height="19" src="/images/cdnLogo.svg" /></a>');
+            $row['CDN'] = ('<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '"><img   width="50" height="19" src="/images/cdnLogo.svg" /></a>');
             
         }
 

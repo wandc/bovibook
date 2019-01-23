@@ -113,7 +113,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
 
 //grab a list of cows 
         if ($mode == 'group') {
-            $aniNumber = Misc::createListOfAllAliveCows();
+            $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         }
 
 //grab a list of Medicines'.
@@ -171,7 +171,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
         $timesDay['2'] = '2X';
         $timesDay['3'] = '3X';
 
-        $timeArray = Misc::createHourlyDatesForNextThirtyDays();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForNextThirtyDays();
         unset($timeArray[null]); //remove null value.
 
         $form = new HTML_QuickForm("genericScheduledCalendarTreatmentQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -238,7 +238,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
 //lookup cow's name and number
             $res2 = $GLOBALS['pdo']->query("SELECT full_name,local_number FROM bovinemanagement.bovine WHERE id=$bovine_id LIMIT 1");
             $row2 = $res2->fetch(PDO::FETCH_ASSOC);
-            $short_name = Misc::femaleShortName($row2['full_name']);
+            $short_name = $GLOBALS['MiscObj']->femaleShortName($row2['full_name']);
             $local_number = $row2['local_number'];
 
 //lookup bovine id and see if there is an open medical case during the requested event_time
@@ -344,7 +344,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
             
         }
         if ($mode == 'historical') {
-            print('<h3>Historical Scheduled Medicines</h3>');
+             $out[]=('<h3>Historical Scheduled Medicines</h3>');
         }
 
 
@@ -368,24 +368,40 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
   ORDER BY medicine_administered.scheduled_event_time DESC";
         }
 
-        $dg = new DataGridLR($sql, 20);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Group', 'location_name', 'location_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Trade Name', 'trade_name', 'trade_name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('dosage', 'dosage', 'dosage', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('dosage_unit', 'dosage_unit', 'dosage_unit', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('location', 'location', 'location', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Scheduled userid', 'scheduled_userid', 'scheduled_userid', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Scheduled Time', 'Scheduled Time', 'Scheduled Time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateTimeDay2()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Administered userid', 'userid', 'userid', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Administered Time', 'Administered Time', 'Administered Time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateTime()')));
-
-        if ($mode == 'default') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('MedicineScheduled', 'printActionButtons()')));
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action2', 'Action2', 'Action2', array('' => ''), null, array('MedicineScheduled', 'printActionButtonMedicalScheduledComplete()')));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+              $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+              $rowOut['Location (Group)'] = ($row['location_name']);
+              $rowOut['Which Foot'] = ($row['trade_name']);
+              $rowOut['Dosage'] = ($row['dosage']);
+              $rowOut['Dosage Unit'] = ($row['dosage_unit']);
+              $rowOut['Location'] = ($row['location']);
+              $rowOut['Scheduled Userid'] = ($row['scheduled_userid']);
+              $rowOut['Scheduled Time'] = JQueryDataTable::formattedDate($row['event_time2']);
+              $rowOut['Administered userid'] = ($row['userid']);
+              $rowOut['Administered Time'] = JQueryDataTable::formattedDate($row['event_time']);
+                if ($mode == 'default') {
+                     $rowOut['Action'] = $this->printActionButtons($medicine_administered_id, $medicine_administered_close_date,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+                     $rowOut['Action2'] = $this->printActionButtonMedicalScheduledComplete($medicine_administered_id, $medicine_administered_close_date, $medicine_administered_bovine_id,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
         }
-        print($dg->render());
-        $dg->pager();
+             
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+        
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+   
     }
 
 
@@ -740,28 +756,40 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
 
     /**     * ****************************************** */
     function miniViewOfScheduledMedecine() {
-
-        $numberPerPage = 10;
-//show any medicine that is currently scheduled or ever was.
-        $sql = "SELECT medicine_administered.id as id, bovineall.id as bovine_id,local_number,full_name,dosage || dosage_unit || ' ' ||trade_name as textstr,location,note,userid,event_time, close_date,scheduled_event_time as event_time2,scheduled_userid
+        
+        
+          $sql = <<<SQL
+SELECT medicine_administered.id as id, bovineall.id as bovine_id,local_number,full_name,dosage || dosage_unit || ' ' ||trade_name as textstr,location,note,userid,event_time, close_date,scheduled_event_time as event_time2,scheduled_userid
   FROM bovinemanagement.medicine_administered 
   LEFT JOIN bovinemanagement.medicine ON medicine_administered.medicine_index=medicine.id 
   LEFT JOIN bovinemanagement.bovineall ON medicine_administered.bovine_id = bovineall.id
   LEFT JOIN bovinemanagement.medical_case ON medicine_administered.medical_case_id = medical_case.id
   WHERE scheduled_event_time is not null AND event_time IS NULL
-  ORDER BY medicine_administered.scheduled_event_time ASC  LIMIT 10";
+  ORDER BY medicine_administered.scheduled_event_time ASC  LIMIT 10
+SQL;
 
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Trade Name', 'textstr', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Scheduled Time', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedDateTime2()')));
-
-        print('<h3 class="datagridSummary">Scheduled Medicines</h3>');
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+              $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+              $rowOut['Trade Name'] = ($row['textstr']);
+              $rowOut['Scheduled Time'] = JQueryDataTable::formattedDate($row['event_time2']);
+             
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=("<h3>Scheduled Medicines</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         return implode($out); 
+
     }
 
     /**     * ********************************************* */
@@ -773,7 +801,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
 
 //grab a list of cows 
         if ($mode == 'group') {
-            $aniNumber = Misc::createListOfAllAliveCows();
+            $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
         }
 
 //grab a list of Medicines'.
@@ -824,7 +852,7 @@ ms_cal.sendForm('genericScheduledCalendarTreatmentQuickForm','calendardates');
 //locations
         $locationArray = MedicalCase::medicalBodyLocations();
 
-        $timeArray = Misc::createHourlyDatesForNextThirtyDays();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForNextThirtyDays();
         unset($timeArray[null]); //remove null value.
 
         $form = new HTML_QuickForm("genericScheduledTreatmentQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);

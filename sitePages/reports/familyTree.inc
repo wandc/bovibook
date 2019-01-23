@@ -3,9 +3,7 @@
  *  gets animal information from holstein canada on dam,sire,classification and plots a family tree.
  * 
  */
-include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
-include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/misc.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaHelper.inc');
+
 
 class FamilyTree extends BasePage {
 
@@ -22,54 +20,53 @@ class FamilyTree extends BasePage {
     public function drawFemaleFamilyTree($full_reg_number) {
 
         //postgres recursive funcion to search a tree.
-        $sql = "
-        WITH RECURSIVE search_graph AS (
- SELECT full_reg_number, dam_full_reg_number, \"full_name\", \"full_name\"::text as path, 0 AS depth, birth_date,score,geno_test
+$sql = <<<SQL
+ WITH RECURSIVE search_graph AS (
+ SELECT full_reg_number, dam_full_reg_number, "full_name", "full_name"::text as path, 0 AS depth, birth_date,score,geno_test
    FROM batch.aggregate_view_all d
    WHERE d.full_reg_number='$full_reg_number'
  UNION ALL
- SELECT r.full_reg_number, r.dam_full_reg_number, r.\"full_name\", sg.path||'/'||r.full_reg_number as path,
+ SELECT r.full_reg_number, r.dam_full_reg_number, r."full_name", sg.path||'/'||r.full_reg_number as path,
         sg.depth + 1 AS depth, r.birth_date,r.score,r.geno_test
    FROM batch.aggregate_view_all r, search_graph sg
    WHERE sg.dam_full_reg_number = r.full_reg_number AND depth < 6 AND r.full_name is not null
 )
-SELECT * FROM search_graph ORDER BY path";
-        ?> 
-        <div id='chart_div_<?php  echo($full_reg_number); ?>'></div>
-        <script type='text/javascript'>
-        
-            setTimeout(drawChart_<?php  echo($full_reg_number); ?>, 200); //firefox workaround. 
-            google.charts.setOnLoadCallback(drawChart_<?php  echo($full_reg_number); ?>, true);
-             $(window).resize(function(){
-            google.charts.setOnLoadCallback(drawChart_<?php  echo($full_reg_number); ?>);
-            });
-            function drawChart_<?php  echo($full_reg_number); ?>() {
-                var data = new google.visualization.DataTable();
-                data.addColumn('string', 'Name');
-                data.addColumn('string', 'Manager');
-                data.addColumn('string', 'ToolTip');
-              
-        <?php 
+SELECT * FROM search_graph ORDER BY path
+SQL;
+
         $res = $GLOBALS['pdo']->query($sql);
-       $str='';
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
              $geno_test =  (!empty($row['geno_test'])) ? ' &nbsp;&nbsp; &#x24bc; ' : ''  ;
             if (!empty(trim($row['full_name']))) {
             $row['full_name'] = str_replace('LITTLE RIVER', 'L.R.', $row['full_name']); //shorten little river prefix.          
-           $str=$str.'data.addRow('.(" [{v:'{$row['full_reg_number']}', f:'{$row['full_reg_number']}". $geno_test ."<div style=\"color:red; font-style:italic\">{$row['full_name']}</div><div style=\"color:purple; font-style:italic\">{$row['score']}</div><div style=\"color:green; font-style:italic\">{$row['birth_date']}'}, '{$row['dam_full_reg_number']}', 'VP']);"."\n\r");
+           $datatOut[]='data.addRow('.(" [{v:'{$row['full_reg_number']}', f:'{$row['full_reg_number']}". $geno_test ."<div style=\"color:red; font-style:italic\">{$row['full_name']}</div><div style=\"color:purple; font-style:italic\">{$row['score']}</div><div style=\"color:green; font-style:italic\">{$row['birth_date']}'}, '{$row['dam_full_reg_number']}', 'VP']);"."\n\r");
         }
-        print($str);
-       
            }
-        ?>
-                 
-              
-                var chart_<?php echo($full_reg_number);?> = new google.visualization.OrgChart(document.getElementById('chart_div_<?php  echo($full_reg_number); ?>'));
-                chart_<?php echo($full_reg_number);?>.draw(data, {allowHtml: true});
-            }
-        </script>
+          $dataOutStr=implode($datatOut);
 
-        <?php 
+$js = <<<JS
+
+    
+        <div id='chart_div_$full_reg_number'></div>
+        <script type='text/javascript'>
+        
+            setTimeout(drawChart_$full_reg_number, 200); //firefox workaround. 
+            google.charts.setOnLoadCallback(drawChart_$full_reg_number, true);
+             $(window).resize(function(){
+            google.charts.setOnLoadCallback(drawChart_$full_reg_number);
+            });
+            function drawChart_$full_reg_number() {
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'Name');
+                data.addColumn('string', 'Manager');
+                data.addColumn('string', 'ToolTip');
+                $dataOutStr  
+                var chart_$full_reg_number = new google.visualization.OrgChart(document.getElementById('chart_div_$full_reg_number'));
+                chart_$full_reg_number.draw(data, {allowHtml: true});
+            }
+        </script>         
+JS;
+         return (new BootStrap)->plainBox('Female-Line Family Tree',$js);
     }
 
     /**

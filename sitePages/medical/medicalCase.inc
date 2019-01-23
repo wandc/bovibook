@@ -65,7 +65,7 @@ class MedicalCase extends TabPage {
     }
 
     protected function tab3() {
-        $this->displayListOfMedecineAdministered();
+        print($this->displayListOfMedecineAdministered());
     }
 
     protected function tab4() {
@@ -155,7 +155,7 @@ print("<h3>Cow Transisiton Maladies (last 2 years)</h3>");
         $headerStrArr['Retained Placenta'] = 'number';
          $opt='';
         
-        $x = new GoogleVisColumn($opt, $headerStrArr, $array1, $array2, $array3);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $array1, $array2, $array3);
         print($x->toString());
     }
 
@@ -200,7 +200,7 @@ print("<h3>Calf Maladies (last 2 years)</h3>");
         $headerStrArr['Unknown'] = 'number';
          $opt='';
         
-        $x = new GoogleVisColumn($opt, $headerStrArr, $array1, $array2, $array3);
+        $x = new GoogleVisualizationColumn($opt, $headerStrArr, $array1, $array2, $array3);
         print($x->toString());
     }
 
@@ -244,15 +244,9 @@ ORDER BY month
      */
     function displayListOfMedecines($mode = 'default') {
 
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-        $sql = "SELECT * FROM bovinemanagement.medicine ORDER by trade_name";
-        $dg = new DataGridLR($sql, 1000);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'trade_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Local Instructions', 'local_instructions', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Med Class', 'medicine_class', '', array('' => ''), null, null));
-
-        print($dg->render());
-        $dg->pager();
+        $sql = "SELECT trade_name,local_instructions,medicine_class FROM bovinemanagement.medicine ORDER by trade_name";
+        print( (new JQueryDataTable)->startBasicSql($sql)); 
+       
     }
 
     
@@ -305,7 +299,7 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
             $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
             $row['event_time_raw'] = strtotime($row['event_time']);
             $row['paticularTreatmentInfo'] =  $this->printparticularTreatmentInfoJQ($row);
-        $row['action2'] = MedicineScheduled::printActionButtonMedicalScheduledComplete($row['id'],null,$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+        $row['action2'] = (new MedicineScheduled())->printActionButtonMedicalScheduledComplete($row['id'],null,$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
         }
 
         //output
@@ -319,26 +313,35 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
      */
     function displayNext8HoursScheduledMedicinesOld() {
 
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-        $sql = "
+  
+         $sql = <<<SQL
 SELECT medical_summary.id,local_number,type,event_time,text,userid,full_name,bovine_id FROM bovinemanagement.medical_summary 
 LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
 		WHERE type='Scheduled Meds' AND event_time <= (current_timestamp + interval '8 hours')	
 		ORDER BY medical_summary.event_time ASC
-   ";
-        $dg = new DataGridLR($sql, 1000);
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Scheduled Meds', null, '', array('' => ''), null, array('MedicalCase', 'printparticularTreatmentInfo()')));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Action2', 'Action2', 'Action2', array('' => ''), null, array('MedicineScheduled', 'printActionButtonMedicalScheduledComplete()')));
+SQL;
 
 
-        $str = '<div id="displayNext10HoursScheduledMedicines" id=\'scrollable\'>' . $dg->render('datagrid datagridNested', false) . '</div>'; // wrap in
-        // add an extra space when there is data to show.
-        if (strlen($str) >= 28) {
-            $str = $str . '</br>';
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Scheduled Meds'] = $this->printparticularTreatmentInfo($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+
+
+            $resultsOut[] = $rowOut;
         }
-        return $str;
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3> displayNext8HoursScheduledMedicinesOld</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -351,9 +354,83 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
     /**
      * ********************************
      */
+    function medicalCases($request) {
+       $current = Sanit::reqVal('item', false, 'INT');
+
+         $sql = "SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim FROM bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id WHERE close_date is NULL ORDER BY local_number,open_date";
+         
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+           $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+           $row['event_time_raw'] = strtotime($row['open_date']);
+           $row['info'] = $this->printBovineMedicalCaseInfo($row);
+           //$row['treatments'] =$this->printMedecineAdministeredForAPaticularMedicalCase($row);
+           $row['treatments'] = json_encode($this->dOne($row));
+            $row['treatments2'] = ($this->dTwo($row));
+       //     $row['action'] = $this->printActionButtons2($row['bovine_id'], $row['event_time'],$row['estrus_id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+        //    $row['event_time'] = date("l M d H:00", strtotime($row['event_time']));  //has to be at end.
+          
+        }
+
+        //output
+
+        
+          //output
+        $output['data'] = $results;
+        return ($output);
+    }
     function displayMedicalCases($mode = 'default', $current = true) {
-
-
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
+                {
+                data: "id",
+                title: "Case #"
+        },         
+            {
+                data: "local_number",
+                title: "Animal",
+                type: "num-html"
+            },
+           
+            
+            {
+                data: "open_date",
+                title: "Case Open",
+                type: "date"
+            },
+            {
+                data: "dim",
+                title: "DIM"
+            },
+            {
+                data: "info",
+                title: "Info"
+            },
+            {
+                data: "treatments",
+                title: "Treatments"
+            },{
+                data: "treatments2",
+                title: "Treatments2"
+            }
+                
+           
+EX;
+        print("<h3>Medical Cases</h3>");
+        print($dt->start(64, 'medicalCases', $current, $columnsStr));
+        
+        
+        
+    
+    
+    
+      //   print( (new JQueryDataTable)->startBasic($output,'searching: false,ordering: false,info: false'));
+         
 
         // Current cases
         if ($current == true) {
@@ -369,27 +446,27 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
             print ('<h3>No Current Medical Cases</h3>');
         }
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumberLarge()')));
+   //     $dg = new DataGridLR($sql, $numberPerPage);
+     //   $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumberLarge()')));
 
         if ($current == false) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Case #', 'id', '', array('' => ''), null, null));
+     //       $dg->datagrid->addColumn(new Structures_DataGrid_Column('Case #', 'id', '', array('' => ''), null, null));
         }
         if ($current == true) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Info', null, '', array('' => ''), null, array('MedicalCase', 'printBovineMedicalCaseInfo()')));
+          //  $dg->datagrid->addColumn(new Structures_DataGrid_Column('Info', null, '', array('' => ''), null, array('MedicalCase', 'printBovineMedicalCaseInfo()')));
         }
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Open Date', null, '', array('' => ''), null, array('MedicalCase', 'printOpenDate()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Treatments', null, '', array('' => ''), null, array('MedicalCase', 'printMedecineAdministeredForAPaticularMedicalCase()')));
+      // $dg->datagrid->addColumn(new Structures_DataGrid_Column('Open Date', null, '', array('' => ''), null, array('MedicalCase', 'printOpenDate()')));
+       // $dg->datagrid->addColumn(new Structures_DataGrid_Column('Treatments', null, '', array('' => ''), null, array('MedicalCase', 'printMedecineAdministeredForAPaticularMedicalCase()')));
 
         if ($current == false) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Close Date', null, '', array('' => ''), null, array('MedicalCase', 'printCloseDate()')));
+       //     $dg->datagrid->addColumn(new Structures_DataGrid_Column('Close Date', null, '', array('' => ''), null, array('MedicalCase', 'printCloseDate()')));
         }
 
-        print($dg->render('datagrid datagridParent'));
+    //    print($dg->render('datagrid datagridParent'));
 
         if ($mode == 'default') {
 
-            $dg->pager();
+      //      $dg->pager();
         }
     }
 
@@ -403,8 +480,8 @@ LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
     /**
      * *****************************************
      */
-    function printBovineMedicalCaseInfo($params) {
-        extract($params);
+    function printBovineMedicalCaseInfo($record) {
+       
 
         // find out when milk and beef witholding is:
         $res = $GLOBALS['pdo']->query("SELECT milk_withholding,beef_withholding FROM bovinemanagement.milk_and_beef_withholding({$record['bovine_id']})");
@@ -456,18 +533,9 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         return $str;
     }
 
-    /**
-     * NESTED *
-     */
-    function printMedecineAdministeredForAPaticularMedicalCase($params) {
-        extract($params);
-
-
-        /*
-         *   show scheduled events more than 8 hours in the future as its own
-         *   datagrid, so we can hide it with js.
-         */
-        $sql1 = "
+    
+    function dOne($record){
+          $sql1 = "
       SELECT id,event_time,type,text,userid,bovine_id 
          FROM temp_medical_summary 
          WHERE temp_medical_summary.bovine_id={$record['bovine_id']} 
@@ -475,7 +543,107 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
             AND event_time > (current_timestamp + interval '8 hours')
          ORDER BY event_time DESC ,type ASC 
    ";
+         
+          $statement = $GLOBALS['pdo']->prepare($sql1);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        //change presentation
+        foreach ($results as &$row) {
+    //  $row['short_nameX']=  '<a href="'.$GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number'])."\">{$row['short_name']}</a>";
+     // $row['sexed_semen']= ( $row['sexed_semen']=='t' ? 'true' : '');
+      // $row['reserved']= ( $row['reserved']=='t' ? 'true' : '');
+           
+        }
+        //output
+        $output['data']=$results;
+        return $output['data'];
+    }
+    
+    function dTwo($record) {
+               $sql = "
+    (SELECT id,event_time,type,text,userid,bovine_id,false as colour FROM temp_medical_summary WHERE temp_medical_summary.medical_case_id={$record['id']})
+      UNION
+    (SELECT id,event_time,type,text,userid,bovine_id,true as colour FROM temp_medical_summary WHERE temp_medical_summary.bovine_id={$record['bovine_id']} AND (type='Scheduled Meds' OR type='Scheduled Action')
+     AND event_time <= (current_timestamp + interval '8 hours')) ORDER BY event_time DESC ,type ASC 
+   ";
+    
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+            //	event_time	type	text	userid
+        $row2['event_time']= date('M d, Y H:00', strtotime($row['event_time'])); 
+        $row2['type']=  $row['type'];
+        $row2['text']=  $row['text'];
+        $row2['userid']=  $row['userid']; 
+        
+        
+        
+        $results2[]=$row2;
+        }
+
+         return $this->build_table($results2);
+        
+    }
+    
+    
+    //from https://stackoverflow.com/questions/4746079/how-to-create-a-html-table-from-a-php-array
+    //take array of form:
+    /*
+     $array = array(
+    array('first'=>'tom', 'last'=>'smith', 'email'=>'tom@example.org', 'company'=>'example ltd'),
+    array('first'=>'hugh', 'last'=>'blogs', 'email'=>'hugh@example.org', 'company'=>'example ltd'),
+    array('first'=>'steph', 'last'=>'brown', 'email'=>'steph@example.org', 'company'=>'example ltd')
+);
+     */
+       function build_table($array){
+    // start table
+    $html = '<table>';
+    // header row
+  //  $html .= '<tr>';
+    foreach($array[0] as $key=>$value){
+  //          $html .= '<th>' . htmlspecialchars($key) . '</th>';
+        }
+  //  $html .= '</tr>';
+
+    // data rows
+    foreach( $array as $key=>$value){
+        $html .= '<tr>';
+        foreach($value as $key2=>$value2){
+            $html .= '<td>' . htmlspecialchars($value2) . '</td>';
+        }
+        $html .= '</tr>';
+    }
+
+    // finish table and return it
+
+    $html .= '</table>';
+    return $html;
+}
+    
+    
+    /**
+     * NESTED *
+     */
+    function printMedecineAdministeredForAPaticularMedicalCase($record) {
+  
+
+        /*
+         *   show scheduled events more than 8 hours in the future as its own
+         *   , so we can hide it with js.
+         */
+      
+         
+         
+ //$out[]=((new JQueryDataTable)->startBasicSql($sql1));   
+ 
+ 
+ 
+ 
         $res1 = $GLOBALS['pdo']->query($sql1);
         $numFutureRow = $res1->rowCount();
 
@@ -499,15 +667,15 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
              });
              </script>
            ";
-            print($toggle);
+        //    print($toggle);
 
-            $dg1 = new DataGridLR($sql1, 1000);
-            $dg1->datagrid->addColumn(new Structures_DataGrid_Column('All', null, '', array('' => ''), null, array('MedicalCase', 'printparticularTreatmentInfo()')));
+      //      $dg1 = new DataGridLR($sql1, 1000);
+       //     $dg1->datagrid->addColumn(new Structures_DataGrid_Column('All', null, '', array('' => ''), null, array('MedicalCase', 'printparticularTreatmentInfo()')));
             //don't show because we have sql for delete button coded to not allow deletes of scheduled meds
             //$dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('MedicalCase', 'printActionButtons()'))); 
-            $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action2', null, '', array('' => ''), null, array('MedicineScheduled', 'printActionButtons2()')));
+        //    $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action2', null, '', array('' => ''), null, array('MedicineScheduled', 'printActionButtons2()')));
             $strFuture = $strFuture . "<a id='farFutureTreatmentToggle_$uniqueID' href='#'><b id='boldLightBlue'>$numFutureRow Future Event(s) --></b></a>";
-            $strFuture = $strFuture . "<div id='farFutureTreatment_$uniqueID'>" . $dg1->render('datagrid datagridNested') . '</div>';
+        //    $strFuture = $strFuture . "<div id='farFutureTreatment_$uniqueID'>" . $dg1->render('datagrid datagridNested') . '</div>';
         }
 
 
@@ -523,20 +691,23 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
     (SELECT id,event_time,type,text,userid,bovine_id FROM temp_medical_summary WHERE temp_medical_summary.bovine_id={$record['bovine_id']} AND (type='Scheduled Meds' OR type='Scheduled Action')
      AND event_time <= (current_timestamp + interval '8 hours')) ORDER BY event_time DESC ,type ASC 
    ";
-        $stmt2 = $GLOBALS['pdo']->query($sql);
-        $arrayDG = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+    
+   //  $out[]=((new JQueryDataTable)->startBasicSql($sql));   
+     
+     //   $stmt2 = $GLOBALS['pdo']->query($sql);
+      //  $arrayDG = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
         //need to pass as an array, because if we pass sql directly to nested datagrid, it can't seem to see the temporary table.
 
-        $dg3 = new DataGridLRArray($arrayDG, 1000);
+    //    $dg3 = new DataGridLRArray($arrayDG, 1000);
 
-        $dg3->datagrid->addColumn(new Structures_DataGrid_Column('All', null, '', array('' => ''), null, array('MedicalCase', 'printparticularTreatmentInfo()')));
-        $dg3->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('MedicalCase', 'printActionButtons()')));
+     //   $dg3->datagrid->addColumn(new Structures_DataGrid_Column('All', null, '', array('' => ''), null, array('MedicalCase', 'printparticularTreatmentInfo()')));
+     //   $dg3->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('MedicalCase', 'printActionButtons()')));
         //render both datagrids, but put a seperate div around the far future ones,so we can hide, them.
-        $str = '<div id=\'scrollable\'>' . $strFuture . $dg3->render('datagrid datagridNested') . '</div>'; // wrap in
+     //   $str = '<div id=\'scrollable\'>' . $strFuture . $dg3->render('datagrid datagridNested') . '</div>'; // wrap in
 
 
-        return $str;
+        return implode($out);
     }
 
     //jquery version of old datagrid function, keep this one in future
@@ -635,7 +806,7 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         while (($row = $res->fetch())) {
             // parse for last word of name and then make an array for the select
             // list.
-            $aniNumber [$row [0]] = $row [2] . " - " . Misc::femaleShortName($row[1]);
+            $aniNumber [$row [0]] = $row [2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
 
         // create diagnonis array
@@ -730,7 +901,7 @@ WHERE subquery.id = medicine_administered.id;
         while (($row = $res->fetch())) {
             // parse for last word of name and then make an array for the select
             // list.
-            $aniNumber [$row [0]] = $row [2] . " - " . Misc::femaleShortName($row[1]) . ' - ' . $row [3];
+            $aniNumber [$row [0]] = $row [2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]) . ' - ' . $row [3];
         }
         return $aniNumber;
     }
@@ -811,7 +982,7 @@ WHERE subquery.id = medicine_administered.id;
 
 
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray[null]); //remove null value.
         //create array of celcius temps.
         $ketoneArray = array(null => 'Please Select One');
@@ -887,7 +1058,7 @@ WHERE subquery.id = medicine_administered.id;
     /**     * ******************************* */
     public static function newMagnetForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray[null]); //remove null value.
 
 
@@ -963,7 +1134,7 @@ WHERE subquery.id = medicine_administered.id;
      */
     public static function newCommentForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray [null]); // remove null value.
         // list of pre-canned comments
         $treatmentComment = array(null => 'Please Select one...', 'Clear, not treated.' => 'Clear, not treated.', 'Observed to not be eating.' => 'Observed to not be eating.', 'Broken Needle.' => 'Broken Needle.');
@@ -1110,7 +1281,7 @@ WHERE subquery.id = medicine_administered.id;
             $aniNumber = self::grabListCowsWithOpenMedicalCase();
         }
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray [null]); // remove null value.
         // create array of celcius temps.
         $temperatureArray = array(null => 'Please Select One');
@@ -1216,7 +1387,7 @@ print("Warning: Already in db.");
 
         // grab a list of cows with open medical cases.
         $aniNumber = self::grabListCowsWithOpenMedicalCase();
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
 
         unset($timeArray [null]); // remove null value.
         // create diagnonis array
@@ -1349,7 +1520,7 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
         }
 
 
-        $timeArray = Misc::createHourlyDatesForNextSevenDays();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForNextSevenDays();
         unset($timeArray [null]); // remove null value.
 
         $form = new HTML_QuickForm("medicalActionScheduleQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -1443,21 +1614,20 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
      */
     function displayListOfMedecineAdministered($mode = 'default') {
 
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
         $sql = "SELECT local_number  as \"local number\",full_name,trade_name,dosage,dosage_unit  as \"dosage unit\",location,note,userid,event_time  as \"event time\",close_date,scheduled_event_time as \"scheduled event time\",scheduled_userid  as \"scheduled userid\"
   FROM bovinemanagement.medicine_administered 
   LEFT JOIN bovinemanagement.medicine ON medicine_administered.medicine_index=medicine.id 
   LEFT JOIN bovinemanagement.bovinecurrall ON medicine_administered.bovine_id = bovinecurrall.id
   LEFT JOIN bovinemanagement.medical_case ON medicine_administered.medical_case_id = medical_case.id
   ORDER BY medicine_administered.event_time DESC";
-        $dg = new DataGridLR($sql, 50);
-        print($dg->render());
-        $dg->pager();
+          $out[]=("<h3>List Of Medecine Administered</h3>");
+         $out[]=( (new JQueryDataTable)->startBasicSql($sql,'order: false')); 
+         return implode($out); 
+        
     }
 
-    function printActionButtons($params) {
-        // print_r2($params);
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+
         $currentUserid = $GLOBALS ['auth']->getUsername();
 
         // find the last entry for the current user and use that as a basais to
@@ -1482,7 +1652,7 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
         return $returnButtonsAsString;
     }
 
-    static function deleteQuickForm($tableid, $tablename) {
+    static function deleteQuickForm($tableid, $tablename,$callBackURL) {
 
         $form = new HTML_QuickForm("genericEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
        
@@ -1519,7 +1689,7 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
             }
            
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
+            header($callBackURL);
             exit();
         }
         $form->accept($renderer);
@@ -1562,7 +1732,7 @@ Class QF2_GeneralTreatment extends Quickform2Helper {
 
     function definition($form) {
 
-        $dateArray = Misc::createHourlyDatesForOnlyToday();
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
       
         $location = $this->listActiveLocationsAndCounts();
 
@@ -1648,7 +1818,7 @@ JSCRIPT;
            //transaction id needed for more then 1 cow.
            if (count($bovineIdArr) > 1)
            {
-           $transaction_id = Misc::generatePseudoRandomTransactionInteger();  
+           $transaction_id = $GLOBALS['MiscObj']->generatePseudoRandomTransactionInteger();  
            } else {
                $transaction_id=null;
            }
@@ -1806,7 +1976,7 @@ Class QF2_MastitisQuickTreat extends Quickform2Helper {
             $medArray [$row [0]] = $row [1];
         }
 
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray [null]); // remove null value.
         
         // custom rule for teats (at least one needs to be selected)
@@ -1937,7 +2107,7 @@ Class QF2_MedicalTemperature extends Quickform2Helper {
 
     function definition($form) {
        
-        $timeArray = Misc::createHourlyDatesForOnlyToday();
+        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray [null]); // remove null value.
         
         // create array of celcius temps.

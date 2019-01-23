@@ -204,7 +204,7 @@ ORDER BY preg_check_event.create_time DESC limit 1000";
         return $commentOut;
     }
 
-    //datagrid customizations.....
+    
   
 
     function printSelectedBreedingEmbryoEvent($type,$breeding_embryo_id,$breeding_embryo_event_time,$service_sire_short_name) {
@@ -372,19 +372,6 @@ ORDER BY days_ago DESC;";
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        /*
-         * 
-         * 
-         * 
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Last Breeding (days)', 'days_ago', 'days_ago', array('' => ''), null, null));
-       OK    $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', 'location_name', array('' => ''), null, null));
-              $dg->datagrid->addColumn(new Structures_DataGrid_Column('Days Open', 'days_volun', 'days_volun', array('' => ''), null, null));
-              $dg->datagrid->addColumn(new Structures_DataGrid_Column('DIM', 'dim', 'dim', array('' => ''), null, null));
-               $dg->datagrid->addColumn(new Structures_DataGrid_Column('Do Not Breed?', 'donotbreed', 'donotbreed', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericTrueOnly()')));
-                $dg->datagrid->addColumn(new Structures_DataGrid_Column('Note', null, '', array('' => ''), null, array('EstrusPregnancyCheck', 'printWarning()')));
-
-         */
         
         
         //change presentation
@@ -713,8 +700,8 @@ SELECT * from temp where calculate_number_of_breeding_since_fresh=0 and donotbre
     public function addPreganacyCheckEvenQuickForm($mode = 'group', $bovine_id = null) {
 
 
-        $dateArray = Misc::createDailyDatesAtDailyIntervalsForLastSevenDays(); //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesForLastYearAtNoon();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays(); //daily dates rray, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon();
 $aniNumber=null;
    $aniNumberBreedings  =null;   
         if ($mode == 'group') {
@@ -798,7 +785,7 @@ WHERE groupid='veterinary' and active=true";
         //Hierarchical select list
         $opts[] = $aniNumber;
         $opts[] = $aniNumberBreedings;
-        $hs = $form->addElement('hierselect', 'whichBreeding', 'Animal & Which Breeding', array('style' => 'width: 20em;'), '<br />');
+        $hs = $form->addElement('hierselect', 'whichBreeding', 'Animal & Which Breeding');
         $hs->setOptions($opts);
 
         $form->addElement('select', 'dateEvent', 'Time of Check', $dateArray);
@@ -818,7 +805,7 @@ WHERE groupid='veterinary' and active=true";
         $form->setDefaults(array('typeOfPregnacyCheck' => '1'));
         $form->setDefaults(array('dateEvent' => strtotime(date('Y-m-d 12:00:00', strtotime("now"))))); // set default to today
         //rules
-        $form->addRule('whichBreeding', 'Animal number and breeding is required', 'required');
+       // $form->addRule('whichBreeding', 'Animal number and breeding is required', 'required');
         $form->addRule('dateEvent', 'Date of pregnancy check is required', 'required');
         $form->addRule('typeOfPregnacyCheck', 'Type of pregnancy check is required', 'required');
         $form->addRule('pregnancyCheckResult', 'Result of pregnancy check is required', 'required');
@@ -898,8 +885,8 @@ Class QF2_PregCheckEvent extends Quickform2Helper {
 
     function definition($form) {
 
-       $dateArray = Misc::createDailyDatesAtDailyIntervalsForLastSevenDays(); //daily dates rray, with unix timestamp as index.
-       //$dateArray = Misc::createDailyDatesForLastYearAtNoon(); //used when we have a problem. should add an if admin clause. 
+       $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays(); //daily dates rray, with unix timestamp as index.
+       //$dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); //used when we have a problem. should add an if admin clause. 
 
        $aniNumberBreedingsStd=$this->bredAnimalList($this->mode); 
        

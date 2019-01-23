@@ -3,31 +3,6 @@
 
 
 
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicalCase.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/movementLocationList.inc');
-
-
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) { //FFDA7F
-    //extends datgrid class with specific logic to colour the line.
-
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-            if ($row['criteria'] >= 100) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
-
 class Vaccination extends TabPage {
 
     public function defaultDisplay() {
@@ -40,19 +15,24 @@ class Vaccination extends TabPage {
     }
 
     function tab1() {
-        print('<div id="twoColumnLayout">');
-     
-        
-        //   $res = $GLOBALS['pdo']->query("SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE medicine_class='vaccine'");
         require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/medical/medicalCase.inc');    
         $paramMed= new stdClass();
         $b=new QF2_GeneralTreatment((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group',null); //group
-        print($b->renderBox('qf2_GeneralTreatment','Select Animals / Groups to Treat'));
-        print($b->formJS());
         
+      $html = <<<HTML
+    <div class='row'>
+        <div class='col-sm-4 col-sm-push-8'>
+            {$b->renderBox('qf2_GeneralTreatmentVaccination','Select Animals / Groups to Treat')}
+            {$b->formJS()}
+        </div>
+        <div class='col-sm-8 col-sm-pull-4'> 
+            {$this->displayListOfVaccinesAdministered()}
+        </div>
+    </div>    
+HTML;
+     
+         print($html);
         
-        $this->displayListOfVaccinesAdministered();
-        print('</div>');
     }
 
     function tab2() {
@@ -99,18 +79,31 @@ SELECT *,
 (SELECT count(id) FROM bovinemanagement.medicine_administered WHERE medicine_administered.bovine_id=temp.bovine_id AND (medicine_administered.medicine_index=87) AND event_time > nine_weeks AND event_time < six_weeks) as period_shot_count_6_9,
 (SELECT count(id) FROM bovinemanagement.medicine_administered WHERE medicine_administered.bovine_id=temp.bovine_id AND (medicine_administered.medicine_index=87) AND event_time > six_weeks AND event_time < three_weeks) as period_shot_count_3_6
 FROM temp WHERE now() > nine_weeks AND now() < three_weeks";
-         $dg1 = new DataGridLR($sql, 50);
+        
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Current Location'] = ($row['location_name']);
+            $rowOut['Birth Date'] = JQueryDataTable::formattedDate($row['birth_date']);
+            $rowOut['Lifetime Shot Count'] = ($row['lifetime_shot_count']);
+            $rowOut['Fresh Date'] = JQueryDataTable::formattedDate($row['fresh_date']);
+            $rowOut['Criteria #'] = ($row['criteria']);
+          
+          $resultsOut[]=$rowOut;  
+        }
 
-         /*
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Current Location', 'location_name', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Birth Date', 'birth_date', 'birth_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Lifetime Shot Count', 'lifetime_shot_count', 'lifetime_shot_count', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Fresh Date', 'fresh_date', 'fresh_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Criteria #', 'criteria', 'criteria', array('' => ''), null, null));
-*/
+       //output
+        $dataArr = $resultsOut;
+      
 
-        return ($dg1->render('datagrid'));
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         return implode($out); 
+       
     }
     
     
@@ -126,9 +119,9 @@ FROM temp WHERE now() > nine_weeks AND now() < three_weeks";
          * Calves vaccinated at 3 months of age or older should be revaccinated 6 weeks later. 
          * Inject subcutaneously with strict aseptic precautions.
          */
-
-        $sql = "
-   /*Criteria 1: All animals over 3 months of age and never given a shot. */
+           
+$sql = <<<SQL
+ /*Criteria 1: All animals over 3 months of age and never given a shot. */
    SELECT id as bovine_id,full_name,local_number,location_name,birth_date,fresh_date,(SELECT count(id) FROM bovinemanagement.medicine_administered WHERE medicine_administered.bovine_id=bovinecurr.id AND (medicine_administered.medicine_index=28)) as lifetime_shot_count,1 as criteria 
    FROM bovinemanagement.bovinecurr 
    WHERE (bovinecurr.birth_date <= (current_date - interval '3 months')) 
@@ -156,21 +149,33 @@ FROM temp WHERE now() > nine_weeks AND now() < three_weeks";
    AND location_id=$location_id   
       
    ORDER BY location_name,local_number;
-    ";
-       
-        $dg1 = new DataGridLR($sql, 50);
+SQL;
 
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Current Location', 'location_name', '', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Birth Date', 'birth_date', 'birth_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Lifetime Shot Count', 'lifetime_shot_count', 'lifetime_shot_count', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Fresh Date', 'fresh_date', 'fresh_date', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Criteria #', 'criteria', 'criteria', array('' => ''), null, null));
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Current Location'] = ($row['location_name']);
+            $rowOut['Birth Date'] = JQueryDataTable::formattedDate($row['birth_date']);
+            $rowOut['Lifetime Shot Count'] = ($row['lifetime_shot_count']);
+            $rowOut['Fresh Date'] = JQueryDataTable::formattedDate($row['fresh_date']);
+            $rowOut['Criteria #'] = ($row['criteria']);
+          
+          $resultsOut[]=$rowOut;  
+        }
 
+       //output
+        $dataArr = $resultsOut;
+      
 
-        return ($dg1->render('datagrid'));
-
-        // $dg1->pager();
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         return implode($out); 
+        
     }
 
     
@@ -371,27 +376,43 @@ EX;
   FROM bovinemanagement.medicine_administered 
   LEFT JOIN bovinemanagement.medicine ON medicine_administered.medicine_index=medicine.id 
   LEFT JOIN bovinemanagement.bovinecurr ON medicine_administered.bovine_id = bovinecurr.id
-  WHERE medicine.medicine_class='vaccine'
-  ORDER BY medicine_administered.event_time DESC,trade_name,local_number";
+  WHERE medicine.medicine_class='vaccine' AND event_time > current_date - interval '2 years'
+  ORDER BY medicine_administered.event_time DESC,trade_name,local_number ";
 
 
-        $dg1 = new DataGridLR($sql, 20);
+        
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['Trade Name'] = ($row['trade_name']);
+            $rowOut['Dosage'] = ($row['dosage']);
+            $rowOut['Dosage Unit'] = ($row['dosage_unit']);
+            $rowOut['Location'] = ($row['location']);
+            $rowOut['Note'] = ($row['note']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
+          
+          $resultsOut[]=$rowOut;  
+        }
 
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('trade name', 'trade_name', 'trade_name', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('dosage', 'dosage', 'dosage', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('dosage unit', 'dosage_unit', 'dosage_unit', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('location', 'location', 'location', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('note', 'note', 'note', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', 'userid', array('' => ''), null, null));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Event Time', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg1->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Vaccination', 'printActionButtons()')));
-        print($dg1->render('datagrid'));
-        $dg1->pager();
+       //output
+        $dataArr = $resultsOut;
+      
+
+         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order:false')); 
+         return implode($out); 
+       
     }
 
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record,$callBackURL) {
+   
         $currentUserid = $GLOBALS ['auth']->getUsername();
 
 
@@ -399,7 +420,7 @@ EX;
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $returnButtonsAsString = null;
         if (($record ['id'] == $row ['id'])) {
-            $returnButtonsAsString = MedicalCase::deleteQuickForm($row ['id'], $row ['tablename']); // show
+            $returnButtonsAsString = MedicalCase::deleteQuickForm($row ['id'], $row ['tablename'],$callBackURL); // show
             //delete button, with _____ table id as index for delete.
         }
 

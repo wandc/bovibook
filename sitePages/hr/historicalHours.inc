@@ -1,9 +1,4 @@
 <?php 
-//shows hours worked through time
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
- include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCharts.inc');
 
 class HistoricalHours extends BasePage{
 
@@ -145,7 +140,7 @@ order by date
     /* generic function */
     function calendarChart($sql,$title=null) {
       
-        $name=Misc::uuid_create();
+        $name=$GLOBALS['MiscObj']->uuid_create();
          ?>
 
     <script type="text/javascript">

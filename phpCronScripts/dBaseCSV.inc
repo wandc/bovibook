@@ -7,7 +7,7 @@
 //run the export functions whenever this file is accessed.
 $_SERVER['DOCUMENT_ROOT']='/var/www/int/';
 require_once('../global.php');
-require_once('../functions/dbase.inc');
+
 
 
 $x=new dbase();

@@ -1,12 +1,6 @@
 <?php 
 
 /* shows how TMR recipes change through time */
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCharts.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleVisualization.inc');   
 ;
 
 class TmrHistorical extends TabPage {
@@ -95,7 +89,7 @@ ORDER BY recipe_create_time DESC";
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['kg_day_cost_sum'] = 'number';
         $headerStrArr['kg_day_dry_sum'] = 'number';
-        $x = new GoogleVisLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
         print($x->toString());
     }
     
@@ -246,7 +240,7 @@ WHERE mix.location_id=$location_id AND valacta_group_averages.location_id=$locat
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['avg_milk_production'] = 'number';
         $headerStrArr['cor_avg_fat_per'] = 'number';
-        $x = new GoogleVisLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
         print("<h3>Milk for $location_name</h3>");
         print($x->toString());
     }
@@ -255,32 +249,7 @@ WHERE mix.location_id=$location_id AND valacta_group_averages.location_id=$locat
 
    
 
-    //NOTE THIS IS PRE NRC2001
-    public function displayHistoricalList($location_id) {
-
-        $sql = "SELECT location_id,location.name as location_name,mix.date as mix_date,mix.id as mix_id,recipe_id,comment,nutrition.mix_cost(mix.id) 
-FROM bovinemanagement.location 
-LEFT JOIN nutrition.mix on mix.location_id = location.id
-LEFT JOIN nutrition.recipe on mix.recipe_id=recipe.id
-WHERE location.id=$location_id AND recipe.active=false and recipe.editable=false ORDER BY mix.date DESC ";
-
-
-        $dg = new DataGridLR($sql, 5);
-        /*
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-         */
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Location', 'location_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Mix Date', 'mix_date', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Recipe ID', 'recipe_id', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Recipe Name', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Cost ($/cow/day)', 'mix_cost', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Recipe Items', null, '', array('' => ''), null, array('TmrHistorical', 'printRecipeItems()')));
-
-        print ("<h3>Previous Recipe By Group $location_id</h3>");
-        print($dg->render());
-        $dg->pager();
-    }
+   
 
     function printRecipeItems($params) {
         extract($params);

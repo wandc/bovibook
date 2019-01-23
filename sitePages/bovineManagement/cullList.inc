@@ -147,7 +147,7 @@ class CullList extends BasePage{
 	function animalQueryQuickForm()
 	{
 
-		$aniNumber=Misc::createListOfAllAliveCows();
+		$aniNumber=$GLOBALS['MiscObj']->createListOfAllAliveCows();
 
 		//javascript to allow submission on change of select element.
 		$attrs = array('onchange' => "javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid={$_REQUEST['pageid']}';$('#example > ul').tabs('select', 0);");

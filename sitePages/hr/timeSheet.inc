@@ -74,7 +74,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
 
 
         //daily dates rray, with unix timestamp as index.
-        $dateArray = Misc::createDailyDatesAtDailyIntervalsForLastSevenDays();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays();
         $dateKeysArray = array_keys($dateArray); //so we can set today to teh default.
 
 
@@ -92,7 +92,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
         $form->addElement('select', 'dateEvent', 'Date of Event', $dateArray);
         $form->addElement('select', 'shiftType', 'Shift Type', $shiftTypeArr);
         $form->addElement('select', 'workTime', 'Hours Actually Worked', $listOfWorkTimes);
-        $form->addElement('select', 'bankTime', 'Hours to Deposit / Withdrawl From Bank', $listOfTimeBankTimes);
+        $form->addElement('select', 'bankTime', 'Hours to Deposit (+) / Withdrawl (-) From Bank', $listOfTimeBankTimes);
         $form->addElement('select', 'reason', 'Explanation (optional)', $reason);
         $form->addElement('textarea', 'explanation_overtime', 'Explanation (>9 hours only)', array('cols' => 80, 'rows' => 3));
 
@@ -292,7 +292,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
         foreach ($results as &$row) {
             
  
-	  //  $row['full_reg_number'] = '<a href="' . Misc::createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
+	  //  $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
             $row['event_time_nice'] = date("l  M j, Y", strtotime($row['event_time'])); 
             $row['time_bank_balance'] = $this->printTimeBankToDate($row['useridtouse'],$row['event_time']);
             $row['pay_period_to_date']= $this->printPayPeriodToDate($row['useridtouse'],$row['event_time']) ;
@@ -315,35 +315,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
             print("<h3>Time Log</h3>");
         }
 
-        
-        
-      /*
-          $dg = new DataGridLR_Ext($sql, 14);
-
-        if ($mode == 'payrollView') {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('employee', 'userid', '', array('' => ''), null, null));
-        }
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', null, '', array('' => ''), null, array('TimeSheet', 'printFormattedTime()')));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('useridToUse', 'useridtouse', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Actual Time Worked (hours)', 'time_worked', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Shift', 'shift_type', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Explanation', 'explanation', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Time Bank Deposit / Withdrawl', 'time_banked', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Time Bank Balance', null, '', array('' => ''), null, array('TimeSheet', 'printTimeBankToDate()')));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Total Daily Time To Be Paid', 'total_time', '', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Pay Period Balance', null, '', array('' => ''), null, array('TimeSheet', 'printPayPeriodToDate()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Overtime Explanation', 'explanation_overtime', '', array('' => ''), null, null));
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Overtime', null, '', array('' => ''), null, array('TimeSheet', 'printOvertime()')));
-          
-        } else {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('TimeSheet', 'printActionButtons()')));  
-        }
-
-        print($dg->render('datagrid',true,$GLOBALS['config']['COLOUR']['attention']));
-        $dg->pager();
-       
-       */
+      
          $dt=new JQueryDataTable();
 $columnsStr= <<<EX
             {
@@ -511,30 +483,7 @@ EX;
         return $form->toHtml(); //pass on as html string to display later in the table
     }
 
-    /**
-     * Method to change the color (to red) on fridays (end of pay period
-     */
-    function colorEndOfPayPeriod($datagrid, $tableBody, $numberPerPage) {
-        //get an array of data in the datagrid
-        $ds = $datagrid->getDataSource();
-        $data = $ds->fetch();
-
-        //go through each row and color it red if the cow hasn't been bred yet.
-        $counter = 0;
-
-        foreach ($data as $row) {
-
-
-            if (date("N", strtotime($row['event_time'])) == 5) {
-                $tableBody->setRowAttributes($counter, array('bgcolor' => '#FFDA7F'));
-            }
-
-            $counter++;
-            if ($counter >= $numberPerPage) {
-                break;
-            } //only draw colors that cen be seen on first page, gets around a pear bug.
-        }
-    }
+  
 
 }
 

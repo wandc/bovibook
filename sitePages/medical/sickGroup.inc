@@ -54,7 +54,7 @@ SQL;
             $bootstrapModal=new ModalBox($row['bovine_id']);
        
            $str[]= '<div class="calfBox ' . $classBox . ' '. $classBoxBorder .'">';
-           $str[]= ('<h3>' . '<img class=""    src="/images/cowHeadFront.svg"><a href="' . Misc::hrefToBovinePage($row['bovine_id']) . '" >' . $row['local_number'] . '</a></h3>');
+           $str[]= ('<h3>' . '<img class=""    src="/images/cowHeadFront.svg"><a href="' . $GLOBALS['MiscObj']->hrefToBovinePage($row['bovine_id']) . '" >' . $row['local_number'] . '</a></h3>');
            $str[]= '<ul>';
            $str[]= '<li>'.$bootstrapModal->button().' '.$openMedicalCase.' </li>';
            $str[]= ('<li>DIM: '  .$row['age_fresh_date'] . '</li>');

@@ -2,12 +2,6 @@
 /** 
  * shows notifications and errors from the site. */
 
-include_once($_SERVER['DOCUMENT_ROOT'].'global.php'); //need to include here for javascript refresh.
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-
-
-
-
 class SideBarInfo {
     /*
 Info! This alert box indicates a neutral informative change or action.
@@ -71,7 +65,8 @@ Info! This alert box indicates a neutral informative change or action.
           $content='<li class="smallish">'.'<b>'.'NOTE: Data Probably Out of Date. (fix error checking script)' .'</b>'.'</li>'.$content;  //put at top so we see it.
        }
         
-      return $content;   
+      return (new BootStrap)->plainBox('', $content);
+
     }
   
 }//end class

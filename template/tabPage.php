@@ -1,6 +1,4 @@
 <?php 
-
-//include_once($_SERVER['DOCUMENT_ROOT'].'/template/basePage.php');
 /**
  * Extends base page to have a somewhat generic tab page, using jquery tabs.
  * Jan 5 2011
@@ -33,11 +31,7 @@ Class TabPage extends BasePage {
     public function getCSStabs($classCSS) {
         return($this->classCSS);
     }
-
-    
-   
-    
-    
+ 
     final function customJavascript() {
         
 

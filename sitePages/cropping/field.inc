@@ -1,8 +1,7 @@
-<?php 
+<?php
 /*
  * SELECT gis.ST_Difference((SELECT geom FROM cropping.datum WHERE id=4157),(SELECT geom FROM cropping.datum WHERE id=3246))
  */
-
 
 class Field extends TabPage {
 
@@ -29,7 +28,7 @@ class Field extends TabPage {
 
     protected function tab1() {
         $this->addNewFieldQuickform();
-        $this->displayAllActiveFieldsList();
+        print($this->displayAllActiveFieldsList());
     }
 
     protected function tab2() {
@@ -37,62 +36,66 @@ class Field extends TabPage {
     }
 
     protected function tab3() {
-        $this->displaySeedingInfo();
+        print($this->displaySeedingInfo());
         $this->addNewSeedingToAFieldQuickform('default', null);
         $this->addNewCornSoybeanSeedingQuickform('default', null);
-        $this->displaySeedEventLog();
+        print($this->displaySeedEventLog());
     }
 
     protected function tab4() {
         $this->addNewSeedTypeQuickform();
-        $this->displayListOfSeeds();
+        print($this->displayListOfSeeds());
     }
 
     protected function tab5() {
         $this->addNewSeedingToAFieldQuickform('potential', null);
         $year = date('Y', strtotime('+ 1 year'));
-        $this->displayFieldsForCurrentSeasonPlanting($year);
+        print($this->displayFieldsForCurrentSeasonPlanting($year));
         $this->findPotentialSeedingSums($year);
         print("<hr/>");
         $year = date('Y', strtotime('now'));
-        $this->displayFieldsForCurrentSeasonPlanting($year);
+        print($this->displayFieldsForCurrentSeasonPlanting($year));
         $this->findPotentialSeedingSums($year);
         print("<hr/>");
         $year = date('Y', strtotime('- 1 year'));
-        $this->displayFieldsForCurrentSeasonPlanting($year);
+        print($this->displayFieldsForCurrentSeasonPlanting($year));
         $this->findPotentialSeedingSums($year);
     }
 
     protected function tab6() {
         $this->addNewSeedInventoryQuickform();
-        $this->displayCurrentSeedInventory();
+        print($this->displayCurrentSeedInventory());
     }
 
     protected function tab7() {
         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
             $this->addNewTillageEventQuickform();
         }
-        $this->displayTillageEvents();
+        print($this->displayTillageEvents());
     }
 
     protected function tab8() {
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/manure.inc');
-        
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            Manure::addNewManureLoadsEventQuickform();
-           Manure::addNewManureEventQuickform();
-        }
-        Manure::displayManureEvents();
+        //FIXME add quickform2
+        /*
+          require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/manure.inc');
+
+          if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+          Manure::addNewManureLoadsEventQuickform();
+          Manure::addNewManureEventQuickform();
+          }
+         * 
+         */
+        (new Manure)->displayAllManureEventsLast1000();
     }
 
     protected function tab9() {
-        $this->displaySprayEvents();
+        print($this->displaySprayEvents());
         $this->displaySprayInfo();
         $this->addSprayEventQuickform();
-        $a=new QF2_SprayEvent((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('QF2_SprayEvent','Enter Field(s) Spray Events'));  
+        $a = new QF2_SprayEvent((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'])), 'group');
+        print($a->renderBox('QF2_SprayEvent', 'Enter Field(s) Spray Events'));
         print($a->formJS());
-        $this->displaySprayLog();
+        print($this->displaySprayLog());
     }
 
     protected function tab10() {
@@ -100,8 +103,8 @@ class Field extends TabPage {
             $this->addNewFertilizerEventQuickform('default');
             $this->addNewFertilizerEventQuickform('scheduled');
         }
-        $this->displayFertilizerEventScheduled();
-        $this->displayFertilizerEvent();
+        print($this->displayFertilizerEventScheduled());
+        print($this->displayFertilizerEvent());
     }
 
     protected function tab11() {
@@ -111,7 +114,7 @@ class Field extends TabPage {
     protected function tab12() {
         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
             $this->addNewLimeEventQuickform();
-            $this->displayLimeEvent();
+            print($this->displayLimeEvent());
         }
     }
 
@@ -119,7 +122,7 @@ class Field extends TabPage {
         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
             $this->addNewFieldParamQuickform();
             $this->addNewGeneralCommentQuickform('default');
-            $this->displayFieldParamEvent();
+            print($this->displayFieldParamEvent());
         }
     }
 
@@ -128,21 +131,21 @@ class Field extends TabPage {
     }
 
     protected function tab15() {
-        $this->displayCornSnaplangeYieldInfo(date("Y", strtotime("0 year")));
-        $this->displayCornSnaplangeYieldInfo(date("Y", strtotime("-1 year")));
-        $this->displayCornSnaplangeYieldInfo(date("Y", strtotime("-2 year")));
+        print($this->displayCornSnaplangeYieldInfo(date("Y", strtotime("0 year"))));
+        print($this->displayCornSnaplangeYieldInfo(date("Y", strtotime("-1 year"))));
+        print($this->displayCornSnaplangeYieldInfo(date("Y", strtotime("-2 year"))));
         print("<br/>");
-        $this->displayBaleYieldInfo(date("Y", strtotime("0 year")));
-        $this->displayBaleYieldInfo(date("Y", strtotime("-1 year")));
-        $this->displayBaleYieldInfo(date("Y", strtotime("-2 year")));
+        print($this->displayBaleYieldInfo(date("Y", strtotime("0 year"))));
+        print($this->displayBaleYieldInfo(date("Y", strtotime("-1 year"))));
+        print($this->displayBaleYieldInfo(date("Y", strtotime("-2 year"))));
         print("<br/>");
-        $this->displayCornYieldChart(date("Y", strtotime("0 year")));
-        $this->displayCornYieldChart(date("Y", strtotime("-1 year")));
-        //$this->displayCornYieldChart(date("Y", strtotime("-2 year")));
+        print($this->displayCornYieldChart(date("Y", strtotime("0 year"))));
+        print($this->displayCornYieldChart(date("Y", strtotime("-1 year"))));
+        //print($this->displayCornYieldChart(date("Y", strtotime("-2 year"))));
         print("<br/>");
         $this->plotCornYield(date("Y", strtotime("0 year")));
-       // $this->plotCornYield(date("Y", strtotime("-1 year")));
-       // $this->plotCornYield(date("Y", strtotime("-2 year")));
+        // $this->plotCornYield(date("Y", strtotime("-1 year")));
+        // $this->plotCornYield(date("Y", strtotime("-2 year")));
         print("<br/><h3>All Years Corn Yields</h3>");
         $this->plotAllYearsCornYield();
     }
@@ -257,44 +260,44 @@ SELECT distinct(field_id),field_id, alpha_numeric_id ,2010 as year ,company,name
             google.charts.setOnLoadCallback(drawChart);
             });
             function drawChart() {
-                var data = google.visualization.arrayToDataTable([
-                    ['alpha_numeric_id', 'dm_tonne_per_ha', 'year', 'name', 'field_ha'],
-        <?php 
-        $res = $GLOBALS ['pdo']->query($sql);
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            print("['{$row['alpha_numeric_id']}', {$row['dm_tonne_per_ha']},	{$row['year']},   '{$row['name']}', {$row['field_ha']}],");
-        }
-        ?>
+            var data = google.visualization.arrayToDataTable([
+            ['alpha_numeric_id', 'dm_tonne_per_ha', 'year', 'name', 'field_ha'],
+            <?php
+            $res = $GLOBALS ['pdo']->query($sql);
+            while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+                print("['{$row['alpha_numeric_id']}', {$row['dm_tonne_per_ha']},	{$row['year']},   '{$row['name']}', {$row['field_ha']}],");
+            }
+            ?>
 
 
-                ]);
+            ]);
 
-                var options = {
-                    title: 'Corn Silage Yields',
-                    hAxis: {title: 'Relative DM Tonne/ha'},
-                    vAxis: {title: 'Year'},
-                    bubble: {textStyle: {fontSize: 11}},
-                    vAxis: {
-                        title: 'Year',
-                        viewWindowMode: 'explicit',
-                        viewWindow: {
-                            max: 2015,
-                            min: 2009
-                        }},
-                    width: 1400,
-                    height: 800
+            var options = {
+            title: 'Corn Silage Yields',
+            hAxis: {title: 'Relative DM Tonne/ha'},
+            vAxis: {title: 'Year'},
+            bubble: {textStyle: {fontSize: 11}},
+            vAxis: {
+            title: 'Year',
+            viewWindowMode: 'explicit',
+            viewWindow: {
+            max: 2015,
+            min: 2009
+            }},
+            width: 1400,
+            height: 800
 
-                };
+            };
 
-                var chart = new google.visualization.BubbleChart(document.getElementById('chart_divv_all'));
-                chart.draw(data, options);
+            var chart = new google.visualization.BubbleChart(document.getElementById('chart_divv_all'));
+            chart.draw(data, options);
             }
         </script>
 
 
 
 
-        <?php 
+        <?php
         print("<div id='chart_divv_all' ></div>");
     }
 
@@ -329,42 +332,42 @@ SELECT distinct(field_id),field_id, alpha_numeric_id ,company,name,chu, field_ha
 ";
         ?>
         <script type="text/javascript">
-            var year = <?php  echo($year); ?>;
+            var year = <?php echo($year); ?>;
 
-            setTimeout(drawChart<?php  echo("_cornplot_$year"); ?>, 200); //firefox workaround. 
-            google.charts.setOnLoadCallback(drawChart<?php  echo("_cornplot_$year"); ?>, true);
-             $(window).resize(function(){
-            google.charts.setOnLoadCallback(drawChart<?php  echo("_cornplot_$year"); ?>);
+            setTimeout(drawChart<?php echo("_cornplot_$year"); ?>, 200); //firefox workaround. 
+            google.charts.setOnLoadCallback(drawChart<?php echo("_cornplot_$year"); ?>, true);
+            $(window).resize(function(){
+            google.charts.setOnLoadCallback(drawChart<?php echo("_cornplot_$year"); ?>);
             });
-            function drawChart<?php  echo("_cornplot_$year"); ?>() {
-                var data = google.visualization.arrayToDataTable([
-                    ['alpha_numeric_id', 'dm_tonne_per_ha', 'chu', 'name', 'field_ha'],
-        <?php 
-        $res = $GLOBALS ['pdo']->query($sql);
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            print("['{$row['alpha_numeric_id']}', {$row['dm_tonne_per_ha']},	{$row['chu']},   '{$row['name']}', {$row['field_ha']}],");
-        }
-        ?>
+            function drawChart<?php echo("_cornplot_$year"); ?>() {
+            var data = google.visualization.arrayToDataTable([
+            ['alpha_numeric_id', 'dm_tonne_per_ha', 'chu', 'name', 'field_ha'],
+            <?php
+            $res = $GLOBALS ['pdo']->query($sql);
+            while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+                print("['{$row['alpha_numeric_id']}', {$row['dm_tonne_per_ha']},	{$row['chu']},   '{$row['name']}', {$row['field_ha']}],");
+            }
+            ?>
 
 
-                ]);
+            ]);
 
-                var options = {
-                    title: 'Corn Yields',
-                    hAxis: {title: 'dm_tonne_per_ha'},
-                    vAxis: {title: 'chu'},
-                    bubble: {textStyle: {fontSize: 11}}
-                };
+            var options = {
+            title: 'Corn Yields',
+            hAxis: {title: 'dm_tonne_per_ha'},
+            vAxis: {title: 'chu'},
+            bubble: {textStyle: {fontSize: 11}}
+            };
 
-                var chart<?php  echo("_cornplot_$year"); ?> = new google.visualization.BubbleChart(document.getElementById('chart_divv' + year));
-                chart<?php  echo("_cornplot_$year"); ?>.draw(data, options);
+            var chart<?php echo("_cornplot_$year"); ?> = new google.visualization.BubbleChart(document.getElementById('chart_divv' + year));
+            chart<?php echo("_cornplot_$year"); ?>.draw(data, options);
             }
         </script>
 
 
 
 
-        <?php 
+        <?php
         print("<div id='chart_divv$year' ></div>");
     }
 
@@ -398,21 +401,15 @@ SELECT distinct(field_id),field_id, alpha_numeric_id ,company,name,chu, field_ha
 
 ";
 
-        print("<h3>Corn Yield $year</h3>");
-        $dg = new DataGridLR($sql, 120);
 
-        /*        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''),null,array('DataGridHelper','printFormattedFieldAlphaNumeric()'))); 
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Yield', 'yield_per_ha', 'yield_per_ha', array('' => ''),null,array('Field','printYieldByCropType()')));
-
-         */         //  $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'company', 'company', array('' => ''), null, null));
-
-
-        print($dg->render());
-        $dg->pager();
+        $out[] = ("<h3>Corn Yield $year</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        return implode($out);
     }
 
     function displayBaleYieldInfo($year = 2014) {
-        $sql = "With temp as(
+        $sql = <<<SQL
+With temp as(
 SELECT *,round((gis.ST_Area(gis.ST_Transform(border_geom, 2036))/10000)::numeric,2) as area
  FROM cropping.yield_event 
 LEFT JOIN cropping.fieldcurr ON field_id=fieldcurr.id
@@ -421,23 +418,35 @@ LEFT JOIN cropping.yield_type ON yield_type.id = yield_type_id WHERE extract(yea
 SELECT *,amount/area as yield,(SELECT sum(amount) from temp group by extract(year from event_time)) as amount_per_year,(SELECT sum(area) from temp group by extract(year from event_time)) as area_per_year
 FROM temp 
 ORDER BY alpha_numeric_id;
-";
+SQL;
 
 
-        $dg = new DataGridLR($sql, 120);
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
+        //change presentation
+        foreach ($results as &$row) {
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('name', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('event_time', 'event_time', 'event_time', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('yield', 'yield', 'yield', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('amount', 'amount', 'amount', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('area', 'area', 'area', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Total Amount / year', 'amount_per_year', 'amount_per_year', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Total Amount / year', 'area_per_year', 'area_per_year', array('' => ''), null, null));
-        print("<h3>Bale Yield $year</h3>");
-        print($dg->render());
-        $dg->pager();
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Name'] = ($row['name']);
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Yield'] = ($row['yield']);
+            $rowOut['Amount'] = ($row['amount']);
+            $rowOut['area'] = ($row['area']);
+            $rowOut['Total Amount / year'] = ($row['amount_per_year']);
+            $rowOut['Total Amount / area /year'] = ($row['area_per_year']);
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Bale Yield $year</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     function displayCornSnaplangeYieldInfo($year = 2014) {
@@ -495,47 +504,49 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         $resX2->execute();
         $resX = $GLOBALS['pdo']->query($sqlX3);     //used by printYieldByCropType
 
-        print("<h3>Corn & Snaplage Yield for $year</h3>");
-        $dg = new DataGridLR($sql, 120);
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Yield', 'yield_per_ha', 'yield_per_ha', array('' => ''), null, array('Field', 'printYieldByCropType()')));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'company', 'company', array('' => ''), null, null));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
 
 
-        print($dg->render());
-        $dg->pager();
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Yield'] = $this->printYieldByCropType($row);
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Corn & Snaplage Yield for $year</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
-     * NESTED Information in datagrid*
+     * NESTED Information
      */
-    function printYieldByCropType($params) {
-        extract($params);
-
+    function printYieldByCropType($record) {
 
         /*
-         * NESTED datagrid
+         * NESTED table
          */
         $year = $record['year'];
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/dataGridHelper.php');
+        
         if ($record['field_id'] != null) {
             $sql = "SELECT feed_type_name,round(yield_per_ha::numeric,2) as yield_per_ha,round((dm_kg_yield_per_linear_foot/1000)::numeric,2) as dm_tonne_yield_per_ha FROM   temp_bag_yield_current_$year WHERE field_id={$record['field_id']} ORDER BY feed_type_name";
+            return (new JQueryDataTable)->startBasicSql($sql, 'order: false');
         } else {
             print_r2($record);
             throw new Exception("Error, no field_id provided for yield by crop.</br>");
         }
-        $dg = new DataGridLR($sql, 10);
-
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('XXX', 'null', 'null', array('' => ''), null, array('Field', 'printYieldDetails()')));
-        //render both datagrids, but put a seperate div around the far future ones,so we can hide, them.
-        $str = '<div id=\'\'>' . $dg->render('datagrid datagridNested') . '</div>'; // wrap in
-
-        return $str;
     }
 
-    function printYieldDetails($params) {
-        extract($params);
+    function printYieldDetails($record) {
+
         return $record['feed_type_name'] . '&nbsp;' . $record['yield_per_ha'] . '(bag ft/ha) &nbsp;' . $record['dm_tonne_yield_per_ha'] . '(DM tonne/ha) &nbsp;';
     }
 
@@ -552,23 +563,23 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         $gmd = new googleMapsDrawing();
         $gmd->colorBoxMap();
 
-/*
-        $colorString = "<script type='text/javascript' language='javascript'>
-            $(document).ready(function(){ 
-            
-            $('#colorBoxToggle-map').toggle(); //hide element when page loads.
-            
-            $('#field').change(function(){ 
-        
-             var str='/functions/googleMapsDrawing.php?openpage=true&field_id=' + ($('#field').val()) ;
-             $('#colorBoxToggle-map').show(); //show
-             $('#colorBoxToggle-map').attr('href', str);
-             })
-             });
-             </script>
-           ";
-        print($colorString);
-*/
+        /*
+          $colorString = "<script type='text/javascript' language='javascript'>
+          $(document).ready(function(){
+
+          $('#colorBoxToggle-map').toggle(); //hide element when page loads.
+
+          $('#field').change(function(){
+
+          var str='/functions/googleMapsDrawing.php?openpage=true&field_id=' + ($('#field').val()) ;
+          $('#colorBoxToggle-map').show(); //show
+          $('#colorBoxToggle-map').attr('href', str);
+          })
+          });
+          </script>
+          ";
+          print($colorString);
+         */
 
 
 
@@ -636,7 +647,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
      * turns longer crop rotations shows text in different shades of red to warn user.
      */
     function printWarningForLongCropRotation($stand_age) {
-       
+
 
         if ($stand_age == 4) {
             $str = '<b id="lightRed">' . $stand_age . '</b>';
@@ -652,7 +663,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
     /**
      * displays the crop roation stat
      */
-     public function currentYearCropRotation($request) {
+    public function currentYearCropRotation($request) {
         $sql = "SELECT *,id as field_id,event_time,
                 extract('year' FROM age(date_trunc('year',event_time)))+1 as stand_age
                 FROM cropping.rotationcurr
@@ -664,21 +675,19 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         //change presentation
-        foreach ($results as &$row) {  
+        foreach ($results as &$row) {
             $row['field_number'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
-            $row['event_time_raw'] = strtotime($row['event_time']);       
+            $row['event_time_raw'] = strtotime($row['event_time']);
             $row['event_time'] = date("M d Y", strtotime($row['event_time']));  //has to be at end.
-            $row['stand_age']=$this->printWarningForLongCropRotation($row['stand_age']);
-           
+            $row['stand_age'] = $this->printWarningForLongCropRotation($row['stand_age']);
         }
 
         //output
         $output['data'] = $results;
         return ($output);
     }
-    
-    
-        function displayCurrentYearCropRotation() {
+
+    function displayCurrentYearCropRotation() {
         $dt = new JQueryDataTable();
         $columnsStr = <<<EX
                         
@@ -766,8 +775,8 @@ EX;
                 $last_datum_id = self::quickformLinestringVALIDATE($form, $event_time);
 
 
-                
-               
+
+
 
 
                 // do an insert into cropping field and datum of data.
@@ -794,37 +803,17 @@ EX;
      * Displays spray events for corn and soybeans.
      */
     function displayFieldParamEvent($mode = 'default') {
-        $numberToshow = 1000;
-        $numberPerPage = 200;
-
-
-        $sql = "SELECT *
+        $sql = <<<SQL
+SELECT *
 		FROM cropping.field_parameter
 		LEFT JOIN cropping.field ON field.id=field_parameter.field_id
-		ORDER BY event_time DESC,alpha_numeric_id";
+		ORDER BY event_time DESC,alpha_numeric_id
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        /*
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array ('' => '' ), null, array ('DataGridHelper', 'printFormattedFieldAlphaNumeric()' ) ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Name', 'common_name', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Planting Date', 'event_time', 'event_time', array ('' => '' ), null, array ('DataGridHelper', 'printFormattedDateGeneric()' ) ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Crop', 'specific_type', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Seed', 'seed_name', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'population', 'population', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'CHU', 'chu', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'roundup?', 'trait_rr', 'trait_rr', array ('' => '' ), null, array ('DataGridHelper', 'printTrueFalseGenericEmphasis()' ) ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'Planting Comments', 'comment', '', array ('' => '' ), null, null ) );
-          $dg->datagrid->addColumn ( new Structures_DataGrid_Column ( 'userid', 'userid', '', array ('' => '' ), null, null ) );
-         */
-        // Ask the DataGrid to fill the HTML_Table with data, using rendering
-        // options
 
-        print ("<h3>Field Paramaters</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
-        }
+        $out[] = ("<h3>Field Paramaters</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -859,23 +848,23 @@ EX;
         $form->setDefaults(array('event_time' => 'now'));
 
 
-          //FIELD PARAM IS TEMPORAL, load last values as default.
-          //load latest defaults
-          if (!empty($field_id)) {
-          $sql = "SELECT * FROM cropping.field_parameter WHERE id=cropping.field_parameter_id_at_timestamp ($field_id, now()::timestamp)";
-          $res = $GLOBALS ['pdo']->query($sql);
-          $row = $res->fetch(PDO::FETCH_ASSOC);
-          $form->setDefaults(array("pasture" => $row['pasture']));
-          $form->setDefaults(array("not_normally_farmed" => $row['not_normally_farmed']));
-          $form->setDefaults(array("alfalfa_suitable" => $row['alfalfa_suitable']));
-          $form->setDefaults(array("corn_suitable" => $row['corn_suitable']));
-          $form->setDefaults(array("trefoil_suitable" => $row['trefoil_suitable']));
-          $form->setDefaults(array("spfh_suitable" => $row['spfh_suitable']));
-          //TODO
-          }else {
-          print("TODO: does not load previous parameter default values, be careful.");
-          }
-        
+        //FIELD PARAM IS TEMPORAL, load last values as default.
+        //load latest defaults
+        if (!empty($field_id)) {
+            $sql = "SELECT * FROM cropping.field_parameter WHERE id=cropping.field_parameter_id_at_timestamp ($field_id, now()::timestamp)";
+            $res = $GLOBALS ['pdo']->query($sql);
+            $row = $res->fetch(PDO::FETCH_ASSOC);
+            $form->setDefaults(array("pasture" => $row['pasture']));
+            $form->setDefaults(array("not_normally_farmed" => $row['not_normally_farmed']));
+            $form->setDefaults(array("alfalfa_suitable" => $row['alfalfa_suitable']));
+            $form->setDefaults(array("corn_suitable" => $row['corn_suitable']));
+            $form->setDefaults(array("trefoil_suitable" => $row['trefoil_suitable']));
+            $form->setDefaults(array("spfh_suitable" => $row['spfh_suitable']));
+            //TODO
+        } else {
+            print("TODO: does not load previous parameter default values, be careful.");
+        }
+
 
         $form->addRule('field', 'Field is required', 'required');
         $form->addRule('event_time', 'Date is required', 'required');
@@ -917,9 +906,9 @@ EX;
 
             //FIXME, if you do the same event_time, this will fail.           
             // 
-                $query = "INSERT INTO cropping.field_parameter (field_id,event_time,pasture,not_normally_farmed,userid,alfalfa_suitable,corn_suitable,trefoil_suitable,spfh_suitable) VALUES ($field_id,'$event_time','$pasture','$not_normally_farmed','{$GLOBALS['auth']->getUsername()}','$alfalfa_suitable','$corn_suitable','$trefoil_suitable','$spfh_suitable') ON CONFLICT DO NOTHING";
-                $res = $GLOBALS ['pdo']->exec($query);
-           
+            $query = "INSERT INTO cropping.field_parameter (field_id,event_time,pasture,not_normally_farmed,userid,alfalfa_suitable,corn_suitable,trefoil_suitable,spfh_suitable) VALUES ($field_id,'$event_time','$pasture','$not_normally_farmed','{$GLOBALS['auth']->getUsername()}','$alfalfa_suitable','$corn_suitable','$trefoil_suitable','$spfh_suitable') ON CONFLICT DO NOTHING";
+            $res = $GLOBALS ['pdo']->exec($query);
+
 
             header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
@@ -1071,27 +1060,37 @@ EX;
         $this->findPotentialSprayingTraitSums($year);
     }
 
-    /*
-      displaySprayLog()
-     */
-
     function displaySprayLog() {
-        $sql = "SELECT * FROM cropping.spray_event 
+        $sql = <<<SQL
+SELECT * FROM cropping.spray_event 
 LEFT JOIN cropping.field ON field.id=spray_event.field_id        
 LEFT JOIN cropping.spray ON spray_event.spray_id=spray.id
-ORDER by event_time DESC";
+ORDER by event_time DESC
+SQL;
 
-        $dg = new DataGridLR($sql, 25);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Event Date', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedTime()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Chemical', 'name', 'name', array('' => ''), null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('l/ha', 'amount', 'amount', array('' => ''), null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sprayer', 'sprayer_userid', 'sprayer_userid', array('' => ''), null));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        //change presentation
+        foreach ($results as &$row) {
 
-        print($dg->render());
-        $dg->pager();
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Event Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Chemical'] = ($row['name']);
+            $rowOut['l/ha'] = ($row['amount']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Sprayer Employee'] = ($row['sprayer_userid']);
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Spray Log</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -1099,7 +1098,8 @@ ORDER by event_time DESC";
      */
     function displaySprayEvents() {
 
-        $sql = "With temp as (
+        $sql = <<<SQL
+With temp as (
 SELECT seed_event .id as seed_event_id,seed_event.event_time as seed_event_time, field.id as field_id,alpha_numeric_id,common_name, specific_type,trait_rr,chu,company || ' ' || name as seed_name,population,comment,userid,event_time,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.seed_event 
         LEFT JOIN cropping.seed ON seed_event.seed_id=seed.id
@@ -1110,23 +1110,35 @@ SELECT seed_event .id as seed_event_id,seed_event.event_time as seed_event_time,
 ORDER BY alpha_numeric_id
 ) SELECT *,(SELECT true as current_spray FROM cropping.spray_event WHERE field_id=temp.field_id AND event_time >  (temp.seed_event_time + interval '7 day') AND event_time < (date_part('year', current_date) || '-12-31 23:59:59')::timestamp AND spray_event.event_time=(SELECT max(event_time) FROM cropping.spray_event WHERE field_id=temp.field_id AND event_time > (temp.seed_event_time + interval '7 day') AND event_time < (date_part('year', current_date) || '-12-31 23:59:59')::timestamp))
 
-as current_spray FROM temp";
+as current_spray FROM temp
+SQL;
 
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $dg = new DataGridLR($sql, null);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Planting Date', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop', 'specific_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Seed', 'seed_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Roundup?', 'trait_rr', 'trait_rr', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericEmphasis()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Userid', 'userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Sprayed?', 'current_spray', 'current_spray', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericEmphasis()')));
+        //change presentation
+        foreach ($results as &$row) {
 
-        print ("<h3>Spray to do List (> 7days after planting)</h3>");
-        print($dg->render());
-        $dg->pager();
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['name']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Planting Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Crop'] = ($row['specific_type']);
+            $rowOut['Seed'] = ($row['seed_name']);
+            $rowOut['Roundup?'] = ($row['trait_rr']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Sprayed?'] = ($row['current_spray']);
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Spray to do List (> 7days after planting)</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -1260,32 +1272,44 @@ as current_spray FROM temp";
     }
 
     function displayLimeEvent($mode = 'default') {
-        $numberToshow = 1000;
-        $numberPerPage = 200;
 
-        $sql = "SELECT *,lime_event.id as lime_event_scheduled_id,   lime_event.id as delete_table_id, 'lime_event' as delete_table_name,lime.name as lime_type,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+
+        $sql = <<<SQL
+SELECT *,lime_event.id as lime_event_scheduled_id,   lime_event.id as delete_table_id, 'lime_event' as delete_table_name,lime.name as lime_type,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.lime_event 
         LEFT JOIN cropping.lime ON lime_event.lime_id=lime.id
         LEFT JOIN cropping.field ON field.id=lime_event.field_id
         LEFT JOIN cropping.datum ON lime_event.datum_id = datum.id
-        ORDER BY event_time DESC,alpha_numeric_id";
+        ORDER BY event_time DESC,alpha_numeric_id
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('amount (t/ha)', 'lime_amount', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('type', 'lime_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
 
 
-        print ("<h3>Lime Log</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Amount'] = ($row['amount']);
+            $rowOut['Type'] = ($row['type']);
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
+
+
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Lime Log</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -1293,8 +1317,8 @@ as current_spray FROM temp";
      * completed button.
      * **********************************************************
      */
-    function printActionButtons2($params) {
-        extract($params);
+    function printActionButtons2($record, $callBackURL) {
+
         $currentUserid = $GLOBALS ['auth']->getUsername();
         $returnButtonsAsString = '';
 
@@ -1309,7 +1333,7 @@ as current_spray FROM temp";
             // so when no fertilizer events were found we pass along the id of
             // the fertilizer scheduled event and the name of the table to then
             // insert to: 'fertilizer_event'
-            $returnButtonsAsString = self::completedScheduledFertilzierButtonQuickForm($record ['fertilizer_event_scheduled_id'], 'fertilizer_event'); // show
+            $returnButtonsAsString = self::completedScheduledFertilzierButtonQuickForm($record ['fertilizer_event_scheduled_id'], 'fertilizer_event', $callBackURL); // show
             // complete
             // button
         }
@@ -1325,7 +1349,7 @@ as current_spray FROM temp";
      * completed button fertilizer scheduled
      * **********************************************************
      */
-    function completedScheduledFertilzierButtonQuickForm($tableid, $tablename) {
+    function completedScheduledFertilzierButtonQuickForm($tableid, $tablename, $callBackURL) {
 
         $fertilizer_users = self::whoCanSpreadFertilizer();
 
@@ -1360,7 +1384,7 @@ as current_spray FROM temp";
             // actually occurred.
 
             $userid = $GLOBALS ['auth']->getUsername();
-          
+
             // Open a transaction
             try {
                 $res = $GLOBALS ['pdo']->beginTransaction();
@@ -1381,8 +1405,8 @@ as current_spray FROM temp";
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
             }
-          
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); // pass on as html string to display later in the
@@ -1391,41 +1415,54 @@ as current_spray FROM temp";
 
     function displayFertilizerEventScheduled($mode = 'default') {
 
-        $numberToshow = 1000;
-        $numberPerPage = 200;
 
-        $sql = "SELECT *,fertilizer_event_scheduled.id as fertilizer_event_scheduled_id,   fertilizer_event_scheduled.id as delete_table_id, 'fertilizer_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+        $sql = <<<SQL
+SELECT *,fertilizer_event_scheduled.id as fertilizer_event_scheduled_id,   fertilizer_event_scheduled.id as delete_table_id, 'fertilizer_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.fertilizer_event_scheduled 
         LEFT JOIN cropping.fertilizer ON fertilizer_event_scheduled.fertilizer_id=fertilizer.id
         LEFT JOIN cropping.fertilizer_application_method ON fertilizer_application_method.id=fertilizer_event_scheduled.fertilizer_application_method_id
         LEFT JOIN cropping.field ON field.id=fertilizer_event_scheduled.field_id
         LEFT JOIN cropping.datum ON fertilizer_event_scheduled.datum_id = datum.id
-        WHERE fertilizer_event_scheduled.event_time >=  (date_part('year', current_date) || '-01-01')::date AND fertilizer_event_scheduled.event_time < '2021-01-01'  ORDER BY alpha_numeric_id";
+        WHERE fertilizer_event_scheduled.event_time >=  (date_part('year', current_date) || '-01-01')::date AND fertilizer_event_scheduled.event_time < '2021-01-01'  ORDER BY alpha_numeric_id
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Type', null, '', array('' => ''), null, array('Field', 'printFertilzierType()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('amount (kg/ha)', 'amount', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('method', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop Year', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedYearMonthGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Field', 'printActionButtons()')));
-        }
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action2', null, '', array('' => ''), null, array('Field', 'printActionButtons2()')));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        print ("<h3>Fertilizer To Do List</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Type'] = $this->printFertilzierType($row);
+            $rowOut['Amount (kg/ha)'] = ($row['amount']);
+            $rowOut['Method'] = ($row['name']);
+            $rowOut['Crop Year'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Employee'] = ($row['userid']);
+
+            if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+                $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            }
+            $rowOut['Action2'] = $this->printActionButtons2($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+
+
+
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Fertilizer To Do List</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     // area in hectares
-    function printFertilzierType($params) {
-        extract($params);
+    function printFertilzierType($record) {
+
         $boron = '';
         $n_source = '';
         if ($record['b'] != 0) {
@@ -1439,33 +1476,44 @@ as current_spray FROM temp";
     }
 
     function displayFertilizerEvent($mode = 'default') {
-        $numberToshow = 1000;
-        $numberPerPage = 200;
 
-        $sql = "SELECT *,fertilizer_event.id as fertilizer_event_scheduled_id,   fertilizer_event.id as delete_table_id, 'fertilizer_event' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+
+        $sql = <<<SQL
+SELECT *,fertilizer_event.id as fertilizer_event_scheduled_id,   fertilizer_event.id as delete_table_id, 'fertilizer_event' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.fertilizer_event 
         LEFT JOIN cropping.fertilizer ON fertilizer_event.fertilizer_id=fertilizer.id
         LEFT JOIN cropping.fertilizer_application_method ON fertilizer_application_method.id=fertilizer_event.fertilizer_application_method_id
         LEFT JOIN cropping.field ON field.id=fertilizer_event.field_id
         LEFT JOIN cropping.datum ON fertilizer_event.datum_id = datum.id
-        ORDER BY event_time DESC,alpha_numeric_id";
+        ORDER BY event_time DESC,alpha_numeric_id
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Type', null, '', array('' => ''), null, array('Field', 'printFertilzierType()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('amount (kg/ha)', 'amount', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('method', 'name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop Year', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Type'] = $this->printFertilzierType($row);
+            $rowOut['Amount (kg/ha)'] = ($row['amount']);
+            $rowOut['Method'] = ($row['name']);
+            $rowOut['Crop Year'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Employee'] = ($row['userid']);
 
 
-        print ("<h3>Fertilizer Log</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Fertilizer Lo</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     private function yieldTypes() {
@@ -1782,33 +1830,40 @@ as current_spray FROM temp";
         echo($renderer->toHtml());
     }
 
-    
-  
     function displayTillageEvents($mode = 'default') {
-        $numberToshow = 1000;
-        $numberPerPage = 20;
-
-        $sql = "SELECT tillage_event.*,field.*,tillage.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+        $sql = <<<SQL
+SELECT tillage_event.*,field.*,tillage.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.tillage_event 
         LEFT JOIN cropping.field ON field.id=tillage_event.field_id
         LEFT JOIN cropping.datum ON tillage_event.datum_id = datum.id
         LEFT JOIN cropping.tillage ON tillage_event.tillage_id= tillage.id
-        ORDER BY event_time DESC";
+        ORDER BY event_time DESC
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Date', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Type', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Who', 'userid', 'userid', array('' => ''), null, null));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        print ("<h3>Tillage Events</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Type'] = ($row['name']);
+            $rowOut['Employee'] = ($row['userid']);
+
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Tillage Events</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -1919,21 +1974,15 @@ as current_spray FROM temp";
 
     function displayCurrentSeedInventory($mode = 'default') {
 
-        $numberToshow = 1000;
-        $numberPerPage = 200;
-
         $sql = "SELECT *
         FROM cropping.seed_inventory 
         LEFT JOIN cropping.seed ON seed_inventory.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
        ";
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        print ("<h3>Current Seed Inventory</h3>");
-        if ($mode == 'default') {
-            print($dg->render());
-            $dg->pager();
-        }
+        $out[] = ("<h3>Current Seed Inventory</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        return implode($out);
     }
 
     function addNewSeedInventoryQuickform() {
@@ -2007,36 +2056,46 @@ as current_spray FROM temp";
      * list all seed events
      */
     function displaySeedEventLog($mode = 'default') {
-        $numberToshow = 1000;
-        $numberPerPage = 200;
 
-        $sql = "SELECT *,seed_event.id as seed_event_scheduled_id,comment ,name,seed_event.id as delete_table_id, 'seed_event' as delete_table_name, round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id, amount, population  
+        $sql = <<<SQL
+SELECT *,seed_event.id as seed_event_scheduled_id,comment ,name,seed_event.id as delete_table_id, 'seed_event' as delete_table_name, round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id, amount, population  
         FROM cropping.seed_event
         LEFT JOIN cropping.seed ON seed_event.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
         LEFT JOIN cropping.field ON field.id=seed_event.field_id
         LEFT JOIN cropping.datum ON seed_event.datum_id = datum.id
-        ORDER BY event_time DESC,alpha_numeric_id";
+        ORDER BY event_time DESC,alpha_numeric_id
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('General Type', 'general_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Specific Type', 'specific_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Seed Name', 'name', 'name', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop Year', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedYearGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('amount', 'amount', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('population', 'population', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('comment', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Field', 'printActionButtons()')));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        print ("<h3>Seed Event Log</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['General Type'] = ($row['general_type']);
+            $rowOut['Specific Type'] = ($row['specific_type']);
+            $rowOut['Seed Name'] = ($row['name']);
+            $rowOut['Crop Year'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Amount'] = ($row['amount']);
+            $rowOut['Population'] = ($row['population']);
+            $rowOut['Planting Comments'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Seed Event Log</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -2049,48 +2108,60 @@ as current_spray FROM temp";
             throw new Exception("Invalid year ($year) for crop planning.");
         }
 
-        $numberToshow = 1000;
-        $numberPerPage = 200;
 
         //all seeds
         if ($fieldID == null) {
-            $sql = "SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
+            $sql = <<<SQL
+SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
         FROM cropping.seed_event_scheduled 
         LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
         LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
         LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
-        WHERE  seed_event_scheduled.event_time >='$year-01-01' AND seed_event_scheduled.event_time < '$year-12-31'  ORDER BY specific_type,alpha_numeric_id";
+        WHERE  seed_event_scheduled.event_time >='$year-01-01' AND seed_event_scheduled.event_time < '$year-12-31'  ORDER BY specific_type,alpha_numeric_id
+SQL;
         } else {
 
-            $sql = "SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
+            $sql = <<<SQL
+SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
         FROM cropping.seed_event_scheduled 
         LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
         LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
         LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
-        WHERE  seed_event_scheduled.event_time >='$year-01-01' AND seed_event_scheduled.event_time < '$year-12-31' AND field.id=$fieldID";
+        WHERE  seed_event_scheduled.event_time >='$year-01-01' AND seed_event_scheduled.event_time < '$year-12-31' AND field.id=$fieldID
+SQL;
         }
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('General Type', 'general_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Specific Type', 'specific_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop Year', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedYearGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, null));
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));    
-        //$dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Rotation', 'rotation', 'rotation', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Rotation Crop', 'rotation_crop', 'rotation_crop', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('userid', 'userid', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Comment', 'comment', 'comment', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Completed?', null, '', array('' => ''), null, array('Field', 'printCompleted()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', null, '', array('' => ''), null, array('Field', 'printActionButtons()')));
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        print ("<h3>Planning List for $year</h3>");
-        print($dg->render());
-        $dg->pager();
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['General Type'] = ($row['general_type']);
+            $rowOut['Specific Type'] = ($row['specific_type']);
+            $rowOut['Crop Year'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Rotation'] = ($row['rotation']);
+            $rowOut['Rotation Crop'] = ($row['rotation_crop']);
+            $rowOut['Comment'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
+            $rowOut['Completed?'] = $this->printCompleted($row);
+            $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("Planning List for $year</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /* print total amount of acres for specifc seed types */
@@ -2116,7 +2187,7 @@ Select distinct(specific_type) ,sum(area),sum(completed_area) as completed FROM 
         $str = '';
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
 
-             if ($row['specific_type'] == 'BMR Corn') {
+            if ($row['specific_type'] == 'BMR Corn') {
                 $bagNo = round($row['sum'] * (84601 / 80000), 1); // populaton per ha / seed per bag.
                 $str = $str . $row['specific_type'] . ': ' . $row['sum'] . ' ha. Total Bags: ' . $bagNo . '. (@ 34k seeds/acre)' . " {$row['completed']} ha done." . ' <br/>';
             } elseif ($row['specific_type'] == 'Corn') {
@@ -2183,8 +2254,8 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
         print($str);
     }
 
-    function printFieldArea($params) {
-        extract($params);
+    function printFieldArea($record) {
+
         $res = $GLOBALS ['pdo']->query("SELECT datum_id FROM cropping.border_event WHERE field_id={$record['field_id']} AND event_time <='{$record['event_time']}' ORDER BY event_time DESC LIMIT 1");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row['datum_id'] != $record['datum_id']) {
@@ -2194,8 +2265,8 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
         }
     }
 
-    function printCompleted($params) {
-        extract($params);
+    function printCompleted($record) {
+
 
         $yearOfInterest = date('Y', strtotime($record['event_time']));
         $res = $GLOBALS ['pdo']->query("SELECT seed_event.id FROM cropping.seed_event WHERE field_id={$record['field_id']} AND event_time between '$yearOfInterest-01-01' AND '$yearOfInterest-12-31'");
@@ -2208,10 +2279,10 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
     }
 
     // show delete button
-    function printActionButtons($params) {
-        extract($params);
+    function printActionButtons($record, $callBackURL) {
+
         $currentUserid = $GLOBALS ['auth']->getUsername();
-        $returnButtonsAsString = self::deleteQuickForm($record ['delete_table_id'], $record ['delete_table_name']); // show
+        $returnButtonsAsString = self::deleteQuickForm($record ['delete_table_id'], $record ['delete_table_name'], $callBackURL); // show
         // delete
         // button
         return $returnButtonsAsString;
@@ -2219,7 +2290,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
 
     // passing the table name without checking it is a bad idea.trusting the
     // users.....
-    function deleteQuickForm($tableid, $tablename) {
+    function deleteQuickForm($tableid, $tablename, $callBackURL) {
 
         $form = new HTML_QuickForm("CullEventDeleteButton", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -2266,7 +2337,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
                 echo "Failed: " . $e->getMessage();
             }
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header($callBackURL);
             exit();
         }
         return $form->toHtml(); // pass on as html string to display later in the
@@ -2275,18 +2346,10 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
 
     function displayListOfSeeds($mode = 'default') {
 
-        $numberToshow = 1000;
-        $numberPerPage = 200;
-
         $sql = "SELECT seed.id as seed_id,* FROM cropping.seed LEFT JOIN cropping.seed_category ON seed.seed_category_id = seed_category.id WHERE seed.active=true ORDER BY general_type,specific_type,name";
-        $dg = new DataGridLR($sql, $numberPerPage);
-
-
-        print ("<h3>Seed List</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
-        }
+        $out[] = ("<h3>Seed List</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -2489,8 +2552,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
 
             $seed_id = $form->exportValue('seed_type');
 
-            $population = round($form->exportValue('seed_amount_pop')*0.404686);//convert to #/acre for DB store
-
+            $population = round($form->exportValue('seed_amount_pop') * 0.404686); //convert to #/acre for DB store
             //fert 
             $fertilizer_id = $form->exportValue('fertilizer_type');
             $fertilizer_comment = '';
@@ -2539,7 +2601,8 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
 
     function displaySeedingInfo() {
 
-        $sql = "With temp as (
+        $sql = <<<SQL
+With temp as (
 SELECT seed_event .id as seed_event_id,seed_event.event_time as seed_event_time, field.id as field_id,alpha_numeric_id,common_name, specific_type,trait_rr,trait_bt,chu,company || ' ' || name as seed_name,population,comment,userid,event_time,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.seed_event 
         LEFT JOIN cropping.seed ON seed_event.seed_id=seed.id
@@ -2548,28 +2611,38 @@ SELECT seed_event .id as seed_event_id,seed_event.event_time as seed_event_time,
         LEFT JOIN cropping.datum ON seed_event.datum_id = datum.id
         WHERE seed_event.event_time >= (date_part('year', current_date) || '-01-01')::date AND seed_event.event_time < (date_part('year', current_date) || '-12-31 23:59:59')::timestamp AND (seed_category.specific_type = 'Soybean' OR seed_category.specific_type ='Corn')
 ORDER BY alpha_numeric_id
-) SELECT * FROM temp";
+) SELECT * FROM temp
+SQL;
 
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $dg = new DataGridLR($sql, 100);
+        //change presentation
+        foreach ($results as &$row) {
 
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (ha)', 'area', 'area', array('' => ''), null, array('Field', 'printFieldArea()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Planting Date', 'event_time', 'event_time', array('' => ''), null, array('DataGridHelper', 'printFormattedDateGeneric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Crop', 'specific_type', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Seed', 'seed_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('population', 'population', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('CHU', 'chu', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Roundup?', 'trait_rr', 'trait_rr', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericEmphasis()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Corn Borer?', 'trait_bt', 'trait_bt', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericEmphasis()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Planting Comments', 'comment', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Userid', 'userid', '', array('' => ''), null, null));
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Size (ha)'] = $this->printFieldArea($row);
+            $rowOut['Planting Date'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Crop'] = ($row['specific_type']);
+            $rowOut['Seed'] = ($row['seed_name']);
+            $rowOut['Population'] = ($row['population']);
+            $rowOut['CHU'] = ($row['chu']);
+            $rowOut['Roundup?'] = ($row['trait_rr']);
+            $rowOut['Corn Borer?'] = ($row['trait_bt']);
+            $rowOut['Planting Comments'] = ($row['comment']);
+            $rowOut['Employee'] = ($row['userid']);
 
+            $resultsOut[] = $rowOut;
+        }
 
-        print ("<h3>Corn and Soybean Seedings</h3>");
-        print($dg->render());
-        $dg->pager();
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Corn and Soybean Seedings</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
     /**
@@ -2968,41 +3041,50 @@ ORDER BY alpha_numeric_id
 
     function displayAllActiveFieldsList($mode = 'default') {
 
-        $numberToshow = 1000;
-        $numberPerPage = 200;
-
-        $sql = "
-            SELECT *,id as field_id,cropping.field_border_area_at_timestamp (id, current_date) as area
+        $sql = <<<SQL
+   SELECT *,id as field_id,cropping.field_border_area_at_timestamp (id, current_date) as area
 FROM cropping.field 
 WHERE active=true ORDER BY alpha_numeric_id
-";
+SQL;
 
-        $dg = new DataGridLR($sql, $numberPerPage);
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Field Number', 'alpha_numeric_id', 'alpha_numeric_id', array('' => ''), null, array('DataGridHelper', 'printFormattedFieldAlphaNumeric()')));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Name', 'common_name', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('id', 'id', '', array('' => ''), null, null));
-        $dg->datagrid->addColumn(new Structures_DataGrid_Column('Size (Ha)', 'area', 'area', array('' => ''), null, null));
 
-        print ("<h3>Active Field List</h3>");
-        print($dg->render());
-        if ($mode == 'default') {
-            $dg->pager();
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['ID Name'] = ($row['id']);
+            $rowOut['Size (Ha)'] = ($row['area']);
+
+            $resultsOut[] = $rowOut;
         }
+
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+        $out[] = ("<h3>Active Field List</h3>");
+        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        return implode($out);
     }
 
-    // datagrid customizations.....
-    function printFormattedArea($params) {
-        extract($params);
+ 
+    function printFormattedArea($record) {
+
         // return area in ha
-        return round(Misc::areaLatLonInHectares($record ['perimeter_coordinates']), 2);
+        return round($GLOBALS['MiscObj']->areaLatLonInHectares($record ['perimeter_coordinates']), 2);
     }
 
 }
+
 // end class
 
 Class QF2_SprayEvent extends Quickform2Helper {
 
-    
     function old() {
         $fieldArray = CroppingHelper::allActiveFieldsArray();
 
@@ -3063,12 +3145,11 @@ Class QF2_SprayEvent extends Quickform2Helper {
         $form->addRule('spray_type', 'spray Type is required', 'required');
         $form->addRule('spray_amount', 'spray Amount is required', 'required');
         $form->addRule('spray_amount', 'spray Amount must be a number', 'numeric');
-
     }
-    
+
     function definition($form) {
 
-        
+
         $fieldArray = CroppingHelper::allActiveFieldsArray();
 
         $sql = "SELECT id,name FROM cropping.spray ORDER BY name";
@@ -3086,41 +3167,41 @@ Class QF2_SprayEvent extends Quickform2Helper {
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $sprayUsers [$row ['userid']] = $row ['userid'];
         }
-        
-        
-       
+
+
+
 
         ////
-        
+
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
         if ($this->mode == 'group') {
             $form->addSelect('fieldSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($fieldArray);
-        } else {      
-               $form->addElement('hidden', 'fieldSelected')->setValue($this->param->field_id);
+        } else {
+            $form->addElement('hidden', 'fieldSelected')->setValue($this->param->field_id);
         }
-        $date = $form->addElement('date', 'dateEvent', null, array( 'label' => 'Spray Date','format' => 'd-F-Y', 'minYear' => date('Y'), 'maxYear' => 2030));
+        $date = $form->addElement('date', 'dateEvent', null, array('label' => 'Spray Date', 'format' => 'd-F-Y', 'minYear' => date('Y'), 'maxYear' => 2030));
         $date->setValue(date('Y-m-d', strtotime('now')));
 
         $form->addElement('select', 'spray_type', null, array('options' => $typeArray, 'label' => 'Spray Type'))->addRule("required", "Please specify your Spray Type");
         $form->addElement('text', 'spray_amount', null, array('options' => $dateArray, 'label' => 'Chemical Amount (l/hectare)'))->addRule("required", "Please specify your Spray Amount");
-        
-         $form->addElement('textarea','comment',array('rows'=>2,'cols'=>20))->setLabel('Comment');
-         
-          //only show the choice on who did the spray for admin users.
+
+        $form->addElement('textarea', 'comment', array('rows' => 2, 'cols' => 20))->setLabel('Comment');
+
+        //only show the choice on who did the spray for admin users.
         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            $form->addElement('select', 'spray_userid',  null, array('options' => $sprayUsers, 'label' => 'Who did the spraying'))->addRule("required", "Please specify who did the srpaying");
+            $form->addElement('select', 'spray_userid', null, array('options' => $sprayUsers, 'label' => 'Who did the spraying'))->addRule("required", "Please specify who did the srpaying");
         } else {
             $form->addElement('hidden', 'spray_userid')->setValue($GLOBALS['auth']->getUsername());
         }
-         
-         
-         
-  return $form; //required   
+
+
+
+        return $form; //required   
     }
 
     //select2 javascript needed for form
     function formJS() {
-$jscript = <<<JSCRIPT
+        $jscript = <<<JSCRIPT
  <script>           
 var s2 = $("#selectEvents").select2({
     placeholder: "Choose Field(s)",
@@ -3129,71 +3210,64 @@ var s2 = $("#selectEvents").select2({
       </script>      
 JSCRIPT;
 
-            return $jscript;
+        return $jscript;
     }
-    
-    
+
     function process($value) {
-       
-            
-            $value['event_time'] = date('Y-m-d H:i:sO', strtotime($value['dateEvent']['d'].'-'.$value['dateEvent']['F'].'-'.$value['dateEvent']['Y']));
-            $comment = pg_escape_string(trim($value['comment']));
-            
-            
-           
-            
-            if ($comment == '') {
-                $comment = null;
-            }
 
-            // Open a transaction
-            try {
-                $res = $GLOBALS ['pdo']->beginTransaction();
 
-                
-                
-                
-                // do insert of new polygon data and get the datum_id for it after
-                // insert.
-                //$last_datum_id = self::quickformLinestringVALIDATE($form, $event_time);
-  
-         
-                
-            
+        $value['event_time'] = date('Y-m-d H:i:sO', strtotime($value['dateEvent']['d'] . '-' . $value['dateEvent']['F'] . '-' . $value['dateEvent']['Y']));
+        $comment = pg_escape_string(trim($value['comment']));
+
+
+
+
+        if ($comment == '') {
+            $comment = null;
+        }
+
+        // Open a transaction
+        try {
+            $res = $GLOBALS ['pdo']->beginTransaction();
+
+
+
+
+            // do insert of new polygon data and get the datum_id for it after
+            // insert.
+            //$last_datum_id = self::quickformLinestringVALIDATE($form, $event_time);
+
+
+
+
             if (is_array($value['fieldSelected'])) {
-            //group
+                //group
                 foreach ($value['fieldSelected'] as $k => $v) {
-                
-                $field_id=$v;
-                 $query = "INSERT INTO cropping.spray_event (field_id,datum_id,event_time,spray_id,userid,comment,sprayer_userid,amount) VALUES ($field_id, cropping.field_border_at_timestamp ($field_id, '{$value['event_time']}'),'{$value['event_time']}',{$value['spray_type']},'{$GLOBALS['auth']->getUsername()}','$comment','{$value['spray_userid']}',{$value['spray_amount']})";
-                $res = $GLOBALS ['pdo']->exec($query);
-            }
-            
+
+                    $field_id = $v;
+                    $query = "INSERT INTO cropping.spray_event (field_id,datum_id,event_time,spray_id,userid,comment,sprayer_userid,amount) VALUES ($field_id, cropping.field_border_at_timestamp ($field_id, '{$value['event_time']}'),'{$value['event_time']}',{$value['spray_type']},'{$GLOBALS['auth']->getUsername()}','$comment','{$value['spray_userid']}',{$value['spray_amount']})";
+                    $res = $GLOBALS ['pdo']->exec($query);
+                }
             }
             //individual case
             else {
-               // print("hi");
-               // exit();
-                
+                // print("hi");
+                // exit();
                 //$query = "INSERT INTO bovinemanagement.location_event (bovine_id,event_time,location_id,userid,transaction_id) VALUES ({$value['fieldSelected']},'{$value['event_time']}',{$value['newLocation']},'{$GLOBALS['auth']->getUsername()}',$transaction_id)";
                 //$res = $GLOBALS['pdo']->exec($query);
             }
-            
-         
+
+
             // determine if the commit or rollback
-      
-               $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            
-            }
 
+            $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+            echo "Failed: " . $e->getMessage();
+        }
     }
-    
-   
 
-}//end class   
+}
 
-
+//end class   
 ?>

@@ -15,14 +15,6 @@
  */
 
 
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleVisualization.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-
-
 class MilkingStats extends TabPage {
 
     public function defaultDisplay() {
@@ -177,7 +169,7 @@ SELECT * FROM temp2 where one is not null and two is not null
         $headerStrArr['AM'] = 'number';
         $headerStrArr['PM'] = 'number';
 
-        $x = new GoogleVisLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
         print($x->toString());
     }
     
@@ -325,7 +317,7 @@ SELECT * from temp WHERE location_id=$location_id AND mun is not null";
         $headerStrArr = array();
         $headerStrArr['DIM'] = 'number'; //BACKWARDS
         $headerStrArr['MUN'] = 'number';
-        $x = new GoogleVisScatter(null, $headerStrArr, $dimArr, $munArr);
+        $x = new GoogleVisualizationScatter(null, $headerStrArr, $dimArr, $munArr);
         print($x->toString());
     }
 
@@ -595,7 +587,7 @@ SELECT  location_id,test_date,avg(total_milk) as avg_total_milk,avg(fat_per) as 
         $headerStrArr['Fat (kg)'] = 'number';
         $headerStrArr['Protein (kg)'] = 'number';
 
-        $x = new GoogleVisLine(null, $headerStrArr, $fatArr, $protArr);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $fatArr, $protArr);
         print($x->toString());
 
 
@@ -625,7 +617,7 @@ SELECT  location_id,test_date,avg(total_milk) as avg_total_milk,avg(fat_per) as 
         $headerStrArr['Fat (kg)'] = 'number';
         $headerStrArr['Protein (kg)'] = 'number';
 
-        $x = new GoogleVisLine(null, $headerStrArr, $fatArr, $protArr);
+        $x = new GoogleVisualizationLine(null, $headerStrArr, $fatArr, $protArr);
         print($x->toString());
 
 

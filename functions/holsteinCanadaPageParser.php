@@ -1,7 +1,5 @@
 <?php 
-require_once($_SERVER['DOCUMENT_ROOT'].'/global.php');
-    include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/holsteinCanadaHelper.inc');
-
+ include_once('../global.php');
 class HolsteinCanadaPageParser {
   
   
@@ -57,7 +55,11 @@ else {
     curl_setopt($ch,CURLOPT_USERAGENT,'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'); //it seems holstein canada displays site only to browsers it recognizes.
 
  $hosPage= curl_exec($ch);
- //remove nav junk.
+ if (curl_exec($ch) === false) {
+                echo 'Holstein Curl error: ' . curl_error($ch);
+            }
+
+            //remove nav junk.
  $hosPage = preg_replace('~<nav(.*?)</nav>~Usi', "", $hosPage);
 
 //make links open up in the same window.
@@ -132,6 +134,4 @@ if ((isset($_REQUEST['reg']))) {
     $xx=new HolsteinCanadaPageParser(850,1024);
 $xx->main();
 }
-
-
 ?>

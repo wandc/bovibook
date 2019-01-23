@@ -80,7 +80,7 @@ class AlproCron {
  */
 public static function cronSync() {
     //create uuid for db.
-    $uuid=Misc::uuid_create();
+    $uuid=$GLOBALS['MiscObj']->uuid_create();
     $pid=getmypid();
     //say we are starting.
     $query = "INSERT INTO alpro.cron (uuid,pid,start_time) VALUES ('$uuid',$pid,current_timestamp)";
@@ -91,7 +91,7 @@ public static function cronSync() {
     /** ******************** **/
     print("ALPRO CRON RUNNING."."\n\r");
     //include_once($_SERVER['DOCUMENT_ROOT'].'phpCronScripts/alproSync.php'); //too slow to run this every 2 minutes.
-    include_once($_SERVER['DOCUMENT_ROOT'].'phpCronScripts/AlproSortAndMovementSync.inc');
+
     print("ALPRO CRON ENDING."."\n\r");
     /** ******************** **/
 

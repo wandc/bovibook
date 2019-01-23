@@ -55,7 +55,7 @@ order by prodoll";
             foreach ($results as &$row) {
                 $row['local_number'] = $GLOBALS['MiscObj']->hrefToBovinePageFullName($row['bovine_id'],$row['local_number'],$row['full_name']);
 
-                $retArr = BovineQueryBreedingChoice::nextBreedingAction($row['bovine_id'], false);
+                $retArr = (new BovineQueryBreedingChoice)->nextBreedingAction($row['bovine_id'], false);
                 $row['breed_to'] = $retArr['nextActionTxt'];
             }
         }

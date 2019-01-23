@@ -166,10 +166,9 @@ class EstrusKamar extends BasePage {
     public function AllKamarCurrent($request) {
         $bovine_id = Sanit::reqVal('item', false, 'INT');
 
-
         if ($bovine_id == true) {
             //show for specific cow
-            $sql = "SELECT id,bovine_id,event_time,kamar_event_type,userid,local_number,full_name,location_name FROM bovinemanagement.kamar_event_curr WHERE bovine_id=$bovine_id";
+            $sql = "SELECT id,bovine_id,event_time,kamar_event_type,userid,local_number,full_name,location_name FROM bovinemanagement.kamar_event_curr WHERE bovine_id=$bovine_id limit 1";
             return $this->jsonKamarFormatter($sql);
         } else {
             //show for all cows.
@@ -205,6 +204,32 @@ class EstrusKamar extends BasePage {
         return ($output);
     }
 
+    
+    function displaySingleCowKamarStatusBox($bovine_id){
+
+           $sql = "SELECT id,bovine_id,event_time,kamar_event_type,userid,local_number,full_name,location_name FROM bovinemanagement.kamar_event_curr WHERE bovine_id=$bovine_id limit 1";
+           $statement = $GLOBALS['pdo']->prepare($sql);
+           $statement->execute();
+           $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+      
+            if (empty($results[0])) {
+            $colour = 'green';
+            $text = '';
+        } elseif ($results[0]['kamar_event_type'] == 'red') {
+            $colour = 'red';
+            $text = $results[0]['event_time'] . ' '. $results[0]['kamar_event_type'];
+        } elseif (($results[0]['kamar_event_type'] == 'partialred') OR ( $results[0]['kamar_event_type'] == 'lost')) {
+            $colour = 'yellow';
+            $text = $results[0]['event_time'] . ' '. $results[0]['kamar_event_type'];
+        } else {
+            $colour = 'green';
+            $text = $results[0]['event_time'] . ' '.$results[0]['kamar_event_type'];
+        }
+
+
+        return(BootStrap::bootstrapSmallBox('Kamar', $text , null, $colour, 'ion-model-s'));  
+    }
+    
     function displayLastAllKamarEvents($bovine_id = null) {
         $dt = new JQueryDataTable();
         $columnsStr = <<<EX
@@ -256,9 +281,9 @@ Class QF2_EstrusKamar extends Quickform2Helper {
         $kamarEventsArray = array(null => 'Please Select One', 'on' => 'On', 'removed' => 'Removed', 'lost' => 'Lost', 'red' => 'Red', 'partialred' => 'Partially Red', 'verifiedwhite' => 'Verified White');
 
 
-        $dateArray = Misc::createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = Misc::createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
 
 
         ////

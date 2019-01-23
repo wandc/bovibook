@@ -243,22 +243,6 @@ EX;
 
 
 
-        /*
-          $dg = new DataGridLR_Ext($sql, 100);
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', 'local_number', 'local_number', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumber()')));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Potential Name', 'potential_name', 'potential_name', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Since Birthday', 'since_birthday', 'since_birthday', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Submitted File name', 'short_uuid', 'short_uuid', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('ERA Sent Date', 'event_time_reg_sent', 'event_time_reg_sent', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hol Can Parentage Status', 'parentage_verified', 'parentage_verified', array('' => ''), null, array('DataGridHelper', 'printTrueFalseGenericEmphasis()')));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('DNA Test', 'dna_pending', 'dna_pending', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Local Reg Status', 'local_reg_status', 'local_reg_status', array('' => ''), null, null));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Hol Can Reg Status', 'Reg Status', 'Reg Status', array('' => ''), null, array('CalfRegistration', 'printRegStatus()')));
-          $dg->datagrid->addColumn(new Structures_DataGrid_Column('Action', 'Action', 'Action', array('' => ''), null, array('CalfRegistration', 'printActionButtons()')));
-          print($dg->render());
-          $dg->pager();
-
-         */
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data

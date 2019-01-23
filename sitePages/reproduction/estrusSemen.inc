@@ -1,13 +1,5 @@
 <?php 
-
 //Lists straws of semen in our inventory
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/dataGridHelper.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-
 class EstrusSemen extends TabPage {
 
 
@@ -117,7 +109,7 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
 
             //get random transaction id
-            $transaction_id = Misc::generatePseudoRandomTransactionInteger();
+            $transaction_id = $GLOBALS['MiscObj']->generatePseudoRandomTransactionInteger();
 
             $binNumber = 'NULL';
 
@@ -343,7 +335,6 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
         $sireRegNum=trim($sireRegNum);
         //don't bother checking if in DB or not, 99% of the time it won't be.
     
-            include_once($_SERVER['DOCUMENT_ROOT'] . 'phpCronScripts/AggregateSiteData.inc');
             $aggrObj = new AggregateSiteData;
             $aggrObj->upsertSingleAnimal(trim($sireRegNum), 'all');
             
@@ -384,7 +375,7 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
         foreach ($results as &$row) {
             
  
-	    $row['full_reg_number'] = '<a href="' . Misc::createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
+	    $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
             $row['event_time_raw'] = strtotime($row['update_time']);
             $row['update_time'] = date("l M d Y H:00", strtotime($row['update_time']));  //has to be at end.
         }
@@ -442,7 +433,7 @@ EX;
     /*     * ******************************* */
     function addSemenToInventoryQuickForm() {
 
-        $dateArray = Misc::createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
         //grab a list of sires.
         $res = $GLOBALS['pdo']->query("SELECT full_reg_number,sire.full_name,short_name
 FROM bovinemanagement.sire ORDER BY short_name ASC");
@@ -599,7 +590,7 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
 
             //get random transaction id
-            $transaction_id = Misc::generatePseudoRandomTransactionInteger();
+            $transaction_id = $GLOBALS['MiscObj']->generatePseudoRandomTransactionInteger();
 
             //add special case for when semen straw is in the bottom of the tank.
             if ($binNumber == 99999) {
@@ -687,7 +678,7 @@ ORDER BY short_name
 
         //change presentation
         foreach ($results as &$row) {
-      $row['short_nameX']=  '<a href="'.Misc::createListOfAllCowsMilking($row['full_reg_number'])."\">{$row['short_name']}</a>";
+      $row['short_nameX']=  '<a href="'.$GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number'])."\">{$row['short_name']}</a>";
       $row['sexed_semen']= ( $row['sexed_semen']=='t' ? 'true' : '');
        $row['reserved']= ( $row['reserved']=='t' ? 'true' : '');
            
@@ -768,7 +759,7 @@ EX;
     function printShortNameLink($params) {
         extract($params);
         //create a link to CDN website, so when user clicks they go there for the sire
-        $linkStr = Misc::createListOfAllCowsMilking($record['full_reg_number']);
+        $linkStr = $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['full_reg_number']);
         return "<a href=\"$linkStr\">{$record['short_name']}</a>";
     }
 
@@ -975,26 +966,6 @@ ORDER BY short_name";
 
 }
 
-//super hack, we use this class alot and for the error notifier to work
-//we need to have it as a unique name, this is so it skips loading this.
-//YUCK.
-if (class_exists('DataGridLR_Ext') != true) {
-    /* //extends datgrid class with specific logic to colour the line. */
-
-    class DataGridLR_Ext extends DataGridLR {
-
-        function colourLineCriteria($row) {
-
-            if (($row['invoice_cost']) == 8) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-    }
-
-}
 
 //end class
 ?>
