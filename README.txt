@@ -49,5 +49,4 @@ If everything went well you can go to your URL and should see bovibook login.
 
 If you do not, go check less /var/log/apache2/error.log for errors
 
-Currently we bovibook uses HTML_QuickForm. This is deprecated and does not work directly with php7. It can be made to work, by editing the files. It needs to be removed.
-#sudo pear install HTML_QuickForm
+Currently we bovibook uses HTML_QuickForm. This is deprecated and does not work directly with php7. We use a composer version that someone has patched to work with php7.
