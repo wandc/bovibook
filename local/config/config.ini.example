@@ -62,8 +62,8 @@ producerNumber="NB_FARM_ID";
 
 
 [MARITIME_QUALITY_MILK]
-login="NB254";
-password="F43703";
+login="NB123";
+password="PASSWORD";
 
 ;; login stuff for oauth2local server goes here.
 ;;
