@@ -13,35 +13,39 @@ class EstrusEmbryo extends TabPage{
          $this->renderTabs($tabArray);
          }
          
-         function tab1() {
-             $html = <<<HTML
-    <div class='row'>
-        <div class='col-sm-4 col-sm-push-8'>    
-             {$this->markCowToReceiveEmbryoQuickForm()}
+        function tab1() {
+             
+             
+         $left = <<<HTML
+              {$this->displayListOfEmbryoImplantations()}
+        HTML; 
+            
+        $right = <<<HTML
+            {$this->markCowToReceiveEmbryoQuickForm()}
              {$this->markCowAsImplantedQuickform()} 
-        </div>
-        <div class='col-sm-8 col-sm-pull-4'>
-            {$this->displayListOfEmbryoImplantations()}
-        </div> 
-    </div>    
-HTML;
-          print($html);
+        HTML; 
+                
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);     
+            
          }
          
          
          function tab2() {
-              $html = <<<HTML
-    <div class='row'>
-        <div class='col-sm-4 col-sm-push-8'>    
-             {$this->addEmbryoStrawToInventory()}
+             
+             
+        $left = <<<HTML
+              {$this->displayListOfEmbryoStraws()}
+        HTML; 
+            
+        $right = <<<HTML
+            {$this->addEmbryoStrawToInventory()}
              {$this->markFlushQuickForm()} 
-        </div>
-        <div class='col-sm-8 col-sm-pull-4'>
-            {$this->displayListOfEmbryoStraws()}
-        </div> 
-    </div>    
-HTML;
-          print($html);
+        HTML; 
+                
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);     
+        
          }
 
          
@@ -105,7 +109,7 @@ HTML;
 			$self::scheduleFlushDefaultInsert($bovine_id,$estimated_time);
 
 			$host  = $_SERVER['HTTP_HOST'];
-			header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+			header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 			exit();
 
 		} //end validation
@@ -248,7 +252,7 @@ function addEmbryoStrawToInventory() {
 
 
 			$host  = $_SERVER['HTTP_HOST'];
-			header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+			header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 			exit();
 
 		} //end validation
@@ -302,7 +306,7 @@ SQL;
         $dataArr = $resultsOut;
       
 
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Implanted Embryos', $dataArr,'')); 
          return implode($out); 
       
             
@@ -348,7 +352,7 @@ SQL;
 	    $form->addElement('hidden','pageid',$_REQUEST['pageid']);
 	    $form->addElement('hidden','tableid',$tableid);
 	    $form->addElement('hidden','tablename',$tablename);
-	    $form->addElement('submit', 'btnDelete', 'Delete', array('id'=>'deleteSubmit','onclick' => "return confirm('Are you sure you want to delete?')")); //call javascript to confirm delete.
+	    $form->addElement('submit', 'btnDelete', 'Delete', array('class'=>'btn btn-warning','id'=>'deleteSubmit','onclick' => "return confirm('Are you sure you want to delete?')")); //call javascript to confirm delete.
 	    //FIXME:HUGE SECURITY HOLE HERE BECAUSE TABLE NAME CAN BE MODIFIED BY USER.
 	    //DB hack works though, views need to support deletes before this can be fixed.
 	    
@@ -372,7 +376,7 @@ SQL;
 	       $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 	      
 	      header($callBackURL);
@@ -480,7 +484,7 @@ WHERE groups.name='embryo_implant'";
 
 			//forward to same page, ob_start() is key to making this work!
 			$host  = $_SERVER['HTTP_HOST'];
-			header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+			header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
 			exit();
 
 		} //end validation
@@ -573,7 +577,7 @@ ORDER BY flush_date DESC,straw_number ASC";
 			
 
 			$host  = $_SERVER['HTTP_HOST'];
-			header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+			header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 			exit();
 
 		} //end validation
@@ -625,8 +629,7 @@ SQL;
         //output
         $dataArr = $resultsOut;
       
-        $out[]="<h3>Embryo Inventory</h3>";
-        $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+        $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Embryo Straws', $dataArr,'')); 
         return implode($out); 
       
 	}

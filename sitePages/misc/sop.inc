@@ -104,8 +104,12 @@ if ($sop_id!=null) {
 
         $res = $GLOBALS['pdo']->query("SELECT id,title,content FROM misc.sopcurr WHERE id=$sop_id");
 	$row=$res->fetch(PDO::FETCH_ASSOC);
+        if (!empty($row['content'])) {
 	$content=$row['content'];
-	
+        }
+        else {
+            $content='';
+        }
 	
 	//has to be a seperate query because if it is a new sop, ther is no content yet.
 	$res2 = $GLOBALS['pdo']->query("SELECT id,title FROM misc.sop WHERE id=$sop_id");
@@ -156,10 +160,10 @@ if ($sop_id!=null) {
 	 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 	
-	header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+	header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 	exit();
 	
     } //end validation
@@ -209,10 +213,10 @@ if ($sop_id!=null) {
 	 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 	
-	header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&editsopid=$sop_id");
+	header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&editsopid=$sop_id");
 	exit();
 	
     } //end validation
@@ -224,7 +228,7 @@ if ($sop_id!=null) {
  
     
   function customJavascript() {
-    ?>
+    $js=<<<JS
     <script type="text/javascript" src="vendor/tinymce/tinymce/tinymce.min.js"></script>
 <script type="text/javascript">
     
@@ -242,10 +246,10 @@ if ($sop_id!=null) {
   });
     
 </script>
-<?php 
+JS;
 
- require_once($_SERVER['DOCUMENT_ROOT'] . 'template/tabPage.php');
-     TabPage::customJavascript();
+
+   return($js . TabPage::customJavascript());
 
 
 

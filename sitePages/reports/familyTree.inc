@@ -17,7 +17,7 @@ class FamilyTree extends BasePage {
      * draw the female side of a family tree based on a starting reg number
      *  
      */
-    public function drawFemaleFamilyTree($full_reg_number) {
+    public static function drawFemaleFamilyTree($full_reg_number) {
 
         //postgres recursive funcion to search a tree.
 $sql = <<<SQL
@@ -35,6 +35,7 @@ SELECT * FROM search_graph ORDER BY path
 SQL;
 
         $res = $GLOBALS['pdo']->query($sql);
+        $datatOut=array();
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
              $geno_test =  (!empty($row['geno_test'])) ? ' &nbsp;&nbsp; &#x24bc; ' : ''  ;
             if (!empty(trim($row['full_name']))) {
@@ -66,7 +67,7 @@ $js = <<<JS
             }
         </script>         
 JS;
-         return (new BootStrap)->plainBox('Female-Line Family Tree',$js);
+         return (new BootStrap)->plainCard('Female-Line Family Tree',$js);
     }
 
     /**

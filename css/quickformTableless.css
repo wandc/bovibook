@@ -1,3 +1,9 @@
+.quickform {
+display: inline-block;    
+margin:0;
+padding:0;
+}
+
 quickformtableless {
     
     border: 2px solid #0000ff;
@@ -26,8 +32,10 @@ form.quickformtableless fieldset.hidden {
 }
 form.quickformtableless fieldset legend {
     white-space: nowrap;
-    background-color: #605ca8 ;
-    font-weight: bold;
+    background-color: #007bff;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 400;
     width: 90%;
     padding: 1px;
     display: block;

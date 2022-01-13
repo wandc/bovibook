@@ -1,11 +1,5 @@
 <?php 
 /* shows how TMR recipes change through time */
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'phpCronScripts/vfd_actech.php');
-
 class FeedUsageProjection extends TabPage {
 
     public function defaultDisplay() {
@@ -31,10 +25,11 @@ class FeedUsageProjection extends TabPage {
     function tab2() {
 
         print("<h2>Projections of Feed Usage Based On Current Recipe</h2>");
-        $this->dailyProjection('1day');
-        $this->dailyProjection('7day');
-        $this->dailyProjection('14day');
-        $this->dailyProjection('30day');
+        print($this->dailyProjection('1'));
+        print($this->dailyProjection('7'));
+        print($this->dailyProjection('14'));
+        print($this->dailyProjection('30'));
+
         $FeedBinCapacityChart= new FeedBinCapacityChart();
         $FeedBinCapacityChart->displayFeedBinCapacityChart();
     }
@@ -43,10 +38,12 @@ class FeedUsageProjection extends TabPage {
     function tab3() {
         /* feed tank levels */
      
-        
+        $this->lastDayFeedTankChart(0);
         $this->lastDayFeedTankChart(1);
-           $this->lastDayFeedTankChart(4);
-              $this->lastDayFeedTankChart(0);
+        $this->lastDayFeedTankChart(2);
+        $this->lastDayFeedTankChart(3);
+        $this->lastDayFeedTankChart(4);
+        // $this->lastDayFeedTankChart(0); //not hooked up 
        
     }
     
@@ -73,11 +70,12 @@ class FeedUsageProjection extends TabPage {
     //put in input format for method, so it could also be an ajax call
     $x['item']=4;
     $a=($this->tankScaleData($x,true));
-    $mass=round($a[0]['mass']);
+    $mass=(!empty($a[0])) ? round($a[0]['mass']) : 'N/A';
     print("<h3>MASS:</h3>");
     print("<h4>Tank #4: $mass kg</h4>");
     print("<hr>");
         
+    (new VFD_ACTech('xx')); //hack so class file loads. 
     $cls= new  Hammermill_VFD();
     $cls->hammermillRealtimeInfo();
     
@@ -271,15 +269,33 @@ class FeedUsageProjection extends TabPage {
            $tankNum=$request['item'];
         
                 switch ($tankNum) {
+                    /* //not hooked up right now
    case 0:
          $tankEmptyMassVolts=68000; 
          $massMulitplier=.1;
          $sql = "SELECT  event_time, (abs(cells[1]-70000)-$tankEmptyMassVolts)*$massMulitplier as mass from bas.feed_bin_weight_event WHERE tank_id=0 AND event_time>=(current_date-interval '4 days') ORDER BY event_time DESC "; //open scale
-         break;                              
+         break;        
+                     
+                     */  
+    case 0:
+         $tankEmptyMassVolts=2.40; //calulated by adding 4 load cells together and subtracting 20 volts from it. 2.417 on Nov 6 2016. Used 2.36 previously. //NO IDEA FIXME
+         $massMulitplier=1;
+         $sql = "SELECT  event_time, (abs(cells[1]+cells[2]+cells[3]+cells[4]-20)-$tankEmptyMassVolts)*4000*$massMulitplier as mass from bas.feed_bin_weight_event WHERE tank_id=0 AND event_time>=(current_date-interval '4 days') ORDER BY event_time DESC ";
+         break;                
    case 1:
          $tankEmptyMassVolts=2.40; //calulated by adding 4 load cells together and subtracting 20 volts from it. 2.417 on Nov 6 2016. Used 2.36 previously.
          $massMulitplier=1;
          $sql = "SELECT  event_time, (abs(cells[1]+cells[2]+cells[3]+cells[4]-20)-$tankEmptyMassVolts)*4000*$massMulitplier as mass from bas.feed_bin_weight_event WHERE tank_id=1 AND event_time>=(current_date-interval '4 days') ORDER BY event_time DESC ";
+         break;
+    case 2:
+         $tankEmptyMassVolts=2.40; //calulated by adding 4 load cells together and subtracting 20 volts from it. 2.417 on Nov 6 2016. Used 2.36 previously. //NO IDEA YET FIXME
+         $massMulitplier=1;
+         $sql = "SELECT  event_time, (abs(cells[1]+cells[2]+cells[3]+cells[4]-20)-$tankEmptyMassVolts)*4000*$massMulitplier as mass from bas.feed_bin_weight_event WHERE tank_id=2 AND event_time>=(current_date-interval '4 days') ORDER BY event_time DESC ";
+         break;
+     case 3:
+         $tankEmptyMassVolts=2.40; //calulated by adding 4 load cells together and subtracting 20 volts from it. 2.417 on Nov 6 2016. Used 2.36 previously. //NO IDEA YET FIXME
+         $massMulitplier=1;
+         $sql = "SELECT  event_time, (abs(cells[1]+cells[2]+cells[3]+cells[4]-20)-$tankEmptyMassVolts)*4000*$massMulitplier as mass from bas.feed_bin_weight_event WHERE tank_id=3 AND event_time>=(current_date-interval '4 days') ORDER BY event_time DESC ";
          break;
    case 4:
           //now has 8 load cells.
@@ -311,45 +327,20 @@ class FeedUsageProjection extends TabPage {
     
     
 
-    public function dailyProjection($projectionNo) {
+    public function dailyProjection($projectionNo=1) {
 
 
 
-        $numberPerPage = 100;
-
-
-
-        switch ($projectionNo) {
-
-            case '1day':
-                $sql = "	     
-SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amount)) as wet_total_daily_usage,round((sum(ingrediant_load_amount)*.01*(100-recipe_active.moisture_percent))) as dry_total_daily_usage FROM nutrition.recipe_active GROUP BY feedcurr_id,moisture_percent,feed_type,location ORDER BY location
-";
-                $title = 'Daily Usage';
-                break;
-            case '7day':
-                $sql = "	     
-SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amount)*7) as wet_total_daily_usage,round((sum(ingrediant_load_amount)*.01*(100-recipe_active.moisture_percent))*7) as dry_total_daily_usage FROM nutrition.recipe_active GROUP BY feedcurr_id,moisture_percent,feed_type,location ORDER BY location
-";
-                $title = '7 Day Projection';
-                break;
-            case '14day':
-                $sql = "	     
-SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amount)*14) as wet_total_daily_usage,round((sum(ingrediant_load_amount)*.01*(100-recipe_active.moisture_percent))*14) as dry_total_daily_usage FROM nutrition.recipe_active GROUP BY feedcurr_id,moisture_percent,feed_type,location ORDER BY location
-";
-                $title = '14 Day Projection';
-                break;
-            case '30day':
-                $sql = "	     
-SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amount)*30) as wet_total_daily_usage,round((sum(ingrediant_load_amount)*.01*(100-recipe_active.moisture_percent))*30) as dry_total_daily_usage FROM nutrition.recipe_active GROUP BY feedcurr_id,moisture_percent,feed_type,location ORDER BY location
-";
-                $title = '30 Day Projection';
-                break;
-        }
+/* lateral necessary because it is a set of retuning form a function */
+        $sql = <<<SQL
+  with temp as (
+SELECT distinct one.nrc_recipe,status,locations,two.feed_type,two.kg_day_wet_mix
+FROM nutrition.nrc_recipe_active_staging one
+CROSS JOIN LATERAL nutrition.nrc_recipe_display(one.nrc_recipe) two WHERE status='active'
+)
+select distinct feed_type, sum(kg_day_wet_mix) OVER (partition by feed_type) as_fed_sum FROM temp ORDER BY feed_type
+SQL;
         
-        //FIXME: SQL IS FOR PRE NRC 2001 and needs changed to new way.
-        
-        /*
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -359,20 +350,45 @@ SELECT  DISTINCT (feedcurr_id),feed_type,location,round(sum(ingrediant_load_amou
 
  
             $rowOut['Feed Name'] = ($row['feed_type']);
-            $rowOut['Location'] = ($row['location']);
-            $rowOut['As Fed Total (kg)'] = ($row['wet_total_daily_usage']);
-            $rowOut['DM Total (kg)'] = ($row['dry_total_daily_usage']);
+            
+                switch ($projectionNo) {
+
+            case '1':
+                $rowOut['As Fed (kg)'] = ($row['as_fed_sum'])*1;
+                $title = 'Daily Usage';
+                break;
+            case '7':
+                 $rowOut['As Fed (kg)'] = ($row['as_fed_sum'])*7;
+                $title = '7 Day Projection';
+                break;
+            case '14':
+                $rowOut['As Fed (kg)'] = ($row['as_fed_sum'])*14;
+                $title = '14 Day Projection';
+                break;
+            case '30':
+                $rowOut['As Fed (kg)'] = ($row['as_fed_sum'])*30;
+                $title = '30 Day Projection';
+                break;
+            default:
+                throw new Exception("Error: need a proper number of days feed usage projection.");
+        }
+            
+             $rowOut['As Fed (kg)'] = round($rowOut['As Fed (kg)'],1);
+            
+          
 
             $resultsOut[] = $rowOut;
         }
-
+    
         //output
         $dataArr = $resultsOut;
 
-        $out[] = ('<h3>$title</h3>');
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr));
-        print implode($out);
-        */
+        $out[] = ("<h3>$title</h3>");
+        $out[] = (new BootStrap)->infoCallout('Recipies fed every 2nd day will be wrong.');
+        $out[] = (new BootStrap)->infoCallout('This is all receipes that are currently active. When recipes are being edited this will be incorrect (a few minutes per day in the am).');
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr));
+        return implode($out);
+        
        
     }
 

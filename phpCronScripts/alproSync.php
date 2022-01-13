@@ -10,11 +10,23 @@ if (defined('STDIN')) { //when called from cli, command line define constant.
 include_once($_SERVER['DOCUMENT_ROOT'].'functions/alproCommands.php');
 echo("START: Alpro Commands Sync.\n\r");
 $xx=new AlproCommands();
+
 $xx->syncBovineAlive();
 $xx->syncBovineDead();
 $xx->syncBovineMove();
+
+$xx->syncBovineCalving();
+$xx->syncBovineDriedOff();
+
+
 $xx->syncDoNotMilk();
-$xx->syncDumpMilk();
-//$xx->syncBovineDriedOff();
+$xx->syncDumpMilk(); 
+
+//$xx->syncAlproProcessorDateTime();
+
+/* order of these matter, ie calving before dry off */
+
+
+//$xx->syncBovineInsemination();
 echo("END: Alpro Commands Sync.\n\r");
 ?>

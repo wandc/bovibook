@@ -33,20 +33,20 @@ Class TabPage extends BasePage {
     }
  
     final function customJavascript() {
-        
-
-
         /* We store the selected tab in local storage 
          * For the server to know what tab we are on we use the tabtocall callback. 
          * Other methods would be a hiddned field writen by jquery before form submission or a URL rewriter of some sort.
          */
-        ?>
+        
+        $calledClass=get_called_class();
+        
+        $js=<<<JS
         <script type="text/javascript"> 
                                             
                                             
 $(document).ready(function () {
     
-   
+ 
       /* set local storage tab value from URL first, this is for when we link directly to specific tab with <a> link */
       /* need to make it null afterwards or it doesn not work for forms, maybe called mulktiple times? */
                var url_string = window.location.href; 
@@ -54,33 +54,36 @@ $(document).ready(function () {
                var urlTab = url.searchParams.get("tabtocallAnchor");
                if (urlTab != null) {
                         url.searchParams.set("tabtocallAnchor",null);
-                        localStorage.setItem('JQuery_TabID_Storage_<?php echo(get_called_class()); ?>', urlTab);   
+                        localStorage.setItem('JQuery_TabID_Storage_$calledClass', urlTab);   
          }
     
     var currentTabIndex = "0";
 
-    $tab = $("#jquery_tabs").tabs({
+    \$tab = $("#jquery_tabs").tabs({
         effect: 'ajax',
         beforeLoad: function(event, ui) {
     ui.panel.html('<img src="/images/ajax-loader-big.gif" width="24" height="24" style="vertical-align:middle;"> Loading...');
   },
          activate : function (event, ui) {
             currentTabIndex = ui.newTab.index().toString();
-            localStorage.setItem('JQuery_TabID_Storage_<?php  echo(get_called_class()); ?>', currentTabIndex);
+            localStorage.setItem('JQuery_TabID_Storage_$calledClass', currentTabIndex);
          }
     });
     
-    if (localStorage.getItem('JQuery_TabID_Storage_<?php  echo(get_called_class()); ?>') != null) {
-        currentTabIndex = localStorage.getItem('JQuery_TabID_Storage_<?php  echo(get_called_class()); ?>');  
-        $tab.tabs('option', 'active', currentTabIndex);
+    if (localStorage.getItem('JQuery_TabID_Storage_$calledClass') != null) {
+        currentTabIndex = localStorage.getItem('JQuery_TabID_Storage_$calledClass');  
+        \$tab.tabs('option', 'active', currentTabIndex);
     }
     $('#btn-sub').on('click', function () {
-        localStorage.setItem('JQuery_TabID_Storage_<?php  echo(get_called_class()); ?>', currentTabIndex);    
+        localStorage.setItem('JQuery_TabID_Storage_$calledClass', currentTabIndex);    
     });
 });
-      
+   
+
+
         </script>
-        <?php 
+JS;
+        return $js;
     }
     
     

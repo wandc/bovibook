@@ -2,31 +2,30 @@
 class EstrusBreedings extends BasePage {
 
     public function defaultDisplay() {
-        print("<div class='row'>"."\n\r");
+        
+        $boot=new BootStrap;
+        $a=new QF2_EstrusBreedingsMarkCowToBeBred((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        $c=new QF2_EstrusBreedingsChooseSemen((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');   
+        $d=new QF2_EstrusBreedingsMarkBred((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');   
        
-        print("<div class='col-sm-4 col-sm-push-8'>"."\n\r");
-        //$this->markCowToBeBredQuickForm();
-       // $this->chooseSemenForBreedingQuickForm();
-       //$this->markCowAsBredQuickForm();
+        $top=$boot->halfHalf($this->displayFutureBreedingEvents(),$this->displayBreedingRate());
+
+      
+        $left = <<<HTML
+            {$top}
+            {$this->displayLastBreedingEvents2()}
+        HTML; 
+            
+        $right = <<<HTML
+            {$a->renderBox('qf2_BreedingsCowToBeBred','Animal to be Bred')}
+            {$c->renderBox('qf2_BreedingsChooseSemen','Choose Semen')}
+            {$d->renderBox('qf2_BreedingsMarkBred','Mark as Bred')}
+        HTML; 
+                
+        $content=$boot->oneThirdTwoThirds($left,$right);                
+        print($content);
         
         
-        
-        $a=new QF2_EstrusBreedingsMarkCowToBeBred((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_BreedingsCowToBeBred','Animal to be Bred'));     
-        //
-         $c=new QF2_EstrusBreedingsChooseSemen((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($c->renderBox('qf2_BreedingsChooseSemen','Choose Semen'));     
-        //
-        $c=new QF2_EstrusBreedingsMarkBred((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($c->renderBox('qf2_BreedingsMarkBred','Mark as Bred'));     
-        
-        print("</div>"."\n\r");
-         print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-        $this->displayFutureBreedingEvents();
-        //$this->displayLastBreedingEvents();
-        $this->displayLastBreedingEvents2();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");
     }
 
     public function summaryDisplay() {
@@ -82,14 +81,18 @@ $columnsStr= <<<EX
             {
                 data: "action",
                 title: "Action"
+            },
+             {
+                data: "icon",
+                title: ""
             }
 EX;
-    print($dt->start(30,'breedings',null,$columnsStr,'highlight_important'));     
+    return ($dt->start('Breeding Events', 30,'breedings',null,$columnsStr,'highlight_important'));     
 }     
 
     public function breedings() {
         $sql = "SELECT breeding_event.id, breeding_event.estimated_breeding_time as event_time, breeding_event.estimated_breeding_userid, breeding_event.actual_breeding_time as event_time2, 
-            breeding_event.actual_breeding_userid, breeding_event.bovine_id, bovine.local_number, bovine.full_name , sire_semen_code.semen_code, sire.full_name as service_sire_full_name,
+            breeding_event.actual_breeding_userid, breeding_event.bovine_id, bovine.local_number, bovine.full_name , sire_semen_code.semen_code, sire.short_name as service_sire_short_name , sire.full_name as service_sire_full_name,kamar_event_type,
             sire.full_reg_number as sire_full_reg_number,semen_straw_choice_userid,sexed_semen,palpate_comment.comment as breeding_comment,locationcurr.name as location_name
 FROM bovinemanagement.breeding_event 
 LEFT JOIN bovinemanagement.bovine ON breeding_event.bovine_id = bovine.id 
@@ -98,6 +101,7 @@ LEFT JOIN bovinemanagement.sire_semen_code ON sire_semen_code.semen_code=semen_s
 LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = sire_semen_code.sire_full_reg_number
 LEFT JOIN bovinemanagement.palpate_comment ON palpate_comment.id = breeding_event.comment_id
 LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id=bovine.id
+LEFT JOIN bovinemanagement.kamar_event_curr ON kamar_event_curr.bovine_id=bovine.id
 WHERE breeding_event.estimated_breeding_time <= (current_timestamp + interval '25 hours')::timestamp without time zone
 ORDER BY actual_breeding_time DESC ,estimated_breeding_time ASC, local_number limit 50";
 
@@ -125,12 +129,28 @@ ORDER BY actual_breeding_time DESC ,estimated_breeding_time ASC, local_number li
              $row['semen_straw_choice_userid'] = $row['semen_straw_choice_userid'];
             
             $row['actual_breeding_userid'] = $row['actual_breeding_userid'];
-            $row['service_sire_full_name'] = $row['service_sire_full_name'];
+                        
+           $extra=$GLOBALS['MiscObj']->isSireBeefBullThenSymbol($row['sire_full_reg_number']); //see if beef symbol shown   
+           $sexxed = ($row['sexed_semen'] == true) ? ' <i class="fas fa-venus"></i> ':''; 
+           $sire_link= $GLOBALS['MiscObj']->createCDNLinkHref($row['service_sire_short_name'],$row['sire_full_reg_number']);
+            
+            $row['service_sire_full_name'] = $extra.$sire_link.$sexxed;
             $row['breeding_comment'] = $row['breeding_comment'];
             //$row['action'] = 1;
             //
-            //  
-            $row['action'] = $this->printActionButtons2($row['id'],$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");  
+            //  <i class="fas fa-clipboard-list"></i>
+             $printButton=self::printBreedingReceiptForm2($row['id']);
+            
+              //find kamar status
+              $kamarIcon = (!empty($row['kamar_event_type'])) ? '<i class="fas fa-capsules"></i>' : '';
+             
+              $row['icon']=$kamarIcon;
+              
+              $delButton=new QF2_DeleteButtonDecider('user_timeLimit',(object) array('dateTimeName'=> 'update_time', 'schemaTable'=>'bovinemanagement.breeding_event','useridColumnName'=>'estimated_breeding_userid','buttonClassName'=>'QF2_EstrusBreedingDeleteButton'));
+              $row['action']=$delButton->output($row['id']).$printButton;
+            
+  
+            
             $row['colour_row'] =  (empty($row['actual_breeding_userid']) ? 1 : 0);
             
         }
@@ -140,29 +160,58 @@ ORDER BY actual_breeding_time DESC ,estimated_breeding_time ASC, local_number li
         return ($output);
     }
 
+  
+
+    
     /**
      * small method to show if there are any breeding events scheduled in the future.
      */
     function displayFutureBreedingEvents() {
-        $sql = "SELECT breeding_event.id, breeding_event.estimated_breeding_time
+        $sql = "SELECT bovine_id,local_number,full_name,breeding_event.id, breeding_event.estimated_breeding_time,bovinemanagement.semen_code_to_short_name(semen_code)
 FROM bovinemanagement.breeding_event 
+LEFT JOIN bovinemanagement.semen_straw ON semen_straw_id	=semen_straw.id
 LEFT JOIN bovinemanagement.bovine ON breeding_event.bovine_id = bovine.id 
 WHERE breeding_event.estimated_breeding_time >= (current_timestamp + interval '25 hours')::timestamp without time zone
 ORDER BY estimated_breeding_time DESC";
         $res = $GLOBALS['pdo']->query($sql);
+        $inner = array();
         $rowCount = $res->rowCount();
+        $inner[] = '<ul class="list-unstyled">';
+        $prevTime = null;
+        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
+            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $row['event_time'] = date("l M d", strtotime($row['estimated_breeding_time']));
+            if ($row['event_time'] != $prevTime) {
+                $inner[] = '<h5>' . $row['event_time'] . '</h5>';
+            }
+            $prevTime = $row['event_time'];
+            $inner[] = ("<li>{$row['local_number']} </li>");
+        }
+        $inner[] = '</ul>';
+        $content = implode($inner);
+
         if ($rowCount >= 1) {
-            print((new BootStrap)->infoSpan("$rowCount Future Breedings Scheduled"));  
+            return ( (new BootStrap)->generalInfoBox('ion-ios-timer-outline', 'bg-info', 'Future Breedings', $content));
         }
     }
 
+    function displayBreedingRate() {
+        
+            //// breeding rate
+       
+        $breedingRateInterval = 30;
+        $dataArray = (new ReproReport)->calculateTwentyOneDayBreedingAverage(1, $breedingRateInterval, 90); //slow part .03s.
+        $out[]= ('<span>');
+        $breedingrate=new GoogleVisualizationSparkLine();
+        $out[]= $breedingrate->sparklineContainerVis('30d BR', $dataArray, end($dataArray));
+        $out[]= ('</span>');
+
+        return ( (new BootStrap)->generalInfoBox('ion-arrow-graph-up-right', 'bg-info', 'Breeding Rate', implode($out)));
+    }
     
-
-  
-
-  
-
-  function printActionButtons2($breeding_id, $bovine_id, $callBackURL = null) {
+    
+    
+    function printActionButtons2($breeding_id, $bovine_id, $callBackURL = null) {
         // extract($params);
         $currentUserid = $GLOBALS['auth']->getUsername();
         $checkToBeSorted = '';
@@ -180,7 +229,7 @@ ORDER BY estimated_breeding_time DESC";
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($breeding_id == $row['id']) {
                 $returnButtonsAsString = self::deleteBreedingForm($breeding_id, $callBackURL); //show delete button, with Breeding table id as index for delete.
-                require_once $_SERVER['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/movementSortGate.inc'; 
+
                 $checkToBeSorted = MovementSortGate::checkToBeSorted($bovine_id, $row['estimated_breeding_time']);
             }
         }
@@ -193,22 +242,7 @@ ORDER BY estimated_breeding_time DESC";
         return $returnButtonsAsString;
     }
 
-    //indicate if sire is sexed by modifying the name.
-    function printSireChoice($params) {
-
-        extract($params);
-
-        //create a link to CDN website, so when user clicks they go there for the sire
-        $linkStr = $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['sire_full_reg_number']);
-
-        if ($record['sexed_semen'] == 't') {
-            $returnValue = "<a href=\"$linkStr\">{$record['service_sire_full_name']} - sexed</a>";
-        } else {
-            $returnValue = "<a href=\"$linkStr\">{$record['service_sire_full_name']}</a>";
-        }
-        return $returnValue;
-    }
-
+   
     
     /**
      * used by breeding protocol to do inserts
@@ -239,7 +273,7 @@ ORDER BY estimated_breeding_time DESC";
         $form = new HTML_QuickForm("formBreedingDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'breeding_event_ID', $breeding_event_ID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
 
         // Try to validate a form
@@ -277,7 +311,7 @@ ORDER BY estimated_breeding_time DESC";
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
@@ -296,16 +330,18 @@ ORDER BY estimated_breeding_time DESC";
     function printBreedingReceiptForm2($breedingEventId) {
         $str = '';
         //find out if this is the first time printing the breeding slip or not.
-        $res = $GLOBALS['pdo']->query("SELECT state_frozen,semen_straw_id  FROM bovinemanagement.breeding_event WHERE id='$breedingEventId' LIMIT 1");
+        $res = $GLOBALS['pdo']->query("SELECT *,state_frozen,semen_straw_id,(SELECT local_number FROM bovinemanagement.bovine where bovine.id=breeding_event.bovine_id)  FROM bovinemanagement.breeding_event WHERE id=$breedingEventId LIMIT 1");
         {
             
         } // Always check that result is not an error
         $row = $res->fetch(PDO::FETCH_ASSOC);
 
-        $origOrReprint = ((integer) $row['state_frozen'] == '0') ? 'Print NEW' : 'Reprint NEW';
+        $buttonSecondary= ((integer) $row['state_frozen'] == '0') ? 'btn-primary' : 'btn-secondary'; 
+        $iconSmallorLargeClass = ((integer) $row['state_frozen'] == '0') ? 'fa-2x' : '';
+        $origOrReprint = ((integer) $row['state_frozen'] == '0') ? '' : '<i class="fas fa-redo "></i>';
 
         //call breeding slip 
-        $cls = new BreedingSlipDialog($breedingEventId);
+        $cls = new BreedingSlipDialog($breedingEventId,$row['state_frozen'],$row['local_number']);
         $str = $str . $cls->js(); //output js functions
         $str = $str . $cls->main(); //output content of dialog
 
@@ -315,9 +351,12 @@ ORDER BY estimated_breeding_time DESC";
         if ($row['semen_straw_id'] != null) {
 
             $strA = <<<HTML
-<form>
-<input type=button value="$origOrReprint Breeding Slip" onClick="breeding_slip_func_{$breedingEventId}()">
-</form>
+
+
+                    <button type="button" class="btn $buttonSecondary   "  onClick="breeding_slip_func_{$breedingEventId}()">
+  $origOrReprint <i class="fas fa-clipboard-list $iconSmallorLargeClass"></i>
+</button>
+                            
 HTML;
             $str = $str . $strA;
         }
@@ -359,9 +398,13 @@ ORDER BY local_number");
 class BreedingSlipDialog {
 
     public $breedingEventId;
+    public $state;
+    public $localNumber;
 
-    function __construct($breedingEventId) {
+    function __construct($breedingEventId,$state,$localNumber) {
         $this->breedingEventId = $breedingEventId;
+        $this->state = $state;
+        $this->localNumber=$localNumber;
     }
 
     //content of dialog
@@ -377,17 +420,29 @@ class BreedingSlipDialog {
     //javascript needed for dialog
     public function js() {
 
+        //print reprint or normal title. 
+        if ($this->state==false) {
+            $title="Breeding Slip #{$this->localNumber}";       
+        }
+        else {
+            $title="Breeding Slip (reprint) #{$this->localNumber}";      
+        }
+        
+        
+        
         $str = <<<JS
 <script>
-       $(function() {
-   $( "#breeding_slip_{$this->breedingEventId}" ).hide();
-  });
-       
+      
+   $( "#breeding_slip_{$this->breedingEventId}" ).dialog({ autoOpen: false, 
+                            modal: false,
+                            resizable: false,
+                            draggable: true,
+                            closeOnEscape: true,
+                           
+                            title: "$title", });   
  function breeding_slip_func_{$this->breedingEventId}() {
-   
-  $( "#breeding_slip_{$this->breedingEventId}" ).dialog({width: 'auto',
-  position: { my: "left top", at: "left bottom", of: "button" }
-});
+  
+  $( "#breeding_slip_{$this->breedingEventId}" ).dialog("open");
    }
   </script>
 JS;
@@ -415,30 +470,22 @@ SELECT temp.*,  (SELECT count(id) FROM bovinemanagement.semen_straw WHERE discar
 
         $row = $res->fetch(PDO::FETCH_ASSOC);
 
-        If ($row['state_frozen'] == 'f') {
-            $origOrReprint = 'Original';
-        } else {
-            $origOrReprint = 'Reprint';
-        }
-
-        $str = $str . ("<h1>Breeding Slip ($origOrReprint)</h1>");
-        $str = $str . ("<br>");
-         $str = $str . ("<br>");
+          
+        $symbol=$GLOBALS['MiscObj']->isSireBeefBullThenSymbol($row['sire_full_reg_number']); //see if beef symbol shown
+           
+        
         $str = $str . ("<h2>Breed: </h2>");
         $str = $str . ("<h3>{$row['local_number']} - {$row['cow_full_name']}</h3>");
-         $str = $str . ("<h3>Location:{$row['location_name']}</h3>");
+         $str = $str . ("<h4>Location:{$row['location_name']}</h4>");
          $str = $str . ("<br>");
          $str = $str . ("<br>");
         $str = $str . ("<h2>To: </h2>");
-        $str = $str . ("<h3>{$row['sire_full_name']} </h3>");
+        $str = $str . ("<h3>$symbol{$row['sire_full_name']} </h3>");
         $str = $str . ("<h3>{$row['sire_full_reg_number']} </h3>");
         $str = $str . ("<br>");
 
 
-        $str = $str . ("<br>");
-        //$str = $str . ("<h4>Tank: A</h4>");
-        $str = $str . ("<br>");
-        $str = $str . ("<br>");
+
         $str = $str . ("<h1>Bin: {$row['bin']}</h1>");
          $str = $str . ("<h1> {$row['sire_short_name']}</h1>");
         $str = $str . ("<h1> {$row['semen_code']}</h1>");
@@ -460,8 +507,8 @@ SELECT temp.*,  (SELECT count(id) FROM bovinemanagement.semen_straw WHERE discar
 
 //end class
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_EstrusBreedingsChooseSemen extends Quickform2Helper {
+       
+Class QF2_EstrusBreedingsChooseSemen extends QF2_Base {
 
     function definition($form) {
   
@@ -538,8 +585,8 @@ ORDER BY short_name,semen_code,freeze_date ASC;";
 }//end class
 
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_EstrusBreedingsMarkBred extends Quickform2Helper {
+       
+Class QF2_EstrusBreedingsMarkBred extends QF2_Base {
 
     function definition($form) {
   
@@ -595,20 +642,20 @@ Class QF2_EstrusBreedingsMarkBred extends Quickform2Helper {
 }//end class
 
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
+        
+Class QF2_EstrusBreedingsMarkCowToBeBred extends QF2_Base {
 
     function definition($form) {
       
         $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForNexttDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
 
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
         if ($this->mode == 'group') {
             $form->addElement('select', 'bovine_id', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");        
         } else {     
-                $form->addElement('hidden', 'bovine_id')->setValue( $this->param->bovine_id);          
+                $form->addElement('hidden', 'bovine_id')->setValue( $this->param->bovineID);          
         }
 
         $form->addElement('select', 'DateEstimatedBreeding', null, array('options' => $dateArray, 'label' => 'Time of Estiamted Breeding'))->addRule("required", "Please specify your time of breeding.");
@@ -637,7 +684,7 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
             
             if ( $value['autoselect'] == 1) {
 
-               // require_once ($_SERVER ['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/bovineQueryBreedingChoice.inc');
+              
                 $ret = (new BovineQueryBreedingChoice)->testBullOrProvenAlgorithm($value['bovine_id']);
 
                 //when there is no error.
@@ -652,8 +699,8 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
             //when sort checked.
             if ( $value['sort'] == 1) {
 
-                  require_once ($_SERVER ['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/movementSortGate.inc');
-                  $a=new QF2_SortGate((object) array(forwardURLArr=>array()),'individual'); //just so we can call sortAnimal. bit messy.
+                  (new MovementSortGate);//hack for class load
+                  $a=new QF2_SortGate((object) array('forwardURLArr'=>array()),'individual'); //just so we can call sortAnimal. bit messy.
                   $a->sortAnimal($value['bovine_id'], $value['estimated_time']);
             }
 
@@ -718,7 +765,7 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
 
         // Close the transaction
@@ -726,4 +773,168 @@ Class QF2_EstrusBreedingsMarkCowToBeBred extends Quickform2Helper {
     
 }//end class
 
-?>
+Class QF2_EstrusBreedingDeleteButton extends QF2_DeleteButtonGeneric{ 
+    
+    function action() {
+        //$this->param should provide everything the form needs for paramaters.  
+        
+        
+        
+       $breeding_event_ID = $this->param->deleteID;
+
+            // Open a transaction
+            try {
+                $res = $GLOBALS['pdo']->beginTransaction();
+
+                //erase the reference in semen_straw.
+                $res = $GLOBALS['pdo']->query("SELECT semen_straw_id FROM bovinemanagement.breeding_event WHERE id='$breeding_event_ID'");
+                {
+                    
+                } // Always check that result is not an error
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                if ($row['semen_straw_id'] != null) {
+                    $query = "UPDATE bovinemanagement.semen_straw SET breeding_event_id = (NULL) WHERE id='{$row['semen_straw_id']}'";
+                    $res = $GLOBALS['pdo']->exec($query);
+                    {
+                        
+                    } // Always check that result is not an error
+                }
+
+                $query = "DELETE FROM bovinemanagement.breeding_event where id='$breeding_event_ID' AND state_frozen = FALSE";
+                $res = $GLOBALS['pdo']->exec($query);
+                {
+                    
+                } // Always check that result is not an error
+                // determine to commit or rollback
+
+                $GLOBALS['pdo']->commit();
+            } catch (Exception $e) {
+                $GLOBALS['pdo']->rollBack();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
+            }
+            // Close the transaction
+     
+    }
+} //end class
+
+Class QF2_BreedingBan extends QF2_Base {
+
+    function definition($form) {
+
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/medical/vetToCheck.inc');
+        $dateArrayVetCheck= QF2_VetToCheckEvent::whatDayIsTheVetCheck();
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesForNextSixtyDays(); 
+        $dateArray2 = array_replace($dateArrayVetCheck,$dateArray);
+        
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+        $eventTimeStart=$form->addElement('select', 'eventTimeStart', null, array('options' => $dateArray, 'label' => 'Time of Event Start'));
+        $eventTimeEnd=$form->addElement('select', 'eventTimeEnd', null, array('options' => $dateArray2, 'label' => 'Time of Event End'));
+        
+       
+          
+        //defaults
+        $today=strtotime("today");
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('eventTimeStart' => $today,'eventTimeEnd' => null)));
+         
+  
+        /** RULES */
+      
+        //this doesn't really makes sense to me.
+        $eventTimeStart->addRule('empty', '', null, HTML_QuickForm2_Rule::ONBLUR_CLIENT_SERVER)
+            ->and_($eventTimeStart->createRule('empty'))
+            ->or_($eventTimeEnd->createRule('gt', 'End time must be greater then start time.', $eventTimeStart));
+        
+        
+         $eventTimeStart->addRule('required', 'Please specify your time',null,HTML_QuickForm2_Rule::SERVER | HTML_QuickForm2_Rule::CLIENT);
+         $eventTimeEnd->addRule('required', 'Please specify your time',null,HTML_QuickForm2_Rule::SERVER | HTML_QuickForm2_Rule::CLIENT);
+     
+         
+         /*
+         //DEMO RULES 
+         
+         // registers a callback rule with a specific callback
+        HTML_QuickForm2_Factory::registerRule('fooBar', 'HTML_QuickForm2_Rule_Callback', null,array('callback' => 'QF2_BreedingBan::chkTime'));
+        $form->addRule('fooBar', 'wrong variable namedddDDDD!', array('two', 'three', 'four'));
+         
+        
+        HTML_QuickForm2_Factory::registerRule('fooBar2', 'dan');
+        $eventTimeEnd->addRule('fooBar2', 'wrongEEEEEE!');
+         */
+         
+         
+        return $form; //required       
+    }
+
+    //rule called by callback. 
+    function chkTime($value,$two,$three) {
+        //var_dump($two);
+        //var_dump($three);
+        return true; //always returns true, does nothing.
+        
+    }
+    
+    function process($value) {
+            
+            
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time_start'] = date('Y-m-d 00:00:00', $value['eventTimeStart']);
+        $value['event_time_end'] = date('Y-m-d 00:00:00', $value['eventTimeEnd']);
+
+            
+        self::insertBreedingBan($value['bovine_id'], $value['event_time_start'], $value['event_time_end']);
+            
+    }
+     
+    // dates need to be of Y-m-d 00:00:00.
+    public static function insertBreedingBan($bovine_id,$event_time_start,$event_time_end) {
+        
+         //first chek that ranges do not overlap at all.
+        $sql=<<<SQL
+        SELECT id FROM bovinemanagement.breeding_ban WHERE bovine_id={$bovine_id} AND event_range && '[{$event_time_start},{$event_time_end}]'
+SQL;
+            $res2 = $GLOBALS['pdo']->query($sql);
+            $row2 = $res2->fetch(PDO::FETCH_ASSOC);
+            
+            $query = "INSERT INTO bovinemanagement.breeding_ban (bovine_id,event_range,userid) VALUES ({$bovine_id},'[{$event_time_start},{$event_time_end}]','{$GLOBALS['auth']->getUsername()}')";
+            
+            //dont insert if intersects one in db for this animal. 
+            if (empty($row2)) {    
+             $res = $GLOBALS['pdo']->exec($query);
+            }
+
+        
+    }
+/*
+ * if animal is currently banned from being bred return time it ends, ie true state or false.
+ */    
+      public static function isAnimalBreedingBanned($bovine_id) {
+          
+     $sql4=<<<SQL
+              SELECT id,upper(event_range)::date as upper_event_range FROM bovinemanagement.breeding_ban WHERE bovine_id=$bovine_id AND event_range @> localtimestamp limit 1
+      SQL;
+        $res4 = $GLOBALS['pdo']->query($sql4);
+        $row4 = $res4->fetch(PDO::FETCH_ASSOC);
+        return (!empty($row4)) ? $row4['upper_event_range'] : false;
+         
+      }      
+            
+    
+
+}//end class
+
+
+/*
+ * another way to do a rule. 
+ */
+class dan extends HTML_QuickForm2_Rule
+{
+    function validateOwner()
+    {
+        //var_dump($this->owner->getValue());
+        return true;
+    }
+   
+}
+

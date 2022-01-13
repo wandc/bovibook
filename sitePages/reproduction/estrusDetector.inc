@@ -13,7 +13,7 @@ class EstrusDetector extends TabPage {
 
     public function tab1() {
 
-        print("<h3>Latest Tag Events</h3>");
+       
 
         $this->displayAllCowsLastEvent();
     }
@@ -148,7 +148,7 @@ ORDER BY tag_id");
 
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id=$bovine_id");
             exit();
         } //end validation
         $form->accept($renderer);
@@ -211,7 +211,7 @@ ORDER BY RSSI DESC
                 
            
 EX;
-        print($dt->start($this->pageid, 'tagsInSortPen', null, $columnsStr));
+        print($dt->start('Who Is In Sort Pen Now', $this->pageid, 'tagsInSortPen', null, $columnsStr));
     }
 
     public function otherTagLatestData($request) {
@@ -434,7 +434,7 @@ SELECT (SELECT bovine_id FROM bas.ble_bovine_tag_curr WHERE tag_id=temp.tag_id)
             }
            
 EX;
-        print($dt->start($this->pageid, 'tagMaxRSSIAtSortGate', null, $columnsStr));
+        print($dt->start('Max Signal at Sort Pen', $this->pageid, 'tagMaxRSSIAtSortGate', null, $columnsStr));
     }
 
     public function allCowsLastEvent() {
@@ -504,7 +504,7 @@ EX;
             }
            
 EX;
-        print($dt->start($this->pageid, 'allCowsLastEvent', null, $columnsStr));
+        print($dt->start('Latest Tag Events', $this->pageid, 'allCowsLastEvent', null, $columnsStr));
     }
 
 // AND ble_tag_event.event_time > '2016-03-20 0:00 -03' AND  ble_tag_event.event_time < '2016-03-20 9:15 -03'
@@ -514,9 +514,11 @@ EX;
         if (!empty($request['item'])) {
             if (is_numeric($request['item'])) {
                 $bovine_id = $request['item'];
+            } else {
+                throw new Exception('Error: no bovine id specified, not a number.');
             }
         } else {
-            throw new Exception('Error: no bovine id specified');
+            throw new Exception('Error: no bovine id specified, none sent.');
         }
 
 
@@ -590,7 +592,7 @@ $js = <<<JS
 
             function drawChart_oneCowLatestData() {
                 var jsonData = $.ajax({
-                    url: "{$GLOBALS['config']['HTTP']['JSON_API']}140/oneCowLatestData/$bovine_id)",
+                    url: "{$GLOBALS['config']['HTTP']['JSON_API']}140/oneCowLatestData/$bovine_id",
                                 dataType: "json",
                                 async: false
                             }).responseText;
@@ -887,7 +889,7 @@ class Trilateration {
     public function oneCow($bovine_id) {
         $outputObj = $this->calculateLocationCow($bovine_id);
         $barnSVG = new barnSVG;
-        print($barnSVG->main($outputObj));
+        return ($barnSVG->main($outputObj));
     }
 
     public function allCow() {
@@ -922,7 +924,12 @@ class Trilateration {
         $sql2 = "SELECT tag_id,local_number FROM bas.ble_bovine_tag_curr LEFT JOIN bovinemanagement.bovine ON bovine.id=bovine_id WHERE bovine_id=$bovine_id";
         $res2 = $GLOBALS['pdo']->query($sql2);
         $row2 = $res2->fetch(PDO::FETCH_ASSOC);
+        if (!empty($row2)){
         return $this->calculateLocationCore($row2['tag_id'], $row2['local_number']);
+        }
+        else {
+            return null;
+        }
     }
 
     /*
@@ -942,6 +949,9 @@ class Trilateration {
         $res2 = $GLOBALS['pdo']->query($sql2);
         $row2 = $res2->fetch(PDO::FETCH_ASSOC);
 
+        if (empty($row2)) {
+            return null;
+        }
 
         //check data is valid and available.   
         if ((is_numeric($row2['base_ff8d_rssi']) != true) OR ( is_numeric($row2['base_fe95_rssi']) != true) OR ( is_numeric($row2['base_ebc0_rssi']) != true) OR ( is_numeric($row2['base_b70e_rssi']) != true) OR ( is_numeric($row2['base_1702_rssi']) != true)) {
@@ -1131,24 +1141,28 @@ class Trilateration {
 class barnSVG {
 
     public function main($objArray) {
-
+        $out=null;
         //we are in a multiple cows on map situation
         if (is_array($objArray) == true) {
 
             $str = '';
             $str = $str . $this->svgTop('large');
             foreach ($objArray as $key => $value) {
-
+                if (!empty($value->x)) {
                 $str = $str . $this->svgOverlayDetailed($value->label, $value->x, $value->y);
+                }
             }
             $str = $str . $this->svgBottom();
 
-            return $str;
+            $out= $str;
         }
         //just a single object
         else {
-            return($this->svgTop('small') . $this->svgOverlayRed($objArray->label, $objArray->x, $objArray->y) . $this->svgBottom());
+             if (!empty($value->x)) {
+            $out=($this->svgTop('small') . $this->svgOverlayRed($objArray->label, $objArray->x, $objArray->y) . $this->svgBottom());
+             }
         }
+        return $out;
     }
 
     function svgTop($size = 'small') {

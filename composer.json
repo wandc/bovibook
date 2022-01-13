@@ -9,17 +9,36 @@
         "management"
     ],
     "license": "AGPL-3.0",
+
+
+    "repositories": {
+      "flat-ui": {
+        "type": "package",
+        "package": {
+          "name": "stuk/jszip",
+          "version": "3.2.0",
+          "source": {
+            "url": "https://github.com/Stuk/jszip.git",
+            "type": "git",
+            "reference": "master"
+          }
+        }
+      }
+    },
+
+
     "require": {
         "php": "^7.0.3",
-        "twbs/bootstrap": "^3.3",
+        "twbs/bootstrap": "4.5.3",
         "fortawesome/font-awesome": "^4.7",
         "driftyco/ionicons": "^2.0",
         "google/apiclient": "^2.0",
         "bshaffer/oauth2-server-php": "~1.8",
-        "almasaeed2010/adminlte": "^2.0",
+        "almasaeed2010/adminlte": "~3.0",
         "components/jquery": "^3.2",
         "components/jqueryui": "^1.12",
-        "datatables/datatables": "^1.10",
+        "peekleon/datatables-all": "^1.10.20",
+        "stuk/jszip": "^3.2.0",
         "tinymce/tinymce": ">= 4",
         "select2/select2": "^4.0.0",
         "drmonty/datatables-responsive": "^2.2",
@@ -28,19 +47,20 @@
         "phpoffice/phpspreadsheet": "^1.4",
 	"phpstan/phpstan": "^0.9",
         "pear/html_quickform2": "^2.0",
-        "openpsa/quickform":  "^3.3.5.1"
+        "openpsa/quickform":  ">=3.3.5.1",
+        "rsportella/popper": "dev-master",
+        "components/font-awesome": "^5.15",
+	"art-of-wifi/unifi-api-client": "^1.1"
     },
     "require-dev": {
         "php": "^7.0.3",
-        "twbs/bootstrap": "^3.3",
         "fortawesome/font-awesome": "^4.7",
-        "driftyco/ionicons": "^2.0",
         "google/apiclient": "^2.0",
         "bshaffer/oauth2-server-php": "~1.8",
-        "almasaeed2010/adminlte": "^2.0",
         "components/jquery": "^3.2",
         "components/jqueryui": "^1.12",
-        "datatables/datatables": "^1.10",
+        "peekleon/datatables-all": "^1.10.20",
+        "stuk/jszip": "^3.2.0",
         "tinymce/tinymce": ">= 4",
         "select2/select2": "^4.0.0",
         "drmonty/datatables-responsive": "^2.2",
@@ -49,7 +69,10 @@
         "phpoffice/phpspreadsheet": "^1.4",
         "phpstan/phpstan": "^0.9",
         "pear/html_quickform2": "^2.0",
-        "openpsa/quickform":  "^3.3.5.1"    
+        "openpsa/quickform":  ">=3.3.5.1",
+ 	"rsportella/popper": "dev-master",
+        "components/font-awesome": "^5.15",
+        "art-of-wifi/unifi-api-client": "^1.1"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

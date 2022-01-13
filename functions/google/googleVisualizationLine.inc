@@ -30,7 +30,7 @@
   $headerStrArr['xAxis'] = 'number'; //BACKWARDS
   $headerStrArr['Fat %'] = 'number';
   $headerStrArr['Protein %'] = 'number';
-  $x = new googleVisualizationLine($opt, $headerStrArr, $valactaFatArr,$valactaProtArr);
+  $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $valactaFatArr,$valactaProtArr);
   print($x->toString());
  * 
  */
@@ -38,10 +38,10 @@
 
 class GoogleVisualizationLine extends GoogleVisualization {
 
-    public function __construct($options = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
+    public function __construct($objOptions = null, $chartOptions = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
         $this->uuid = uniqid();
 
-        return $this->main($chartType = 'line', $options, $headerStrArr, $dimArray, $dimArray2, $dimArray3, $dimArray4);
+        return $this->main($chartType = 'line', $objOptions, $chartOptions, $headerStrArr, $dimArray, $dimArray2, $dimArray3, $dimArray4);
     }
 
 }

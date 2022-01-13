@@ -4,10 +4,16 @@
 *
 */
 if (defined('STDIN')) { //when called from cli, command line
-$_SERVER['DOCUMENT_ROOT']='/var/www/int/';
+    include_once('../global.php');
+    include_once('../functions/alproIsoLink.inc');
+    include_once('../functions/alproODBCLink.php');
+} else { //when called any other way
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/global.php');
+    include_once($_SERVER['DOCUMENT_ROOT'].'functions/alproIsoLink.inc');
+    include_once($_SERVER['DOCUMENT_ROOT'].'functions/alproODBCLink.php');    
 }
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/alproIsoLink.inc');
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/alproODBCLink.php');
+
+
 
 class AlproSortHelper {
   

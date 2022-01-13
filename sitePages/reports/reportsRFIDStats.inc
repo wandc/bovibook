@@ -1,11 +1,4 @@
 <?php
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
-
-
-;
-
 class ReportsRFIDStats extends BasePage {
 
     public function defaultDisplay() {
@@ -71,7 +64,7 @@ SELECT *,round((read_total::numeric/possible_total::numeric),3)*100 as read_perc
            
 EX;
         print("<h3>Last 45 days RFID Read Percentage</h3>");
-        print($dt->start($this->pageid, 'last25daysRFIDReadPercentage', null, $columnsStr));
+        print($dt->start('Title CHANGE ME', $this->pageid, 'last25daysRFIDReadPercentage', null, $columnsStr));
     }
 
     function sortGateAndParlorLast4Days() {
@@ -148,7 +141,7 @@ SELECT *
            
 EX;
         print("<h3>Last 2 days Read: Parlor and Sort Gate</h3>");
-        print($dt->start($this->pageid, 'sortGateAndParlorLast4Days', null, $columnsStr));
+        print($dt->start('Title CHANGE ME', $this->pageid, 'sortGateAndParlorLast4Days', null, $columnsStr));
     }
 
     function showListOfCowsLast2DaysManualId() {
@@ -156,7 +149,7 @@ EX;
         
         $sql = <<<SQL
 with temp as (
-SELECT bovinecurr.id as bovine_id,local_number,full_name
+SELECT bovinecurr.id as bovine_id,local_number,full_name,location_name
 , (SELECT manualid FROM alpro.cow WHERE bovine_id=bovinecurr.id AND date=current_date -1 and milking_number=1) as t11
 , (SELECT manualid FROM alpro.cow WHERE bovine_id=bovinecurr.id AND date=current_date -1 and milking_number=2) as t12
 , (SELECT manualid FROM alpro.cow WHERE bovine_id=bovinecurr.id AND date=current_date -2  and milking_number=1) as t21 
@@ -164,7 +157,7 @@ SELECT bovinecurr.id as bovine_id,local_number,full_name
 FROM bovinemanagement.bovinecurr
  WHERE location_id IN(40,41,42) 
 ), temp2 as (
-SELECT bovine_id,local_number,full_name ,sum(t11::int+t12::int+t21::int+t22::int)  as total_manual FROM temp group by bovine_id,local_number,full_name 
+SELECT bovine_id,local_number,location_name,full_name ,sum(t11::int+t12::int+t21::int+t22::int)  as total_manual FROM temp group by bovine_id,local_number,full_name,location_name 
 )
 SELECT * from temp2 WHERE total_manual is null OR total_manual >=3 order by local_number   
 SQL;
@@ -177,9 +170,10 @@ SQL;
         foreach ($results as &$row) {
             $rowOut['Animal'] = $GLOBALS['MiscObj']->hrefToBovinePageFullName($row['bovine_id'],$row['local_number'],$row['full_name']);
             $rowOut['Total Manual'] = ($row['total_manual']);
+            $rowOut['Location'] = ($row['location_name']);
             $output[]=$rowOut;
         }
-           print( (new JQueryDataTable)->startBasicArray($output));
+           print( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $output));
 
     }
 

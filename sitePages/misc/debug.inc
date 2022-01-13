@@ -53,6 +53,7 @@ print_r(PDO::getAvailableDrivers());
         //////////////////
         print("<br/><h2>PHP Info</h2>");
         phpinfo();
+        xdebug_info();
     }
 
 }

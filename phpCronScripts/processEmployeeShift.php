@@ -24,7 +24,7 @@ class EmployeeShift {
         // print("\n\rGrabing Calendar data.\n\r");
 
         include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCalendar.inc');
-        $x = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); // work schedule calendar
+        $x = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); // work schedule calendar
         $dataArr = $x->grabEventsFromGoogleCalendarWorkSchedule();
         
 // print("Starting DB insert.\n\r");
@@ -67,7 +67,7 @@ class EmployeeShift {
            $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
         
         //print("<h3>All done!</h3>");

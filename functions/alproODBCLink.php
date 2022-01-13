@@ -218,7 +218,7 @@ class AlproODBCLink {
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
     }
 

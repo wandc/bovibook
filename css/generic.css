@@ -91,25 +91,13 @@ input.loginFormSubmit:hover {
 }
 
 
-.allContainer {
-    display: inline-flex; /* keeps main container next to side bar and not down.*/
-    min-width: 100%; 
-}
+
 
 .mainContainer {
 
-    margin-top: 5px;
-    margin-Left: 15px;
 
-    padding-bottom: 70px;
-    min-width: 55%;
-    width: 91%;
-    overflow:hidden;
-    padding-right: 10px;
-    /*
-    border-style: solid;
-     border-width: 1px;
-    */
+    margin-Left: 10px;
+
 }
 
 /* side bar info  on left page isde*/
@@ -118,7 +106,7 @@ input.loginFormSubmit:hover {
     padding-bottom: 4px;
     padding-left: 2px;
     position: relative;
-    border: 2px solid #605ca8;
+    border: 2px solid #007bff;
     margin-top:10px;  
     height:auto;
 
@@ -148,7 +136,7 @@ h2 {
     margin-top: 5px;
     background-color: #fff;
     width: 587px;
-    height: 933px;
+    height: 1111px;
 }
 
 #holframe {
@@ -208,6 +196,11 @@ h2 {
     line-height: 65%;
 }
 
+h3.top {
+    margin-top:0px;
+}
+
+
 /* google sparklines (footer) */
 .ss00 {    
     float:left;
@@ -243,8 +236,8 @@ h2 {
 .ss2 {
     font-family: Arial, Helvetica, sans-serif;
     position: absolute;
-    top:.6em;
-    left:10.25em;
+    top:0.35em;
+    left:8.25em;
     color:#dc3912;
     font-weight: 300;  
 
@@ -294,7 +287,7 @@ table.datagrid td {
 }
 
 table.datagrid thead th {
-    background: #605ca8;
+    background: #007bff;
     text-align: center;
     font: bold 1.1em/ 2em "Century Gothic", "Trebuchet MS", Arial, Helvetica,
         sans-serif;
@@ -393,8 +386,8 @@ h3.datagridNarrow {
 /* Parent */
 table.datagridParent td {
     background: #ffffff;
-    border-top: 2px solid #605ca8; /* create thicker borders for parent */
-    border-bottom: 2px solid #605ca8;
+    border-top: 2px solid #007bff; /* create thicker borders for parent */
+    border-bottom: 2px solid #007bff;
 }
 
 #scrollable {
@@ -583,13 +576,6 @@ break-after: column;
 }  
 
 
-/* colour the background of some text*/
-#colourBack {
-    background-color: #FF7F7F;
-}
-#colourBackYellow {
-    background-color: #FFC200;
-}
 
 /* makes the tab wide enough for both columns */
 .jquery_tabs_treatment  {
@@ -695,9 +681,7 @@ address {
     font-size:.5em;
 }  
 
-.staticVideoImage {
-    float:left; 
-}
+
 
 
 
@@ -764,7 +748,7 @@ address {
     width:300px;
     height:240px;
 
-    border-color: #605ca8;
+    border-color: #007bff;
     border-style: solid;
     border-width: 1px;
     border-radius: 1em;   
@@ -775,7 +759,7 @@ address {
 
 #machineQueryTitle h1{
     font-size:1.5em;   
-    background: #605ca8;
+    background: #007bff;
     padding-left:.25em; 
     margin-bottom:.25em;
     color: #fff;
@@ -907,7 +891,7 @@ tr.highlight_okay td {
 #jquery_tabs {
     width:100%;
     overflow: auto;
-
+    background: #ecf0f5;
 }
 
 
@@ -923,7 +907,7 @@ tr.highlight_okay td {
 table.dataTable.compact thead th,
 table.dataTable.compact thead td {
     padding: 4px 17px 4px 4px;
-    background-color: #605ca8;
+    background-color: #007bff;
     color:#fff;
 }
 
@@ -964,7 +948,7 @@ table.dataTable.compact thead td {
     display: inline-block;
     height:auto;
     width:auto;
-    background:#605ca8;
+    background:#007bff;
     margin: 10px;
     border-radius: 15px; 
     padding:5px;
@@ -977,7 +961,7 @@ table.dataTable.compact thead td {
 }
 
 #nrc_summaryReportPage1 {
-    border: 2px solid #605ca8; 
+    border: 2px solid #007bff; 
     border-radius: 7px;
     margin-bottom: 10px;
     padding:10px;
@@ -993,11 +977,102 @@ table.dataTable.compact thead td {
 
 }
 
-/* quickform2 */
-.quickform {
-    position: relative;
-    margin-left: 20px;
+
+
+textarea {
+    width:90%;
 }
+
+/* used on sick hot list for legend */
+.rectangle {
+  height: 2em;
+  width: 8em;
+  background-color: #555;
+}
+
+.legend {
+ height: 8rem;
+  width: 16rem;  
+}
+
+.legendModifier {
+   /*checkered background */
+
+}
+
+.legendBorder {
+    
+  height: 8rem;
+  width: 16rem;  
+  border: 10px solid #1fab15;
+   
+}
+
+
+/* these must be placed so border cansickBorderGreen, etc can overrrule */
+
+
+.sickBoxUnknown {
+   height: 8rem;
+  width: 16rem;    
+  border-color: transparent;
+  background-color: transparent;
+  background-image: linear-gradient(45deg, #808080 25%, transparent 25%), linear-gradient(-45deg, #808080 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #808080 75%), linear-gradient(-45deg, transparent 75%, #808080 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;  
+}
+
+.sickBoxGreen {  
+    height: 8rem;
+  width: 16rem; 
+     border: 10px solid #fff;
+     background:#1fab15;
+}
+
+.sickBoxRed{
+     height: 8rem;
+  width: 16rem;  
+    border: 10px solid #fff;
+     background:#da1217;
+}
+
+.sickBoxYellow{
+     height: 8rem;
+  width: 16rem;  
+    border: 10px solid #fff;
+     background:#fe9900;
+}
+
+.sickBoxPurple{
+     height: 8rem;
+  width: 16rem;  
+    border: 10px solid #fff;
+    background:#8d43cd;
+    
+}
+
+.sickBorderUnknown {
+     border: 10px dashed #808080;
+       border-color: #808080;
+}
+
+.sickBorderGreen {
+     border: 10px solid #1fab15;
+}
+
+.sickBorderRed{
+    border: 10px solid #da1217;
+}
+
+.sickBorderYellow{
+    border: 10px solid #fe9900;
+}
+
+.sickBorderPurple{
+    border: 10px solid #8d43cd;
+}
+
+
 
 /**/
 /* calf feeding page */
@@ -1120,6 +1195,7 @@ width: 1.5em;
     padding-top: 14px;
     padding-left: 42px; 
     margin:0;
+    font-size: large;
     
 }
 
@@ -1205,6 +1281,12 @@ width: 1.5em;
   }
 }
 
+.calfFeederBoxIcon {
+    color: #fff;
+    text-shadow: 1px 1px 1px #ccc;
+    font-size: 1.5em;
+}
+
 /* used for axis camer crop fisheye lens in calf barn */
 .cropFishEye {
     width: 640px;
@@ -1212,9 +1294,61 @@ width: 1.5em;
     overflow: hidden;
 }
 
+.cropFishEyeCircle {
+    width: 640px;
+    height: 640px;
+    overflow: hidden;
+}
+
 .cropFishEyeLarge {
     width: 2048px;
-    height: 1100px;
+    height: 2200px;
+   
+}
+
+.cropFishEyeLargePreview {
+    width: 640px;
+    height: 480px;
+}
+
+
+.cropFishEyeLargeBottomPreview {
+    width: 640px;
+    height: 240px;
+    overflow: hidden;
+}
+
+
+.cropFishEyeLargeBottom {
+   
+    overflow: hidden;
+    
+    
+}
+
+.cropFishEyeLargeBottom img{
+ width: 1812px;
+    
+     margin: -680px 0 0 0;  
+    
+}
+
+
+/* some fisheye cameras have privacy screen on bottom half, these need to be cropped */
+.cropFishEyeLargeBottomPreview {
+    
+        overflow: hidden;
+    
+}
+
+.cropFishEyeLargeBottomPreview img {
+
+    margin: -240px 0 0 0;    
+}    
+
+.cropFishEyeLargeCircle {
+    width: 2048px;
+    height: 2048px;
     overflow: hidden;
 }
 
@@ -1233,14 +1367,19 @@ width: 1.5em;
   min-height: 450px;
 }
 
+.googleVis {
+    width: 100%; 
+  min-height: 450px;
+
+}
+
+
 .fieldMapBig {
-    height: 75vh;
-    /*
+    height: 950px;
+    
     display:block;
-overflow:auto;
-height: 100%;
-  width: 100%;
-  */
+
+  
 }
 
 /* TMR recipe page */
@@ -1256,4 +1395,89 @@ min-height:.75em;
    font-size: 5vmax;  
    background-color: green;
   min-height:1.5em;
+}
+
+/* used for numbers on bovine location map */
+span.mapCirlces {
+  background: #EF0BD8;
+  border-radius: 1.3em;
+  -moz-border-radius: 1.3em;
+  -webkit-border-radius: 1.3em;
+  color: #ffffff;
+  display: inline-block;
+  font-weight: bold;
+  line-height: 2.6em;
+  margin-right: 25px;
+  text-align: center;
+  width: 2.6em;
+  font-size: 1.75em;
+  -webkit-box-shadow:  10px 10px 8px 0px rgba(50, 50, 50, 0.75);
+-moz-box-shadow:     10px 10px 8px 0px rgba(50, 50, 50, 0.75);
+box-shadow:         10px 10px 8px 0px rgba(50, 50, 50, 0.75);
+}
+
+
+#tmrIndivRecipeWarapper
+{
+   border-radius: 25px;
+  border-color:#abc;
+  padding: 20px;
+              border-style: solid;
+               
+}
+
+/* initals avatar */
+/* source: https://codepen.io/AllThingsSmitty/pen/dWmmQp */
+/* call like <div class="circle"><span class="initials">CD</span></div> */
+/*:root {
+  --avatar-size: 2rem;
+}
+  /* change this value anything, e.g., 100px, 10rem, etc. */
+
+
+.circle {
+  background-color: #42a94a;
+  border-radius: 50%;
+  height: var(--avatar-size);
+  text-align: center;
+  width: var(--avatar-size);
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.initials {
+  font-family:unset;
+  font-size: calc(var(--avatar-size) / 2); /* 50% of parent */
+  line-height: 1;
+  position: relative;
+  top: calc(var(--avatar-size) / 4); /* 25% of parent */
+  padding: 8px;
+}
+
+/* font awsome blinking */
+@keyframes fa-blink {
+     0% { opacity: 1; }
+     25% { opacity: 0.25; }
+     50% { opacity: 0.5; }
+     75% { opacity: 0.75; }
+     100% { opacity: 0; }
+ }
+.fa-blink {
+   -webkit-animation: fa-blink .75s linear infinite;
+   -moz-animation: fa-blink .75s linear infinite;
+   -ms-animation: fa-blink .75s linear infinite;
+   -o-animation: fa-blink .75s linear infinite;
+   animation: fa-blink .75s linear infinite;
+}
+
+
+.block {
+    display: inline-block;
+    margin: 10px;
+}
+
+/* modal on calf page background is not great */
+.modal-modify-background {
+    background: white;
+    color: black;
 }

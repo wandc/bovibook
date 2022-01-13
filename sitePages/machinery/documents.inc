@@ -26,18 +26,18 @@ class Documents extends BasePage {
         $str='';
         // Setup your database connection
         if ($mode == 'default') {
-            if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-                $sql = "SELECT * FROM documents.document WHERE active=true Order by display_name ASC";
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+                $sql = "SELECT * FROM documents.manual WHERE active=true Order by display_name ASC";
             } else {
-                $sql = "SELECT * FROM documents.document WHERE active=true and document.management=false::boolean Order by display_name ASC";
+                $sql = "SELECT * FROM documents.manual WHERE active=true and manual.management=false::boolean Order by display_name ASC";
             }
         }
         //for when queried by machine.
         else if ($mode == 'machine') {
-            if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-                $sql = "SELECT * FROM documents.document WHERE active=true and machine_id=$machine_id Order by display_name ASC";
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+                $sql = "SELECT * FROM documents.manual WHERE active=true and machine_id=$machine_id Order by display_name ASC";
             } else {
-                $sql = "SELECT * FROM documents.document WHERE active=true and machine_id=$machine_id AND document.management=false::boolean Order by display_name ASC";
+                $sql = "SELECT * FROM documents.manual WHERE active=true and machine_id=$machine_id AND manual.management=false::boolean Order by display_name ASC";
             }
         }
 

@@ -1,11 +1,4 @@
 <?php 
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/croppingHelper.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/field.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/fieldQuery.inc');
-;
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
 class Manure  extends TabPage {
 
     private $field_id;
@@ -23,10 +16,10 @@ class Manure  extends TabPage {
     
      public function tab1() {
 
-         self::addNewManureLoadsEventQuickform();
-         self::displayJSPortionofajaxReturnFieldPicture();
-
-        
+        $right= (self::addNewManureLoadsEventQuickform());
+         $left=self::displayJSPortionofajaxReturnFieldPicture();
+       //print (new BootStrap)->twoThirdsOneThird($left, $right);
+        print($left.$right);
      }
       public function tab2() {
       
@@ -71,19 +64,22 @@ class Manure  extends TabPage {
      
      
      public function displayJSPortionofajaxReturnFieldPicture() {
+         
+         $findLastManureEventFieldForUser=self::findLastManureEventFieldForUser();
+         
         /*
          * Dynamically chnage field picture with select change
          */ //style="height:100px;width:500px;
-           print('<div id="drawFieldGoogleStaticPictureDiv" >  </div>'); //where picture gets drawn, on select change     
-            print('<div id="drawFieldTable"> Picture </div>'); //drawFieldTable, on select change   
+          $out[]=('<div id="drawFieldGoogleStaticPictureDiv" >  </div>'); //where picture gets drawn, on select change     
+            $out[]=('<div id="drawFieldTable"> Picture </div>'); //drawFieldTable, on select change   
          
-?>
+$js=<<<JS
                 <script type="text/javascript" language="javascript"> 
    
          function drawFieldGoogleStaticPicture(id) {
         $.ajax({
          type: "GET",
-         url: "<?php  echo($GLOBALS['config']['HTTP']['HTML_API']); ?>101/ajaxReturnFieldPicture/"+id,
+         url: "{$GLOBALS['config']['HTTP']['HTML_API']}101/ajaxReturnFieldPicture/"+id,
          success: function(result) {
              $("#drawFieldGoogleStaticPictureDiv").html(result);
          }
@@ -91,7 +87,7 @@ class Manure  extends TabPage {
         
         $.ajax({
          type: "GET",
-         url: "<?php  echo($GLOBALS['config']['HTTP']['HTML_API']); ?>101/ajaxReturnFieldTable/"+id,
+         url: "{$GLOBALS['config']['HTTP']['HTML_API']}101/ajaxReturnFieldTable/"+id,
          success: function(result) {
              $("#drawFieldTable").html(result);
          }
@@ -102,12 +98,15 @@ class Manure  extends TabPage {
        
         //run above function onload too.
     $( document ).ready(function() {
-    drawFieldGoogleStaticPicture(<?php echo(self::findLastManureEventFieldForUser());?>);
+    drawFieldGoogleStaticPicture( {$findLastManureEventFieldForUser} );
       
     });
        
         </script>
-<?php   
+JS;   
+         $out[]=$js;
+         
+       return implode($out); 
      }
      
      
@@ -119,7 +118,7 @@ class Manure  extends TabPage {
         
        
         
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         // select active people in manure group to say who spread.
         $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
@@ -136,7 +135,7 @@ class Manure  extends TabPage {
             $manureAmount[$i] = "$i loads";
         }
 
-        $spreaderType = array(null => 'Please Select one...', '1' => 'Nuhn 4000 - liquid', '2' => 'Gehl Scavenger - semi-solid');
+        $spreaderType = array(null => 'Please Select one...', '1' => 'Nuhn 4000 - liquid', '3' => 'Kuhn 8024 - semi-solid', '4' => 'B&B Truck Tanker');
 
         $form = new HTML_QuickForm("addNewManureEventQuickform",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true); 
        
@@ -153,7 +152,7 @@ class Manure  extends TabPage {
         $form->addElement('select', 'manure_amount', 'Manure Amount (loads)', $manureAmount);
          $form->addElement('checkbox', 'all_covered', 'Field All covered?');
        //only allow admin to do a custom field size
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'spreader_userid', 'Who Spread it', $manureUsers);
         }
         else {
@@ -238,10 +237,19 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
                     $tankerCapacityLiters = 15141.6471; //4000 US gallons in liters
 
                     break;
-                case 2 :
+                case 2 :  //NOT USED ANYMORE
                     $manureType = 'semi-solid';
                     $tankerCapacityLiters = 5110.30591; //1350 US gallons (in liters) might not be right, but close.
                     break;
+                case 3 :
+                    $manureType = 'semi-solid';
+                    $tankerCapacityLiters = 9150; //2417 US gallons from 8124 specs
+                    break;
+                case 4 :
+                    $manureType = 'liquid';
+                    $tankerCapacityLiters = 16500; //Bill Crowe says 4500 US gallons. Assume they dont fill it fully, 17000-500 = 16500
+                    break;
+                
             }
             //we know oads and tanker capacity, find out how manyliters spread.
             $manure_amount_overall = $manure_amount_loads * $tankerCapacityLiters;
@@ -284,16 +292,16 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id=$field_id");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id=$field_id");
             exit();
         } // end validation
 
         $form->accept($renderer);
-        echo($renderer->toHtml());
+        return ($renderer->toHtml());
     }
 
      
@@ -323,7 +331,7 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
    
 		$form->addElement('hidden','pageid',$_REQUEST['pageid']);
 		$form->addElement('hidden','manureEventID',$manureEventID);
-		$form->addElement('submit', 'btnDelete', 'Delete', array('id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete this event?')")); //call javascript to confirm delete.
+		$form->addElement('submit', 'btnDelete', 'Delete', array('class'=>'btn btn-warning','id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete this event?')")); //call javascript to confirm delete.
                 
 
 		// Try to validate a form
@@ -348,7 +356,7 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
 	}
     
       public function AllManureEventsLast1000($request) {
-         $sql = "SELECT manure_event.*,manure_event.id as manure_event_id,field.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+         $sql = "SELECT manure_event.*,manure_event.id as manure_event_id,field.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,round(manure_amount/(gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,-2) as lh,datum.id as datum_id  
         FROM cropping.manure_event 
         LEFT JOIN cropping.field ON field.id=manure_event.field_id
         LEFT JOIN cropping.datum ON manure_event.datum_id = datum.id
@@ -360,7 +368,7 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
          if (!empty($request['item'])) {
            if (!filter_var($request['item'], FILTER_VALIDATE_INT) === false) {  
                
-            $sql = "SELECT manure_event.*,manure_event.id as manure_event_id,field.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+            $sql = "SELECT manure_event.*,manure_event.id as manure_event_id,field.*,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,round(manure_amount/(gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,-2) as lh,datum.id as datum_id  
         FROM cropping.manure_event 
         LEFT JOIN cropping.field ON field.id=manure_event.field_id
         LEFT JOIN cropping.datum ON manure_event.datum_id = datum.id
@@ -379,7 +387,7 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
                  $row['event_time_raw']=strtotime($row['event_time']);
                   $row['manure_amount']=round($row['manure_amount']);
            $row['alpha_numeric_id'] ="<a href=\"". $GLOBALS['MiscObj']->hrefToFieldPage($row['field_id'])."\"> <b>{$row['alpha_numeric_id']}</b> - ". $row['common_name'] ."</a>";     
-           $row['event_time']= date("l, M d Y",strtotime($row['event_time']));  //has to be at end.
+           $row['event_time']= date("Y-M-d",strtotime($row['event_time']));  //has to be at end.
            $row['action'] = $this->printActionButtons2($row['manure_event_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$row['field_id']}");
         }
 
@@ -391,10 +399,10 @@ function checkExplanationForFieldNotCovered($junk, $valueArr, $elementNameArr) {
       function displayAllManureEventsLast1000($field_id=null) {
           
           if (!empty($field_id)) {
-            print ("<h3>Latest Field Manure Events</h3>");
+            $title= ("Latest Field Manure Events");
           }
           else{
-                 print ("<h3>All Manure Events</h3>");
+                 $title= ("All Manure Events");
           }
             
             
@@ -418,9 +426,13 @@ $columnsStr= <<<EX
                 data: "comment",
                 title: "comment"
             },
-        {
+            {
                 data: "area",
                 title: "Area (ha)"
+            },
+            {
+                data: "lh",
+                title: "Amount (litres/ha)"
             },
         
             {
@@ -440,7 +452,7 @@ $columnsStr= <<<EX
                 title: "Action"
             } 
 EX;
-    print($dt->start(101,'AllManureEventsLast1000',$field_id,$columnsStr));     
+    print($dt->start($title, 101,'AllManureEventsLast1000',$field_id,$columnsStr));     
 }     
     
     

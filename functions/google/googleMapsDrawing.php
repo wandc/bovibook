@@ -212,7 +212,7 @@ class GoogleMapsDrawing {
                   
                 var mapCenterPoint;
                 //find center of polygon we are loading to center map to
-        <?php  echo(CroppingHelper::fieldBorderCentroidToGoogleMapsJavascriptPoint($field_id)); ?>
+        <?php  echo((new CroppingHelper)->fieldBorderCentroidToGoogleMapsJavascriptPoint($field_id)); ?>
                   
                   
                       var map = new google.maps.Map(document.getElementById('map_dw-<?php echo($this->uniqueNumber);?>'), {
@@ -223,10 +223,10 @@ class GoogleMapsDrawing {
                           zoomControl: true
                       });
 
-                      //var georssLayer = new google.maps.KmlLayer('http://int.littleriver.ca/functions/croppingGoogleMaps.php?r=1');
+                    
                       // georssLayer.setMap(map);
                       //get from PHP, the points for a field from the db
-        <?php  echo(CroppingHelper::fieldBorderToGoogleMapsJavascriptVar($field_id)); ?>
+        <?php  echo((new CroppingHelper)->fieldBorderToGoogleMapsJavascriptVar($field_id)); ?>
 
          
                 // Construct the polygon

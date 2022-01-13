@@ -7,11 +7,31 @@ class ProfitProfiler extends BasePage {
 	
 
 	public function defaultDisplay() {
-            
+            print("<h3>Average Milk Price and Expenses for a Year</h3>");
+            print($this->yearlyMilkPrice());
             print($this->involuntaryCullRate()); 
             print($this->cattleSales()); 
             print($this->whoBeefed());
             
+        }
+        
+        function yearlyMilkPrice() {
+                $sql = <<<SQL
+SELECT distinct date_trunc('year',date)::date as date
+,round((avg(butterfat)  OVER W),4) as avg_butterfat
+,round((avg(protein) OVER w),4)  as avg_protein
+,round((avg(lactose) OVER w),4)  as avg_lactose
+,round((avg(transport) OVER w),4)  as avg_transport
+,round((avg(promotion) OVER w),4)  as avg_promotion
+,round((avg(admin) OVER w),4)  as avg_admin
+,round((avg(lab) OVER w),4)  as avg_lab
+,round((avg(research) OVER w),4) as avg_research
+ from batch.milk_statement
+WINDOW w AS (PARTITION BY  date_trunc('year',date)) order by date desc;
+SQL;
+                
+
+            return ( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql)); 
         }
         
         
@@ -47,7 +67,7 @@ SQL;
         $dataArr = $resultsOut;
 
          $out[]='<h3>#56 Cattle Sales</h3>';
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr)); 
          return implode($out); 
         
         }
@@ -102,7 +122,7 @@ SQL;
         $dataArr = $resultsOut;
       
          $out[]='<h3>#?? Who Beefed</h3>';
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr)); 
          return implode($out); 
    
         }

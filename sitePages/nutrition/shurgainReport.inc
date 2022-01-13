@@ -1,14 +1,4 @@
 <?php
-
-//
-
-//require_once($_SERVER['DOCUMENT_ROOT'].'/functions/croppingHelper.inc');
-;
-
-
-/**
-  Test page to try new things with.
- */
 class ShurgainReport extends BasePage {
 
     function defaultDisplay() {
@@ -16,13 +6,14 @@ class ShurgainReport extends BasePage {
   
         $this->shurGainYearChart();
         print("<h3>Note: Totals with tax need tax added on, not included in sum.</h3>");
-        $this->displayShurGainOneMonth(strtotime("-1 month"));
-        $this->displayShurGainOneMonth(strtotime("-2 month"));
-        $this->displayShurGainOneMonth(strtotime("-3 month"));
+        print( $this->displayShurGainOneMonth(strtotime("-1 month")));
+        print( $this->displayShurGainOneMonth(strtotime("-2 month")));
+        print( $this->displayShurGainOneMonth(strtotime("-3 month")));
     }
 
     
-    
+    //shows sum of each item for that year
+    //not currently used.
     public function shurGainYearly() {
         
           $sql = <<<SQL
@@ -34,82 +25,55 @@ sum(price_total) OVER(PARTITION BY date_trunc('year',event_time)) as price_sum_o
 FROM temp order by  year,item_desc
         
 SQL;
-         
-          
-          
-         
-        
+  
     }
 
 
     
-    public function shurGainOneMonth($request) {
+    public function displayShurGainOneMonth($dateOfInterest) {
        
-        $dateStart= date('Y-m-01',($request['item']));
+        $dateStart= date('Y-m-01',$dateOfInterest);
         $dateEnd=   date('Y-m-d', strtotime('+1 month', strtotime($dateStart))); 
         
         
         $sql = <<<SQL
  with temp as (
-SELECT distinct (item_num,uom), item_desc,sum(mass) as mass_sum,sum(price_total) as price_sum,tax_code FROM batch.shur_gain_invoice_data where event_time >= '$dateStart' and event_time < '$dateEnd' group by item_num,uom,item_desc,tax_code
+SELECT distinct (item_num,uom), uom,item_desc,sum(mass) as mass_sum,sum(price_total) as price_sum,tax_code FROM batch.shur_gain_invoice_data where event_time >= '$dateStart' and event_time < '$dateEnd' group by item_num,uom,item_desc,tax_code
 )
-SELECT *,(SELECT sum(price_sum) from temp) as overall_sum from temp 
+SELECT *,price_sum/mass_sum as price_per_uom,batch.shurgain_uom_to_tonne(uom::text,mass_sum), round(price_sum /batch.shurgain_uom_to_tonne(uom::text,mass_sum),2) as price_per_tonne,(SELECT sum(price_sum) from temp) as overall_sum 
+FROM temp 
+
 SQL;
         
          $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
-         
+          $rowOut['Item Desc']=($row['item_desc']);
+          $rowOut['Mass']=($row['mass_sum']);
+          $rowOut['Price (per uom)']=($row['price_sum']);
+          $rowOut['Tax Code']=($row['tax_code']);
+          $rowOut['Overall Sum']=($row['overall_sum']);
+          $rowOut['Price (per tonne)']=($row['price_per_tonne']);
+                   
+          $resultsOut[] = $rowOut;
         }
 
+        
         //output
-        $output['data'] = $results;
-        return ($output);
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+    
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Monthly Purchased Feed: '. date('M Y',$dateOfInterest) , $dataArr,'order: false')); 
+         return implode($out); 
         
     }
     
     
-     function displayShurGainOneMonth($dateOfInterest) {
-         
-         print("<H1> Monthly Purchased Feed: ". date('M Y',$dateOfInterest) ."</h1>");
-         
-         
-         
-        $dt = new JQueryDataTable();
-        $columnsStr = <<<EX
-                         
-            {
-                data: "item_desc",
-                title: "item_desc"
-               
-            },
-            {
-                data: "mass_sum",
-                title: "mass_sum"
-            },
-            
-            {
-                data: "price_sum",
-                title: "price_sum"
-             
-            },
-            {
-                data: "tax_code",
-                title: "tax_code"
-            },
-             {
-                data: "overall_sum",
-                title: "overall_sum"
-            }
-EX;
-        print($dt->start($this->pageid, 'shurGainOneMonth', $dateOfInterest, $columnsStr));
-
-        //    print($dt->startLocal($this->AllHeats7Days(''),$columnsStr,null,' "paging": false'));     
-    }
+     
     
     
     
@@ -133,7 +97,7 @@ EX;
       
     function drawChartF() {
       var jsonData = $.ajax({
-          url: "<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?><?php echo($this->pageid);?>/shurGainMonthlyPurchases/",
+          url: "<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?><?php echo($this->pageid);?>/shurGainMonthlyPurchasesForSpecifiedYear/",
           dataType:"json",
           async: false
           }).responseText;
@@ -171,12 +135,27 @@ EX;
     
     
     
-    public function shurGainMonthlyPurchases($request): array {
+    public function shurGainMonthlyPurchasesForSpecifiedYear($request): array {
 
 
         $array = array();
 
-      $yearsAgo=1;
+        //do a query and see what the newest month is and use that as a basis for what year of the chart to show. 
+          $sqlCheck = <<<SQL
+              SELECT *,date_part('year', event_time) as year FROM batch.shur_gain_invoice_data ORDER BY event_time DESC LIMIT 1;    
+          SQL;        
+        
+        $stmt = $GLOBALS['pdo']->prepare($sqlCheck);
+        $stmt->execute();
+        //get data
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row['year']==date("Y")) {
+              $yearsAgo=0;
+        }
+        else {
+              $yearsAgo=1;
+        }
+
       
         $sql = <<<SQL
  /* NOTE:  this makes an assumption with the unest of 'unit of measure' that they all array units are the same. this seems to be the case */

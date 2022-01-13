@@ -1,12 +1,4 @@
 <?php 
-
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-require_once($_SERVER['DOCUMENT_ROOT'].'functions/googleCharts.inc');
-
-/**
- Test page to try new things with.
- */
-
 class ReproReport extends BasePage {
 
 
@@ -27,6 +19,8 @@ class ReproReport extends BasePage {
         
 	$this->plotChart($retArray,$timeWindow=21,$chartTitle);
 	
+        print($this->cidrSyncBenchmark());
+        
 	}
 
 public function calculateTwentyOneDayBreedingAverage($skipDays=5,$timeWindow=21,$dataPoints=500) {
@@ -90,7 +84,7 @@ function plotChart($dataArray,$timeWindow,$chartTitle) {
                 $headerStrArr=array();
                 $headerStrArr['xAxis'] = 'date'; //BACKWARDS
                 $headerStrArr['Preg Rate'] = 'number';
-                $x=new GoogleVisualizationLine(null,$headerStrArr,$dataArray);
+                $x=new GoogleVisualizationLine( null, null,$headerStrArr,$dataArray);
                 print($x->toString());
 		
                 
@@ -99,6 +93,27 @@ function plotChart($dataArray,$timeWindow,$chartTitle) {
                
  }
 
+ /*
+  * shows how well we are doing with CIDR sync
+  */
+ function  cidrSyncBenchmark() {
+     $sql=<<<SQL
+             with temp as (
+SELECT protocol_event.id, local_number,date_start as protocol_start_date, name as protocol_name, (date_start+ interval '10 days')::date as conception_date,
+ bovinemanagement.pregnant_at_timestamp(bovine_id, date_start+ interval '14 days') as due_date
+FROM bovinemanagement.protocol_event
+LEFT JOIN bovinemanagement.bovine ON bovine.id=bovine_id
+LEFT JOIN bovinemanagement.protocol_type ON protocol_event.protocol_type_id=protocol_type.id 
+WHERE name LIKE 'CIDR%' 
+) 
+SELECT temp.*, daterange( (due_date::date-interval '278 days')::date,(due_date::date) ) as preg_range
+FROM temp
+SQL;
+     
+     return ( (new JQueryDataTable)->startBasicSql('CIDR Sync Benchmark', $sql)); 
+ }
+ 
+ 
 }//end class
 
 /**

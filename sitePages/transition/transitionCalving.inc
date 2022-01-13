@@ -1,17 +1,16 @@
 <?php
 
-
-/** accordian class */
+/** accordion class */
 class AccordionImplementation extends AccordionSub {
 
     function tab1() {
-        $qfOne = new QF2_CalvingEvent((object) array(forwardURLArr=>array('pageid' => $_REQUEST['pageid'])), 1);
-        print($qfOne->renderBox('qf_calf1','Record Calving Event'));
+        $qfOne = new QF2_CalvingEvent((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 1);
+        return ($qfOne->renderBox('qf_calf1', 'Record Calving Event'));
     }
 
     function tab2() {
-        $qfTwo = new QF2_CalvingEvent((object) array(forwardURLArr=>array('pageid' => $_REQUEST['pageid'])), 2);
-        print($qfTwo->renderBox('qf_calf2','Record Calving Event'));
+        $qfTwo = new QF2_CalvingEvent((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 2);
+        return ($qfTwo->renderBox('qf_calf2', 'Record Calving Event'));
     }
 
 }
@@ -23,48 +22,79 @@ class TransitionCalving extends BasePage {
     public function defaultDisplay() {
 
 
-
         $accordionArray[1]['name'] = 'Single';
         $accordionArray[2]['name'] = 'Twins';
         $accordion = new AccordionImplementation();
         $accordion->setCSS('accordionCalving');
-        $accordion->render($accordionArray);
-        $this->displayLast100DaysCalvingEvents();
-        //   $this->displayLastcalvingEvents();
-        $this->calvingSOP();
+
+        $half = (new Bootstrap)->halfHalf($this->displayTaggingNote(), $this->miniCalvingSOP());
+
+        $left = <<<HTML
+             $half   
+             {$this->displayLast100DaysCalvingEvents()}
+        HTML;
+
+        $right = <<<HTML
+           {$accordion->render($accordionArray)}
+        HTML;
+
+        $content = (new Bootstrap)->oneThirdTwoThirds($left, $right);
+        print($content);
     }
 
     public function summaryDisplay() {
-        $this->displayLastcalvingEvents('summary');
+        
+    }
+
+    //ajax called by QF2
+    //returns a datable of latest results for selcted field.
+    public function ajaxReturnPotentialSires($request) {
+        if (!filter_var($request['item'], FILTER_VALIDATE_INT) === false) {
+
+            $record['birth_time'] = date('Y-m-d', strtotime("now")); //use todays date for calving time, should be ok. 
+            $record['conceiver_id'] = $request['item'];
+
+            $ret = $this->PotentialSireandRecipient($record);
+            if (!empty($ret)) {
+                return '<b>Potential Sires</b><br/>' . $ret;
+            } else {
+                return '<b>NO Potential Sires</b>';
+            }
+        }
     }
 
     public function milkTestInputsDisplay() {
-        //$this->displayLastcalvingEvents('summary');
-        $this->displayLast100DaysCalvingEvents();
+        print($this->displayLast100DaysCalvingEvents('milkTestInputs'));
     }
 
-    function calvingSOP() {
-        print("<h3>SOP</h3>");
-        print("Vaccinate all female calves");
+    public function displayTaggingNote() {
+        $out[] = '<li>All female holstein calves get a holstein Canada tag.</li>';
+        $out[] = '<li>All female angus <i class="fab fa-github-alt"></i> calves get a beef tag.</li>';
+        $out[] = '<li>All male holstein/angus <i class="fab fa-github-alt"></i> calves get a beef tag.</li>';
+        $out[] = '<li>Angus <i class="fab fa-github-alt"></i> calves are <b>all black</b>. Make sure you record them accurately.</li>';
+
+
+
+        $content = (implode($out));
+        return( (new BootStrap)->generalInfoBox('ion-social-octocat', 'bg-info', 'Tagging Protocol', $content));
     }
 
-    function nextTagsToUse() {
-        $res = $GLOBALS['pdo']->query("");
+    function miniCalvingSOP() {
 
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $html = <<<HTML
-   <div class="callout callout-info">
-                <h4>Next Tag to Use:</h4>
+        $out[] = '<p>Vaccinate all calves with First Defence and Calf Guard.</p>';
+        $out[] = '<p>Tag Calf.</p>';
+        $out[] = '<p>All calves have strong iodine flushed on navel and navel clip put on.</p>';
+        $out[] = '<p>Take a DNA sample from all female holstein calves using the ear tag kit.</p>';
+        $out[] = '<p>All calves need 3ℓ of colsutrum as soon as possible.</p>';
 
-                <p>$nextHeifertag.</p>
-              </div>theH
-HTML;
+        $content = (implode($out));
+        return( (new BootStrap)->generalInfoBox('ion-ios-book-outline', 'bg-info', 'Mini Calf SOP', $content));
     }
 
     ///list potential breedings or embryo transfers
     function PotentialSireandRecipient($record) {
 
-     
+
 
         $calvingTime = $record['birth_time'];
         $probArr = array();
@@ -78,10 +108,19 @@ HTML;
         foreach ($probArr as $value) {
             $time = strtotime($value['event_time']);
             $ftime = date('M j, Y', $time);
+
+            //see if dairy calf
+            if ($value['service_sire_breed_dairy'] != true) {
+                $beef = ' <i class="fab fa-github-alt"></i>';
+            } else {
+                $beef = '';
+            }
+
+
             if ($value['type'] == 'breeding') {
-                $str = $str . "{$value['days_ago']} <b class=\"smallish\">($ftime)</b> to {$value['service_sire_short_name']} <br>";
+                $str = $str . "{$value['days_ago']} <b class=\"smallish\">($ftime)</b> to {$value['service_sire_short_name']} $beef <br>";
             } elseif ($value['type'] == 'embryo7day') {
-                $str = $str . "{$value['days_ago']} <b class=\"smallish\">($ftime)</b> to <b>EMBRYO</b> from #{$value['donor_dam_local_number']} {$value['donor_dam_short_name']} & {$value['service_sire_short_name']} <br>";
+                $str = $str . "{$value['days_ago']} <b class=\"smallish\">($ftime)</b> to <b>EMBRYO</b> from #{$value['donor_dam_local_number']} {$value['donor_dam_short_name']} & {$value['service_sire_short_name']} $beef <br>";
             }
         }
         return $str;
@@ -174,9 +213,9 @@ WHERE recipient_bovine_id=$bovine_id  AND calculated_potential_due_date >= (date
     }
 
     function createCanadianRegNumber($calfBreedAbbrev, $animalSexAbbrev, $calf_rfid_number) {
-        
-        $calf_patial_rfid_number = ltrim( substr($calf_rfid_number, 3), '0');  //drop leading 124 + zeros
-        
+
+        $calf_patial_rfid_number = ltrim(substr($calf_rfid_number, 3), '0');  //drop leading 124 + zeros
+
         $calfBreedAbbrev = strtoupper($calfBreedAbbrev); //make calpitalized HO
         $animalSexAbbrev = strtoupper($animalSexAbbrev); //make sure capilitlaized M or F letter
         //create full registration number (assumes CANADA).
@@ -193,9 +232,6 @@ WHERE recipient_bovine_id=$bovine_id  AND calculated_potential_due_date >= (date
             return 'no';
         }
     }
-
-    
-    
 
     function printCalfTwinOrNot($twin) {
 
@@ -217,97 +253,6 @@ WHERE recipient_bovine_id=$bovine_id  AND calculated_potential_due_date >= (date
                 break;
         }
     }
-
-    function printActionButtons($record, $callBackURL = null) {
-
-        $currentUserid = $GLOBALS['auth']->getUsername();
-
-        //find the last entry for the current user and use that as a basais to display the delete button or not.
-        //We only want the delete button shown once for the latest entry.
-        $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.calving_event WHERE userid='$currentUserid' ORDER BY id DESC LIMIT 1");
-
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $deleteButtonAsString = null;
-        if ($record['calving_event_id'] == $row['id']) {
-            $deleteButtonAsString = self::deleteQuickForm($record['calving_event_id'], $callBackURL); //show delete button, with estrus table id as index for delete.
-        }
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $deleteButtonAsString = self::deleteQuickForm($record['calving_event_id'], $callBackURL); //show delete button, with estrus table id as index for delete.
-        }
-
-
-
-        return $deleteButtonAsString;
-    }
-
-    /////////////////////////////////////////////////////////////////////
-
-    function deleteQuickForm($calvingEventID, $callBackURL) {
-
-        //$estrusID=85;
-
-        $form = new HTML_QuickForm("calvingEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-        $form->addElement('hidden', 'calvingEventID', $calvingEventID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            $pageid = $form->exportValue('pageid');
-            $calvingEventID = $form->getElementValue('calvingEventID');
-
-
-
-            // Open a transaction
-            try {
-                $res = $GLOBALS['pdo']->beginTransaction();
-
-                //look up what the lactation id
-                //The DB using foreign keys will cascade delete from lacation->all calving_events
-                //thus we delete the lacation and even if there are triplets, everything goes.
-                //BOVINE table does not get deleted because we can't have a 1:1 foreign key relationship, because if we buy cows, they don't have a caliving ease.
-                //we delete it seperately.
-                $res = $GLOBALS['pdo']->query("SELECT lactation_id,calf_rfid_number FROM bovinemanagement.calving_event WHERE id=$calvingEventID");
-
-                $row = $res->fetch(PDO::FETCH_ASSOC);
-                $lactation_id = $row['lactation_id'];
-
-
-                //now lookup anything connected to the calcing_event and delete in bovine table.
-                $res2 = $GLOBALS['pdo']->query("SELECT calf_bovine_id FROM bovinemanagement.calving_event WHERE lactation_id='$lactation_id'");
-
-                while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
-
-                    //delete all bovine records created for this lactation.
-                    if (!empty($row2['calf_bovine_id'])) {
-                        $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.bovine where id={$row2['calf_bovine_id']}");
-                    }
-                }
-
-                //this deletes lacation and cascades to all calving_events
-                $res2 = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.lactation where id='$lactation_id'");
-
-                $GLOBALS['pdo']->commit();
-            } catch (PDOException $e) {
-                try {
-                    $GLOBALS['pdo']->rollBack();
-                } catch (Exception $e2) {
-                    
-                }
-                echo "Failed: " . $e->getMessage();
-            }
-
-            header($callBackURL);
-            exit();
-        }
-        return $form->toHtml(); //pass on as html string to display later in the table
-    }
-
-    
 
 //end function
 //passes along error info.
@@ -355,7 +300,7 @@ SELECT DISTINCT(id) ,id, local_number,full_reg_number, sire_full_reg_number,dam_
 
         $sql = <<<SQL
    Select calving_event_ease_types.name as calving_ease, bovine.full_name, bovine.local_number,bovine.id as bovine_id,
-    bovine.id as conceiver_id,calving_event.event_time as birth_time, calving_event.id,calving_event.update_time,calving_event.event_time,
+    bovine.id as conceiver_id,calving_event.event_time as birth_time, calving_event.id,calving_event.update_time,calving_event.event_time,calving_event.calf_breed,
     calving_event.userid,calving_event.create_time,calving_event.alive_or_dead,calving_event.calf_rfid_number,calving_event.calf_sex,
     calving_event.id as calving_event_id,calving_event.calf_mass,calving_event.lactation_id,bovine.full_reg_number,bovine.birth_date as dam_birth_date,
 (SELECT  right(calf_rfid_number::varchar,local_num_sig_digits)::numeric FROM bovinemanagement.eartag_valid where rfid_range @> calf_rfid_number::numeric limit 1 ) as calf_local_number,
@@ -378,24 +323,27 @@ SQL;
         foreach ($results as &$row) {
 
             $row['event_time_raw'] = strtotime($row['birth_time']);
-            $row['calving_time'] = date("l M d H:00 Y", strtotime($row['birth_time']));
+            $row['calving_time'] = date("l H:00   M d, Y  ", strtotime($row['birth_time']));
             $row['dam_birth_date'] = date("M d, Y", strtotime($row['dam_birth_date']));
             $row['dam'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
             $row['calf'] = JQueryDataTable::formattedAnimalNameLink($row['calf_bovine_id'], $row['calf_local_number'], '');
             $row['calving_ease'] = $row['calving_ease'];
             $row['calf_weight'] = $row['calf_mass'];
+            $row['calf_breed'] = $row['calf_breed'];
             $row['calf_sex'] = $row['calf_sex'];
-            $row['calf_vitality'] = $row['alive_or_dead'];
+            $row['calf_vitality'] = ucfirst($row['alive_or_dead']);
             $row['calf_twin'] = $this->printCalfTwinOrNot($row['twin']);
+            $row['combined_columns'] = '<li>' . $row['calf_twin'] . '</li><li>' . $row['calf_vitality'] . '</li><li>' . $row['calf_mass'] . ' kg' . '</li><li>' . $row['calving_ease'] . '</li>';
             $row['calf_potentialSire'] = $this->potentialSireandRecipient($row);
             $row['calf_chosenSire'] = $this->chooseSireandRecipient($row);
             $row['calf_vaccinated'] = $this->printFormattedVaccination($row);
 
 
             $row['empploee'] = $row['userid'];
-            //  $row['action'] = $this->printActionButtons($row['estrus_id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 
-            $row['action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $delButton = new QF2_DeleteButtonDecider('user_1only_timeLimit', (object) array('buttonClassName' => 'QF2_CalvingEventDeleteButton', 'schemaTable' => 'bovinemanagement.calving_event'));
+
+            $row['action'] = $delButton->output($row['id']);
         }
 
         //output
@@ -416,15 +364,23 @@ SQL;
             $numberPerPage = 10;
         }
 
+         $showColumn = 'false';
+            $showColumn2 = 'true';
+             $options = 'paging:false,';
+        /*
         if ($mode == 'default') {
             $showColumn = 'false';
             $showColumn2 = 'true';
+            $options = null;
         } elseif ($mode == 'milkTestInputs') {
             $showColumn = 'true';
             $showColumn2 = 'false';
+            $options = 'paging:false';
         } else {
             Throw new Exception("Error: no proper mode input into method.");
         }
+          */
+         
 
         $dt = new JQueryDataTable();
         $columnsStr = <<<EX
@@ -435,7 +391,7 @@ SQL;
             },  
             {
                data: "calving_time",
-               title: "calving_time",
+               title: "Calving Time",
                type: "date"
             },
             {
@@ -444,32 +400,19 @@ SQL;
                  type: "num-html"
             },
              {
-                data: "full_reg_number",
-                title: "Dam Reg #",
-                 
+                data: "combined_columns",
+                title: "Paramaters"
             },
-             {
-                data: "dam_birth_date",
-                title: "Dam Birth Date",
-                type: "date"
-                  
-            },
-            {
-                data: "calving_ease",
-                title: "Calving Ease"
-            },
-            {
-                data: "calf_weight",
-                title: "Calf Mass"
-            },
+           
             {
                 data: "calf_sex",
                 title: "Calf Sex"
             },
             {
-                data: "calf_vitality",
-                title: "Alive or Dead?"
-            },
+                data: "calf_breed",
+                title: "Calf Breed"
+            },    
+           
             {
                 data: "calf_twin",
                 title: "Tiwn?"
@@ -492,7 +435,7 @@ SQL;
             },
             {
                 data: "calf_vaccinated",
-                title: "Vaccianted?"
+                title: "Vacc?"
             },
              {
                  data: "userid",
@@ -504,7 +447,7 @@ SQL;
               
             }
 EX;
-        print($dt->start(43, 'AllCalvings7Days', null, $columnsStr));
+        return($dt->start('Calving Events Log', 43, 'AllCalvings7Days', null, $columnsStr,null,true,$options));
     }
 
 }
@@ -516,9 +459,7 @@ EX;
  * 
  * 
  */
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';
-
-Class QF2_CalvingEvent extends Quickform2Helper {
+Class QF2_CalvingEvent extends QF2_Base {
 
     function definition($form) {
         $numberOfCalves = $this->mode;
@@ -546,25 +487,42 @@ Class QF2_CalvingEvent extends Quickform2Helper {
             $calvingEaseTypes[$row[0]] = $row[1];
         }
 
-        
+
         /*
          * find next ear tag numbers in series. using 2 series holstein and bull tags.
          * 
          */
-        $tagArray=array();
+        $tagArray = array();
         //find last eartag used, purebred 
-        $sql1 = "SELECT rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
+        $sql1 = "SELECT upper(rfid_range)as upper_limit,rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
                  FROM bovinemanagement.bovine
                  LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
                  WHERE purebred=true
                  ORDER BY birth_date desc,rfid_number desc
                  LIMIT 1
                ";
-        $res1 = $GLOBALS['pdo']->query($sql1); 
+        $res1 = $GLOBALS['pdo']->query($sql1);
         $row1 = $res1->fetch();
+
+        //check if we are on a boundry and need to move to next series. 
+        if ($row1['upper_limit'] == $row1['rfid_number']) {
+            //now find next series.
+            //NOTE: this is not very robust because it just uses when the series was entered.
+            $sql1b = "SELECT lower(rfid_range) as rfid_number, purebred,  right( lower(rfid_range)::varchar,local_num_sig_digits)::numeric as local_number
+                 FROM bovinemanagement.eartag_valid
+                 WHERE purebred=true
+                 ORDER BY event_time desc
+                 LIMIT 1";
+            $res1 = $GLOBALS['pdo']->query($sql1b);
+            $row1 = $res1->fetch();
+            $row1['rfid_number'] = $row1['rfid_number'] - 1; //since we are reprecenting the last one used. so minus 1.
+            $row1['local_number'] = $row1['local_number'] - 1;
+        }
+
+
         //
         //find last eartag used, grade 
-        $sql2 = "SELECT rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
+        $sql2 = "SELECT upper(rfid_range)as upper_limit,rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
                  FROM bovinemanagement.bovine
                  LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
                  WHERE purebred=false
@@ -573,19 +531,42 @@ Class QF2_CalvingEvent extends Quickform2Helper {
                ";
         $res2 = $GLOBALS['pdo']->query($sql2);
         $row2 = $res2->fetch();
-        
+
+        //check if we are on a boundry and need to move to next series. 
+        if ($row2['upper_limit'] == $row2['rfid_number']) {
+            //now find next series.
+            //NOTE: this is not very robust because it just uses when the series was entered.
+            $sql2b = "SELECT lower(rfid_range) as rfid_number, purebred,  right( lower(rfid_range)::varchar,local_num_sig_digits)::numeric as local_number
+                 FROM bovinemanagement.eartag_valid
+                 WHERE purebred=false
+                 ORDER BY event_time desc
+                 LIMIT 1";
+            $res2 = $GLOBALS['pdo']->query($sql2b);
+            $row2 = $res2->fetch();
+            $row2['rfid_number'] = $row2['rfid_number'] - 1; //since we are reprecenting the last one used. so minus 1.
+            $row2['local_number'] = $row2['local_number'] - 1;
+        }
+
         //FIXME: can overflow eartag range number by +1, I think.
-        
-         $tagArray[null] = "Please Select one..."; //dummy value
-            //show first 2 male and female, mix them up to reducde entry error. 
-         $tagArray[(intval($row1['rfid_number'])+1)]= 'Female '. (intval($row1['local_number'])+1) .' ('. (intval($row1['rfid_number'])+1) .')';
-         $tagArray[(intval($row2['rfid_number'])+1)]= 'Male '. (intval($row2['local_number'])+1) .' ('. (intval($row2['rfid_number'])+1) .')';
-         $tagArray[(intval($row1['rfid_number'])+2)]= 'Female '. (intval($row1['local_number'])+2) .' ('. (intval($row1['rfid_number'])+2) .')';
-         $tagArray[(intval($row2['rfid_number'])+2)]= 'Male '. (intval($row2['local_number'])+2) .' ('. (intval($row2['rfid_number'])+2) .')';
-        
-         $tagArray['dead']='Dead';
-        
-        
+
+        $tagArray[null] = "Please Select one..."; //dummy value
+        //show first 2 male and female, mix them up to reduce entry error. 
+        $xMin = 1;
+        $xMax = 6;
+        //if we are in admin mode, show more. 
+        if ($GLOBALS['auth']->getAdminMode() == 1) {
+            $xMin = -10;
+            $xMax = 10;
+        }
+
+        for ($x = $xMin; $x <= $xMax; $x++) {
+            $tagArray[(intval($row1['rfid_number']) + $x)] = 'Female ' . (intval($row1['local_number']) + $x) . ' (' . (intval($row1['rfid_number']) + $x) . ')';
+            $tagArray[(intval($row2['rfid_number']) + $x)] = 'Male or Angus ' . (intval($row2['local_number']) + $x) . ' (' . (intval($row2['rfid_number']) + $x) . ')';
+        }
+
+        $tagArray['dead'] = 'Dead';
+
+
         /* input data arrays */
         $massArray = array(null => 'Please Select One', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31', 32 => '32', 33 => '33', 34 => '34', 35 => '35', 36 => '36', 37 => '37', 38 => '38', 39 => '39', 40 => '40', 41 => '41', 42 => '42', 43 => '43', 44 => '44', 45 => '45', 46 => '46', 47 => '47', 48 => '48', 49 => '49', 50 => '50', 51 => '51', 52 => '52', 53 => '53', 54 => '54', 55 => '55', 56 => '56', 57 => '57', 58 => '58', 59 => '59', 60 => '60', 61 => '61', 62 => '62', 63 => '63', 64 => '64', 65 => '65');
         $deadAliveArray = array(null => 'Please Select One', 'alive' => 'Alive', 'dead' => 'Dead');
@@ -594,6 +575,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         //$twinArray=array(null=>'Please Select One',1=>'Single',2=>'Twins',3=>'Triplets');
         $vaccArray = array(null => 'Please Select One', 'no' => 'No', 'yes' => 'Yes');
         $colourArray = array(null => 'Please Select One', 'b&w' => 'Black & White', 'r&w' => 'Red & White');
+        $breedArray = array(null => 'Please Select One', 'HO' => 'Holstein', 'AN' => 'Angus');
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //GENERAL
@@ -608,20 +590,23 @@ Class QF2_CalvingEvent extends Quickform2Helper {
 
         //defaults at run time for calf 1.
         $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array(
-            'animalNumber' => 0,
-            'calfDeliveryMethod1' => 0,
-            'calfDeadAlive1' => 'alive',
-            'calfVaccination1' => 0,
-            'calfColour1' => 'b&w',
-            'calfEarTagNum1' => 0
+                    'animalNumber' => 0,
+                    'calfDeliveryMethod1' => 0,
+                    'calfDeadAlive1' => 'alive',
+                    'calfVaccination1' => 0,
+                    'calfColour1' => 'b&w',
+                    'calfEarTagNum1' => 0
         )));
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //DAM CALF
+        //DAM CALF // array('onchange' => 'blah(this.value);')
         $form->addFieldset('header')->setLabel('Cow Who Calved'); //set title
-        $dam = $form->addElement('select', 'animalNumber', null, array('label' => 'Cow Animal Number', 'options' => $aniNumber));
+        $dam = $form->addElement('select', 'animalNumber', array('onchange' => 'poteintialSireChange(this.value);'), array('label' => 'Cow Animal Number', 'options' => $aniNumber));
         $dam->addRule("required", "Animal Number is required.");
         $dam->addRule('callback', 'ERROR: Cow is already entered as having calved.', array('callback' => array($this, 'checkAlreadyCalved'), 'arguments' => array('animalNumber')));
+        $form->addElement('static', 'potentialSire', array('id' => 'potentialSire'))->setValue('')->setTagName('div');
+        $form->addElement('static', 'script1')->setValue($this->formJS());
+
         $form->addElement('select', 'calfDeliveryMethod1', null, array('label' => 'Calf Delivery Method:', 'options' => $deliveryMethodArray))->addRule("required", "How the calf was delievered is required.");
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -632,24 +617,26 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         $form->addElement('select', 'calfSex1', null, array('label' => 'Calf Sex:', 'options' => $sexArray))->addRule('required', 'The sex of the calf is required');
         $form->addElement('select', 'calfDeadAlive1', null, array('label' => 'Calf Alive or Dead:', 'options' => $deadAliveArray))->addRule('required', 'Whether calf is Dead or Alive is required');
         //
-        $form->addElement('select', 'calfEarTagNum1', null, array('label' => 'Calf Full Ear Tag Number','options' => $tagArray))->addRule('required', 'EarTag Number or Dead (no tag) is required.');
+        $form->addElement('select', 'calfEarTagNum1', null, array('label' => 'Calf Full Ear Tag Number', 'options' => $tagArray))->addRule('required', 'EarTag Number or Dead (no tag) is required.');
         $form->addElement('select', 'calfColour1', null, array('label' => 'Calf Hair Colour', 'options' => $colourArray))->addRule('required', 'Calf Hair Colour is required');
         $form->addElement('select', 'calfVaccination1', null, array('label' => 'Calf Vaccinated? (calf-guard and first defence)', 'options' => $vaccArray))->addRule('required', 'Calf vaccination status is required');
-        $form->addElement('hidden', 'calfBreed1')->setValue('HO'); //don't need to choose because currently it is always holstein.
-        
+        $breed1 = $form->addElement('select', 'calfBreed1', null, array('label' => 'Calf Breed? (HO/AN  <i class="fab fa-github-alt"></i>)', 'options' => $breedArray));
+        $breed1->addRule('required', 'Calf breed is required');
+        ///Show error on Select Element, not whole form (or does not show).
+        //$breed1->addRule('callback', 'ERROR: Cow is was not bred to a semen type matching the breed selected. Switch to another, ie Angus or Holstein.', array('callback' => array($this, 'checkBeefSemenWasUsedVsBreedSelected')));
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // SECOND CALF
         if ($numberOfCalves == 2) {
             //defaults at run time for calf 2.
             $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array(
-                'animalNumber' => 0,
-                'calfDeliveryMethod1' => 5, //if its a twin it is always malpresentation, valacta rule.
-                'calfDeliveryMethod2' => 0,
-                'calfDeadAlive2' => 'alive',
-                'calfVaccination2' => 0,
-                'calfColour2' => 'b&w',
-                 'calfEarTagNum1' => 0,
-                 'calfEarTagNum2' => 0
+                        'animalNumber' => 0,
+                        'calfDeliveryMethod1' => 5, //if its a twin it is always malpresentation, valacta rule.
+                        'calfDeliveryMethod2' => 0,
+                        'calfDeadAlive2' => 'alive',
+                        'calfVaccination2' => 0,
+                        'calfColour2' => 'b&w',
+                        'calfEarTagNum1' => 0,
+                        'calfEarTagNum2' => 0
             )));
             //SECOND CALF (Twin)
             $fieldset = $form->addFieldset('header')->setLabel('Calf 2'); //set title
@@ -657,40 +644,69 @@ Class QF2_CalvingEvent extends Quickform2Helper {
             $form->addElement('select', 'calfMass2', null, array('label' => 'Weight of Calf (kg)', 'options' => $massArray))->addRule('required', 'The weight of the calf is required');
             $form->addElement('select', 'calfSex2', null, array('label' => 'Calf Sex:', 'options' => $sexArray))->addRule('required', 'The sex of the calf is required');
             $form->addElement('select', 'calfDeadAlive2', null, array('label' => 'Calf Alive or Dead:', 'options' => $deadAliveArray))->addRule('required', 'Whether calf is Dead or Alive is required');
-            $form->addElement('select', 'calfEarTagNum2', null, array('label' => 'Calf Full Ear Tag Number','options' => $tagArray))->addRule('required', 'EarTag Number or Dead (no tag) is required.');
+            $form->addElement('select', 'calfEarTagNum2', null, array('label' => 'Calf Full Ear Tag Number', 'options' => $tagArray))->addRule('required', 'EarTag Number or Dead (no tag) is required.');
             $form->addElement('select', 'calfColour2', null, array('label' => 'Calf Hair Colour', 'options' => $colourArray))->addRule('required', 'Calf Hair Colour is required');
             $form->addElement('select', 'calfVaccination2', null, array('label' => 'Calf Vaccinated? (calf-guard and first defence)', 'options' => $vaccArray))->addRule('required', 'Calf vaccination status is required');
-            $form->addElement('hidden', 'calfBreed2', 'HO'); //don't need to choose because currently it is always holstein.  
-           
+            $breed2 = $form->addElement('select', 'calfBreed2', null, array('label' => 'Calf Breed? (HO/AN)', 'options' => $breedArray));
+            $breed2->addRule('required', 'Calf breed is required');
         }//end twin
         //no code for triplets, too rare to code. Manually put in DB instead.
 
         return $form; //required       
     }
 
-    function process($value) {
+    //select2 javascript needed for form
+    function formJS() {
+        $jscript = <<<JSCRIPT
+ <script>           
+
+        function poteintialSireChange(id) {
         
-       
-  $numberOfCalves = $this->mode;
+         $.ajax({
+         type: "GET",
+         url: "{$GLOBALS['config']['HTTP']['HTML_API']}43/ajaxReturnPotentialSires/"+id,
+         success: function(result) {
+             $("#potentialSire").html(result);
+         }
+        });    
+} 
+      </script>      
+JSCRIPT;
+
+        return $jscript;
+    }
+
+    function process($value) {
+
+        $uuid = $GLOBALS['MiscObj']->uuid_create(); //uuid unique for meds
+
+
+        $numberOfCalves = $this->mode;
+
         //get values
         $pageid = $value['pageid'];
         $bovine_id = $value['animalNumber'];
-        
+
         $event_timeFixed = date('Y-m-d H:i:s', $value['dateEvent1']);  //traditional
         if ($value['calfTwin'] == 2) {
-           
+
             $event_timeFixed2 = date('Y-m-d H:i:s', $value['dateEvent2']);  //traditional
         }
 
 
         //change dead calves for eartag to nulls.
-         if ($value['calfEarTagNum1'] == 'dead') {
-           $value['calfEarTagNum1']=null;
-        }
-         if ($value['calfEarTagNum2'] == 'dead') {
-           $value['calfEarTagNum2']=null;
+        if ($value['calfEarTagNum1'] == 'dead') {
+            $value['calfEarTagNum1'] = null;
         }
         
+        if ($value['calfTwin'] == 2) {
+        if ($value['calfEarTagNum2'] == 'dead') {
+            $value['calfEarTagNum2'] = null;
+        }
+        }
+       
+        
+
         ///////////////////////////////////////
         // Open a transaction
         try {
@@ -698,26 +714,26 @@ Class QF2_CalvingEvent extends Quickform2Helper {
 
             $last_lactation_id = self::addLactationRecord($bovine_id, $event_timeFixed);
 
-            $calving_event_id1 = self::addCalvingRecord($event_timeFixed, $value['calfSex1'], $value['calfTwin'], $value['calfDeadAlive1'], $value['calfDeliveryMethod1'], $value['calfEarTagNum1'], $value['calfMass1'], $last_lactation_id);
+            $calving_event_id1 = self::addCalvingRecord($event_timeFixed, $value['calfSex1'], $value['calfTwin'], $value['calfDeadAlive1'], $value['calfDeliveryMethod1'], $value['calfEarTagNum1'], $value['calfMass1'], $last_lactation_id, $value['calfBreed1']);
 
             //twin (same delivery method)
             if ($numberOfCalves == 2) {
-                $calving_event_id2 = self::addCalvingRecord($event_timeFixed2, $value['calfSex2'], $value['calfTwin'], $value['calfDeadAlive2'], $value['calfDeliveryMethod1'], $value['calfEarTagNum2'], $value['calfMass2'], $last_lactation_id);
+                $calving_event_id2 = self::addCalvingRecord($event_timeFixed2, $value['calfSex2'], $value['calfTwin'], $value['calfDeadAlive2'], $value['calfDeliveryMethod1'], $value['calfEarTagNum2'], $value['calfMass2'], $last_lactation_id, $value['calfBreed2']);
             }
-    
-                        
+
+
             if (intval($value['calfTwin']) == 1) {
-    
+
                 if (($value['calfDeadAlive1'] == 'alive')) {
-                    
+
                     $calf_bovine_id = self::addCalfToDB($bovine_id, $last_lactation_id, $value['calfEarTagNum1'], $value['calfColour1'], $value['calfBreed1'], $event_timeFixed, $value['calfSex1']);
-                    
+
                     $this->addBovineIDToCalvingRecord($calf_bovine_id, $calving_event_id1);
                     if ($value['calfVaccination1'] == 'yes') {
-                        self::addVaccinationInfo($calf_bovine_id, $event_timeFixed); //record whether female calf was vaccinated or not.
+                        self::addVaccinationInfo($calf_bovine_id, $event_timeFixed, $uuid); //record whether female calf was vaccinated or not.
                     }
+                    $this->addSheduledMeds($calf_bovine_id, $event_timeFixed, $uuid);
                 }
-               
             }
             //twin case //FIXME: does not handle mixed twins, if they are mixed we have to support a beef tag for the female.
             elseif (intval($value['calfTwin']) == 2) {
@@ -726,18 +742,20 @@ Class QF2_CalvingEvent extends Quickform2Helper {
                     $calf_bovine_id1 = self::addCalfToDB($bovine_id, $last_lactation_id, $value['calfEarTagNum1'], $value['calfColour1'], $value['calfBreed1'], $event_timeFixed, $value['calfSex1']);
                     $this->addBovineIDToCalvingRecord($calf_bovine_id1, $calving_event_id1);
                     if ($value['calfVaccination1'] == 'yes') {
-                        self::addVaccinationInfo($calf_bovine_id1, $event_timeFixed); //record whether female calf was vaccinated or not.
+                        self::addVaccinationInfo($calf_bovine_id1, $event_timeFixed, $uuid); //record whether female calf was vaccinated or not.
                     }
+                    $this->addSheduledMeds($calf_bovine_id1, $event_timeFixed, $uuid);
                 }
 
                 if (($value['calfDeadAlive2'] == 'alive')) {
                     $calf_bovine_id2 = self::addCalfToDB($bovine_id, $last_lactation_id, $value['calfEarTagNum2'], $value['calfColour2'], $value['calfBreed2'], $event_timeFixed2, $value['calfSex2']);
                     $this->addBovineIDToCalvingRecord($calf_bovine_id2, $calving_event_id2);
                     if ($value['calfVaccination2'] == 'yes') {
-                        self::addVaccinationInfo($calf_bovine_id2, $event_timeFixed2); //record whether female calf was vaccinated or not.
+                        self::addVaccinationInfo($calf_bovine_id2, $event_timeFixed2, $uuid); //record whether female calf was vaccinated or not.
                     }
+                    $this->addSheduledMeds($calf_bovine_id2, $event_timeFixed2, $uuid);
                 }
-            }else {
+            } else {
                 throw new Exception("Error Twin Must be value 1 or 2.");
             }
 
@@ -748,13 +766,11 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
             echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
         }
     }
 
     /////////////////// CUSTOM RULES FUNCTIONS/////////////////////////////////////
-
-    
-
     //if a twin is entered throw up error message. Javascript.
     function checkTwin($value) {
         if ($value > 1) { //twins or triplets fail.
@@ -779,9 +795,62 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         return $returnStatement;
     }
 
+    //if a the cow has beef semen only as a choice, then one can't select a beef breed, ie angus. 
+    //this is based on semen breeding records being 100%
+    function checkBeefSemenWasUsedVsBreedSelected($form_args) {
+
+        $dateCalving = date('Y-m-d', $form_args['dateEvent1']);
+
+        $probArr = array();
+        try {
+            $probArr = HolsteinCanadaERA::listMostLikelyConceptionEvents($dateCalving, $form_args['animalNumber']);
+        } catch (HolsteinCanadaERA_NoConceptionEventException $exception) {
+            return "Error: No conception Event!";
+        }
+
+
+
+        $str = "";
+
+        $returnStatement = true; //default is all is good. since this isn't a super important rule. 
+
+        foreach ($probArr as $value) {
+
+            //see if dairy calf
+            if (($value['service_sire_breed_dairy'] == true) AND ($form_args['calfBreed1'] == 'HO')) {
+                $returnStatement = true; //means no problem
+            } elseif (($value['service_sire_breed_dairy'] == false) AND ($form_args['calfBreed1'] != 'HO')) {
+                $returnStatement = true; //means no problem    
+            } else {
+                $returnStatement = false; //they don't match.
+                //immediatly return
+
+
+                print("inside");
+                var_dump($form_args['calfBreed1']);
+                var_dump($probArr);
+                var_dump($returnStatement);
+                exit();
+
+
+                return $returnStatement;
+            }
+        }
+
+        print("inside");
+        var_dump($form_args['calfBreed1']);
+        var_dump($probArr);
+        var_dump($returnStatement);
+        exit();
+
+
+        //return otherwise.     
+        return $returnStatement;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // INSERTS TO DB
-    function addCalvingRecord($event_time, $calfSex, $twin, $calfDeadAlive, $calfDeliveryMethod, $calf_rfid_number, $calf_mass, $last_lactation_id) {
+    function addCalvingRecord($event_time, $calfSex, $twin, $calfDeadAlive, $calfDeliveryMethod, $calf_rfid_number, $calf_mass, $last_lactation_id, $calf_breed) {
 
         //convert twin boolean to integer.
         if ($twin == TRUE) {
@@ -794,7 +863,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
         //add calving data
         //don't put id value, uses next one in DB.
         $query = "INSERT INTO bovinemanagement.calving_event
-(event_time   ,calf_sex ,alive_or_dead  ,calving_ease ,calf_rfid_number,calf_mass   ,lactation_id  ,userid) VALUES (:event_time,:calfSex,:calfDeadAlive,:calfDeliveryMethod,:calf_rfid_number, :calf_mass,:last_lactation_id,:userid);";
+(event_time   ,calf_sex ,alive_or_dead  ,calving_ease ,calf_rfid_number,calf_mass  ,calf_breed ,lactation_id  ,userid) VALUES (:event_time,:calfSex,:calfDeadAlive,:calfDeliveryMethod,:calf_rfid_number, :calf_mass,:calf_breed,:last_lactation_id,:userid);";
 
         $stmt = $GLOBALS['pdo']->prepare($query);
         $params = array
@@ -805,6 +874,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
             'calfDeliveryMethod' => (int) $calfDeliveryMethod,
             'calf_rfid_number' => empty($calf_rfid_number) ? null : $calf_rfid_number,
             'calf_mass' => (int) $calf_mass,
+            'calf_breed' => $calf_breed,
             'last_lactation_id' => $last_lactation_id,
             'userid' => $GLOBALS['auth']->getUsername()
         );
@@ -844,17 +914,17 @@ Class QF2_CalvingEvent extends Quickform2Helper {
     //add an alive calf with tag to DB
     function addCalfToDB($bovine_id, $last_lactation_id, $calf_rfid_number, $calfColour, $calfBreed, $event_time, $calfsex) {
 
-        
+
         //RFID number should be valid, because it is from a select form and calf is alive. make sure it is.
- 
+
         $res2 = $GLOBALS['pdo']->query("SELECT bovinemanagement.rfid_valid($calf_rfid_number::numeric)");
         $row2 = $res2->fetch(PDO::FETCH_ASSOC);
-        
-        
+
+
         if ($row2['rfid_valid'] == false) {
             throw new Exception("Entered RFID number /registration number is not in a valid tag range. Either the tag was entered wrong or a new set of tags has not been entered as useable into the system.");
         }
-        
+
         //tag is valid we know now, so get information on how to construct the local number.        
         $res3 = $GLOBALS['pdo']->query("SELECT  * from bovinemanagement.eartag_valid WHERE $calf_rfid_number::numeric(16,0) <@ rfid_range limit 1");
         $row3 = $res3->fetch(PDO::FETCH_ASSOC);
@@ -869,7 +939,7 @@ Class QF2_CalvingEvent extends Quickform2Helper {
             $local_number = substr($calf_rfid_number, -1 * $row3['local_num_sig_digits'], $row3['local_num_sig_digits']);
         }
 
-        
+
         //lookup what the dams full registration number is from the DB based on lactationid.
         $res = $GLOBALS['pdo']->query("SELECT full_reg_number FROM bovinemanagement.bovine WHERE bovine.id =$bovine_id LIMIT 1");
 
@@ -898,23 +968,59 @@ VALUES (NULLIF('$calf_full_reg_number', ''),null,'b&w','$event_time',null,111111
         return $calf_bovine_id;
     }
 
-    function addVaccinationInfo($calf_bovine_id, $event_time) {
+    function addVaccinationInfo($calf_bovine_id, $event_time, $uuid) {
 
         //calf guard
         $medicine_index = 3; //hardcoded DB index, not good......
-        $query = "INSERT INTO bovinemanagement.medicine_administered (bovine_id,medicine_index,event_time,dosage,dosage_unit,location,note,userid)
-VALUES ($calf_bovine_id,$medicine_index,'$event_time',3,'ml','oral',null,'{$GLOBALS['auth']->getUsername()}')";
+        $query = "INSERT INTO bovinemanagement.medicine_administered (bovine_id,medicine_index,event_time,dosage,dosage_unit,location,note,userid,uuid)
+VALUES ($calf_bovine_id,$medicine_index,'$event_time',3,'ml','oral',null,'{$GLOBALS['auth']->getUsername()}','$uuid')";
         $res = $GLOBALS['pdo']->exec($query);
 
         //first defence
         $medicine_index = 91; //hardcoded DB index, not good......
-        $query = "INSERT INTO bovinemanagement.medicine_administered (bovine_id,medicine_index,event_time,dosage,dosage_unit,location,note,userid)
-VALUES ($calf_bovine_id,$medicine_index,'$event_time',1,'capsule','oral',null,'{$GLOBALS['auth']->getUsername()}')";
+        $query = "INSERT INTO bovinemanagement.medicine_administered (bovine_id,medicine_index,event_time,dosage,dosage_unit,location,note,userid,uuid)
+VALUES ($calf_bovine_id,$medicine_index,'$event_time',1,'capsule','oral',null,'{$GLOBALS['auth']->getUsername()}','$uuid')";
         $res = $GLOBALS['pdo']->exec($query);
     }
 
+    function addSheduledMeds($bovine_id, $event_time, $uuid) {
+
+        /*
+         * used to start halocur protocol for a new calf. 
+         * 
+         */
+        
+
+        //if calf born in the morning then schedule halocure for that day, otherwise schedule for the next day. 
+        if (date('A', strtotime($event_time)) == 'AM') {
+            $date = date('Y-m-d 08:00', strtotime($event_time));
+        } else { //then PM
+            $dateObj = new DateTime($event_time);
+            $dateObj->modify('+1 day');
+            $date = $dateObj->format('Y-m-d 08:00');
+        }
+        
+        /*
+         * instead of initatiing from a form, we do it programmitically, by emaulating it a bit
+         * 
+         */
+        $date_start=$date; //hard coded bad...
+        $protocol_type_id=16;
+        $protocol_type_name='Cryptosporidiosis Prevention';
+        
+        (new EstrusProtocol); //hack to load the class 
+        $paramRepro= new stdClass();
+        $paramRepro->type= 'calf';
+        $paramRepro->bovineID= null;
+        $paramRepro->aniNumber = null;
+        $a=new QF2_Protocol((object) array('forwardURLArr'=>(new Quickform2Misc)->forwardURLDefaults()),'group',$paramRepro);
+        $uuid = $GLOBALS['MiscObj']->uuid_create();  //create a uuid for this transacation.
+        $a->addProtocoltoDB($protocol_type_id, $protocol_type_name, $bovine_id, $date_start, $uuid);
+       
+    }
+
     //called by HTML_QuickForm2_Rule sutomc class
-    public function checkEarTagNumber($calfEarTagNum, $calfSex,$calfDeadAlive) {
+    public function checkEarTagNumber($calfEarTagNum, $calfSex, $calfDeadAlive) {
         //defaults
         $shouldBeTrue1 = false;
         $shouldBeTrue2 = false;
@@ -944,47 +1050,61 @@ VALUES ($calf_bovine_id,$medicine_index,'$event_time',1,'capsule','oral',null,'{
             return 0;
         }
     }
-    
-    
-}//end class
-/*
- * complicated rule to check eartag number fir calf 1.
- * 
- */
-class checkEarTagNumberCalf1 extends HTML_QuickForm2_Rule
-{
-    protected function validateOwner()
-    {
-        $arr=$this->owner->getValue();
-        return QF2_CalvingEvent::checkEarTagNumber($arr['calfEarTagNum1'], $arr['calfSex1'],$arr['calfDeadAlive1']);
-    }
 
-    protected function setOwnerError()
-    {
-       //adding '-0', seems to be default way to name id. There also is not getElementByName method, so instead we get array and get first value. 
-         $this->owner->getElementsByName('calfEarTagNum1')[0]->setError('ERROR: Improper number of digits (8 for female 4000XXXX, 15 for male, starting with 124XXXXXXXXXXX).');   
-    }
-    
-}//end class
-
-/*
- * complicated rule to check eartag number fir calf 2.
- * 
- */
-class checkEarTagNumberCalf2 extends HTML_QuickForm2_Rule
-{
-    protected function validateOwner()
-    {
-        $arr=$this->owner->getValue();
-        return QF2_CalvingEvent::checkEarTagNumber($arr['calfEarTagNum2'], $arr['calfSex2'],$arr['calfDeadAlive2']);
-    }
-
-    protected function setOwnerError()
-    {
-       //adding '-0', seems to be default way to name id. There also is not getElementByName method, so instead we get array and get first value. 
-         $this->owner->getElementsByName('calfEarTagNum2')[0]->setError('ERROR: Improper number of digits (8 for female 4000XXXX, 15 for male, starting with 124XXXXXXXXXXX).');   
-    }
-    
 }
+
 //end class
-?>
+
+Class QF2_CalvingEventDeleteButton extends QF2_DeleteButtonGeneric {
+
+    function action() {
+        //$this->param should provide everything the form needs for paramaters.  
+
+        $calvingEventID = $this->param->deleteID;
+
+        // Open a transaction
+        try {
+            $res = $GLOBALS['pdo']->beginTransaction();
+
+            //look up what the lactation id
+            //The DB using foreign keys will cascade delete from lacation->all calving_events
+            //thus we delete the lacation and even if there are triplets, everything goes.
+            //BOVINE table does not get deleted because we can't have a 1:1 foreign key relationship, because if we buy cows, they don't have a caliving ease.
+            //we delete it seperately.
+            $res = $GLOBALS['pdo']->query("SELECT lactation_id,calf_rfid_number FROM bovinemanagement.calving_event WHERE id=$calvingEventID");
+
+            $row = $res->fetch(PDO::FETCH_ASSOC);
+            $lactation_id = $row['lactation_id'];
+
+
+            //now lookup anything connected to the calcing_event and delete in bovine table.
+            $res2 = $GLOBALS['pdo']->query("SELECT calf_bovine_id FROM bovinemanagement.calving_event WHERE lactation_id='$lactation_id'");
+
+            while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
+
+                //delete all bovine records created for this lactation.
+                if (!empty($row2['calf_bovine_id'])) {
+                    $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.bovine where id={$row2['calf_bovine_id']}");
+                }
+            }
+
+            //this deletes lacation and cascades to all calving_events
+            $res2 = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.lactation where id='$lactation_id'");
+
+            //deletes all medical events (shceduled and actually virtually given (ie calf guard) via foreign key cascade. 
+            
+            $GLOBALS['pdo']->commit();
+        } catch (PDOException $e) {
+            try {
+                $GLOBALS['pdo']->rollBack();
+            } catch (Exception $e2) {
+                
+            }
+            echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
+        }
+    }
+
+}
+
+//end class

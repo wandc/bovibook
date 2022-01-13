@@ -1,11 +1,4 @@
 <?php 
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/cropping/soilSample.inc');
-
-
 class RowCropping extends TabPage {
 
     function pageHeadJavascript() {
@@ -22,6 +15,8 @@ class RowCropping extends TabPage {
         $tabArray[1]['name'] = 'List';
         $tabArray[2]['name'] = 'List2 by ph';
         $tabArray[3]['name'] = 'Lime Chart';
+        $tabArray[4]['name'] = 'Lime for Scheduled Seedings';
+        $tabArray[5]['name'] = 'Potassium Requirements';
 
         $this->renderTabs($tabArray);
     }
@@ -43,21 +38,151 @@ class RowCropping extends TabPage {
         $this->LimeChart();
       
     }
+    
+    
+    protected function tab4() {
 
+
+        
+       print( $this->pHforCurrentScheduledFields());
+    }
+
+    protected function tab5() {
+        
+        
+       print $this->fertPotassiumRecomendation();
+        
+        
+    }
+    
+    
+    public function fertPotassiumRecomendation() {
+
+        $sql = <<<SQL
+                          with temp as (
+          SELECT *,id as field_id,(SELECT max(event_time) FROM cropping.soil_sample_event WHERE foragecurr.id=field_id) as last_soil_test 
+           FROM cropping.foragecurr 
+            )
+SELECT *,
+(SELECT cec from cropping.soil_sample_event WHERE field_id=temp.field_id AND event_time=temp.last_soil_test) as cec,
+                 (SELECT potassium from cropping.soil_sample_event WHERE field_id=temp.field_id AND event_time=temp.last_soil_test) as k
+     FROM temp order by alfalfa_suitable DESC
+SQL;
+
+
+
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+       
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/cropping/soilSample.inc');
+        $fertObj = (new FertilzerRequirements);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Area'] = ($row['area']);
+            $rowOut['K Recommended'] = $fertObj->pottassiumAlfalfa($row['k'], $row['cec']);
+
+            $resultsOut[] = $rowOut;
+        }
+        //output
+        $dataArr = $resultsOut;
+        //var_dump($dataArr);
+
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('K Recommended', $dataArr, 'order: false'));
+        return implode($out);
+    }
+    
+    
+
+    public function pHforCurrentScheduledFields()
+    {
+        
+                $sql = <<<SQL
+with temp as (
+SELECT *,
+seed_event_scheduled.field_id as field_idX,
+seed_event_scheduled.id as seed_event_scheduled_id, 
+seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,
+seed_event_scheduled.event_time,
+comment,(SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldcurr.id=field_id) as last_soil_test
+
+
+        FROM cropping.seed_event_scheduled 
+LEFT JOIN cropping.fieldcurr on fieldcurr.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        WHERE  seed_event_scheduled.event_time >='2021-01-01' AND seed_event_scheduled.event_time < '2021-12-31'  ORDER BY specific_type
+)
+SELECT *,
+(SELECT ph from cropping.soil_sample_event WHERE field_id=temp.field_idX AND event_time=temp.last_soil_test) as ph,
+(SELECT buffer_ph from cropping.soil_sample_event WHERE field_id=temp.field_idX AND event_time=temp.last_soil_test) as buffer_ph,
+(SELECT magnesium from cropping.soil_sample_event WHERE field_id=temp.field_idX AND event_time=temp.last_soil_test) as magnesium,
+(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.field_idX AND lime_id=3971 AND event_time>=temp.last_soil_test) as mag_lime_since_last_test,
+(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.field_idX AND lime_id=3972 AND event_time>=temp.last_soil_test) as cal_lime_since_last_test
+
+ FROM temp  
+SQL;        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+ 
+            
+            $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            $rowOut['Common Name'] = ($row['common_name']);
+            $rowOut['Area'] = ($row['area']);
+           
+            $rowOut['specific_type'] = ($row['specific_type']);
+            
+            
+              $rowOut['ph'] = ($row['ph']);
+             $rowOut['magnesium'] = ($row['magnesium']);
+             
+               $rowOut['mag_lime_since_last_test'] = ($row['mag_lime_since_last_test']);
+                 $rowOut['cal_lime_since_last_test'] = ($row['cal_lime_since_last_test']);
+                  $rowOut['last_soil_test'] = ($row['last_soil_test']);
+           
+              
+            
+           
+            $resultsOut[] = $rowOut;
+        }
+
+        //output
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+    
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Lime for Scheduled Seedings', $dataArr,'order: false')); 
+         return implode($out); 
+        
+        
+        
+    }
+    
+    
     /*
      * shows fields that need lime all at once.
      */
              public function LimeChart(){
         $sql = "With temp as (
-SELECT fieldx.id,alpha_numeric_id,common_name, alfalfa_suitable,corn_suitable,trefoil_suitable,cropping.field_border_area_at_timestamp (fieldx.id, current_date) as area,(SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldx.id=field_id) as last_soil_test
-
-FROM cropping.field AS  fieldx
- LEFT JOIN cropping.field_parameter_curr  on field_parameter_curr.field_id=fieldx.id
+SELECT fieldx.id,alpha_numeric_id,common_name, alfalfa_suitable,corn_suitable,trefoil_suitable, area,
+(SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldx.id=field_id) as last_soil_test
+FROM cropping.fieldcurr AS  fieldx
 WHERE (alfalfa_suitable = true OR corn_suitable = true OR trefoil_suitable = true) AND active=true
 )
-SELECT temp.id as field_id,*,(SELECT ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as ph,(SELECT buffer_ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as buffer_ph,(SELECT magnesium from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as magnesium
-,(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.id AND lime_id=3971 AND event_time>=temp.last_soil_test) as mag_lime_since_last_test
-,(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.id AND lime_id=3972 AND event_time>=temp.last_soil_test) as cal_lime_since_last_test
+SELECT temp.id as field_id,*,(SELECT ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as ph,
+(SELECT buffer_ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as buffer_ph,
+(SELECT magnesium from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as magnesium,
+(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.id AND lime_id=3971 AND event_time>=temp.last_soil_test) as mag_lime_since_last_test,
+(SELECT sum(lime_amount) from cropping.lime_event WHERE field_id=temp.id AND lime_id=3972 AND event_time>=temp.last_soil_test) as cal_lime_since_last_test
 FROM temp 
 ORDER BY (substr(temp.alpha_numeric_id::text, 0, strpos(temp.alpha_numeric_id::text, '-'::text) + 1)::character(5)), (substr(temp.alpha_numeric_id::text, strpos(temp.alpha_numeric_id::text, '-'::text))::integer) DESC;
 ";
@@ -167,7 +292,7 @@ print("<h3>Uses soil tests and if lime has been applied, it estimates what the a
         $dataArr = $resultsOut;
          //var_dump($dataArr);
          $out[]=("<h3>Forage Fields</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'order: false')); 
          return implode($out); 
         
         
@@ -186,10 +311,10 @@ print("<h3>Uses soil tests and if lime has been applied, it estimates what the a
           
         if ($mode == 'pH') {
             $sql = "With temp as (
-SELECT fieldx.id,alpha_numeric_id,common_name, alfalfa_suitable,corn_suitable,trefoil_suitable,cropping.field_border_area_at_timestamp (fieldx.id, current_date) as area,(SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldx.id=field_id) as last_soil_test
+SELECT fieldx.id,alpha_numeric_id,common_name, alfalfa_suitable,corn_suitable,trefoil_suitable, area,(SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldx.id=field_id) as last_soil_test
 
-FROM cropping.field AS  fieldx
- LEFT JOIN cropping.field_parameter_curr  on field_parameter_curr.field_id=fieldx.id
+FROM cropping.fieldcurr AS  fieldx
+
 WHERE (alfalfa_suitable = true OR corn_suitable = true OR trefoil_suitable = true) AND active=true
 )
 SELECT temp.id as field_id,*,(SELECT ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as ph,(SELECT buffer_ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as buffer_ph,(SELECT magnesium from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as magnesium
@@ -197,20 +322,7 @@ FROM temp
 ORDER BY (substr(temp.alpha_numeric_id::text, 0, strpos(temp.alpha_numeric_id::text, '-'::text) + 1)::character(5)), (substr(temp.alpha_numeric_id::text, strpos(temp.alpha_numeric_id::text, '-'::text))::integer) DESC;
 ";
         } else {
-//not sure when we use this one?
-            $sql = "With temp as (
-SELECT fieldx.id,alpha_numeric_id,common_name, (SELECT max(event_time) FROM cropping.soil_sample_event WHERE fieldx.id=field_id) as last_soil_test
-FROM cropping.field_parameter_curr 
-LEFT JOIN cropping.field AS  fieldx on field_parameter_curr.field_id=fieldx.id
-
-WHERE (alfalfa_suitable = true OR corn_suitable = true OR trefoil_suitable = true)
-)
-SELECT temp.*,temp.id as field_id,(SELECT ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as ph,(SELECT buffer_ph from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as buffer_ph,(SELECT magnesium from cropping.soil_sample_event WHERE field_id=temp.id AND event_time=temp.last_soil_test) as magnesium,alfalfa_suitable,	corn_suitable,	trefoil_suitable	,pasture,not_normally_farmed 
-FROM temp 
-LEFT JOIN cropping.field_parameter_curr ON field_parameter_curr.field_id=temp.id
-ORDER BY last_soil_test
-
-";
+throw new exception("Error called with wrong paramater for soil test needed.");
         }
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
@@ -272,7 +384,7 @@ $columnsStr= <<<EX
                 title: "Event Time"
             }
 EX;
-         print($dt->startCustom(124,'soilTestsNeeded',$mode,$columnsStr,'highlight_attention',' paging: false'));     
+         print($dt->startCustom('Title Custom CHANGE ME', 124,'soilTestsNeeded',$mode,$columnsStr,'highlight_attention',' paging: false'));     
      
     }
     
@@ -310,3 +422,6 @@ EX;
 
 //end class
 ?>         
+    
+    
+    

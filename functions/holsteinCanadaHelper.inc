@@ -165,7 +165,7 @@ class HolsteinCanadaHelper {
         return $retArray;
     }
 
-    static function createHolsteinCanadaQuery($full_reg_number) {
+   public static function createHolsteinCanadaQuery($full_reg_number) {
 //break into component parts:
         $breed = substr($full_reg_number, 0, 2);
         $country = substr($full_reg_number, 2, 3);

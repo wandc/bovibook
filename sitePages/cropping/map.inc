@@ -1,67 +1,697 @@
 <?php
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/croppingHelper.inc');
 
 class Map extends BasePage {
 
+    
+    private $basicOjectsArr;
+    
+    
+    //need an array of objects 
+    //each object has name, text name, sql. 
+    function basicElementsConstructor() {
+        
+        $outArr=array();
+        ///////////////////////////
+        
+        
+         /* double crop corn plan.  june 1 or later estiamted plating date*/
+        $obj=new stdClass();
+        $obj->name='spfhCornPlanDoubleCropLayer';
+        $obj->desc='SPFH: Corn Plan Double Crop';
+        $obj->sql=<<<SQL
+with temp as (
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >=  (extract(year from current_date) || '-06-01')::date AND seed_event_scheduled.event_time <  (extract(year from current_date) || '-12-31')::date  
+AND specific_type='Corn' AND spfh_suitable=true
+UNION
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, 'e6e54b' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >= (extract(year from current_date) || '-06-01')::date AND seed_event_scheduled.event_time <  (extract(year from current_date) || '-12-31')::date  
+AND specific_type='BMR Corn' AND spfh_suitable=true
+) 
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#aaa500';
+        $obj->opacity=.5;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+        /**/
+        $obj=new stdClass();
+        $obj->name='spfhLayer';
+        $obj->desc='SPFH Fields';
+        $obj->sql=<<<SQL
+with temp as (
+SELECT ST_Area(border_geom,true)/10000 as area_calc,*,gis.ST_AsGeoJSON (border_geom) as border_geojson, gis.ST_AsGeoJSON(gis.ST_Centroid(border_geom)) as point_geojson, 'purple' as fillcolor
+FROM cropping.foragecurr 
+WHERE spfh_suitable = true
+)
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#FF0000';
+        $obj->opacity=.05;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        /**/ //forage fields, but not spfh fields, thus BALER fields.
+        $obj=new stdClass();
+        $obj->name='balerLayer';
+        $obj->desc='Baler Fields';
+        $obj->sql=<<<SQL
+                with temp as (
+  SELECT ST_Area(border_geom,true)/10000 as area_calc,*,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor
+  FROM cropping.foragecurr WHERE spfh_suitable = false
+                )
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='black';
+        $obj->opacity=.05;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+
+        /**/    //forage fields, but not spfh fields, thus BALER fields.
+        $obj=new stdClass();
+        $obj->name='pastureLayer';
+        $obj->desc='Pasture Fields';
+        $obj->sql=<<<SQL
+                  with temp as (
+  SELECT ST_Area(border_geom,true)/10000 as area_calc,*,ST_AsGeoJSON (border_geom) as border_geojson, '89f441' as fillcolor
+  FROM cropping.pasturecurr
+                   )
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='green';
+        $obj->opacity=.05;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        /**/ //SPFH and pH below 6 and there hasn't been lime put on since soil test.
+        $obj=new stdClass();
+        $obj->name='spfhLimeLayer';
+        $obj->desc='SPFH Fields: Needs Lime';
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT soil_sample_event.pH as ph,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+FROM cropping.foragecurr 
+LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
+), temp2 as (
+    SELECT *  from temp WHERE spfh_suitable = true AND ph<6 AND soil_sample_event_time > lime_event_time
+                )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp2) FROM temp2   
+SQL;
+        $obj->colour='blue';
+        $obj->opacity=.5;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+         /**/ //SPFH and pH below 6.5 and there hasn't been lime put on since soil test.
+        $obj=new stdClass();
+        $obj->name='spfhLimeLayerAlfalfa';
+        $obj->desc='SPFH Fields: Needs Lime (for Alfafla) <6.5';
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT soil_sample_event.pH as ph,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+FROM cropping.foragecurr 
+LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
+), temp2 as (
+    SELECT *  from temp WHERE spfh_suitable = true AND ph<6.5 AND soil_sample_event_time > lime_event_time
+                )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp2) FROM temp2   
+SQL;
+        $obj->colour='blue';
+        $obj->opacity=.5;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        
+         /**/ //Alfalfa planted in last three years.
+        $obj=new stdClass();
+        $obj->name='spfhAlfalfaLayer';
+        $obj->desc='SPFH: Alfalfa Currently';
+        $obj->sql=<<<SQL
+                  with temp as (
+SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+from cropping.foragecurr
+LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE specific_type='Alfalfa' AND seed_event.event_time  >= (current_date-interval '3 year') AND spfh_suitable=true
+                   )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#68f442';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ //Clover planted in last 2 years.
+        $obj=new stdClass();
+        $obj->name='spfhCloverLayer';
+        $obj->desc='SPFH: Clover Currently';
+        $obj->sql=<<<SQL
+                  with temp as (
+SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson , '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+from cropping.foragecurr
+LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE specific_type='Clover' AND seed_event.event_time  >= (current_date-interval '2 years') AND spfh_suitable=true
+                   )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#f44197';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ //Clover (or other seed) frost seeded this season
+        $obj=new stdClass();
+        $obj->name='allFrostSeedingLayer';
+        $obj->desc='All: Frost Seeding this year';
+        $obj->sql=<<<SQL
+                  with temp as (
+SELECT fieldcurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson , '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+from cropping.fieldcurr
+LEFT JOIN cropping.seed_event ON seed_event.id=fieldcurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE seed_event.event_time  >=  (extract(year from current_date) || '-01-01')::date AND  seed_event.event_time  <=  (extract(year from current_date) || '-04-10')::date      
+                   )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#d44197';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+              /**/ 
+        $obj=new stdClass();
+        $obj->name='spfhOtherForageLayer';
+        $obj->desc='SPFH: Other Recent Forage';
+        $obj->sql=<<<SQL
+      with temp as (
+SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson , '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+FROM cropping.foragecurr
+LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE  specific_type NOT IN ('Clover', 'BMR Corn','Corn', 'Alfalfa') AND seed_event.event_time  >= (current_date-interval '2 years') AND spfh_suitable=true
+                       )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#7f41f4';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ //Corn planted in last 14 months.
+        $obj=new stdClass();
+        $obj->name='spfhCornLayer';
+        $obj->desc='SPFH: Corn Currently';
+        $obj->sql=<<<SQL
+                with temp as (
+SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor ,ST_Area(border_geom,true)/10000 as area_calc
+from cropping.foragecurr
+LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE specific_type='Corn' AND seed_event.event_time  >= (current_date-interval '9 months') AND spfh_suitable=true
+UNION
+SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, 'e6e54b' as fillcolor ,ST_Area(border_geom,true)/10000 as area_calc
+from cropping.foragecurr
+LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
+LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
+LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+WHERE specific_type='BMR Corn' AND seed_event.event_time  >= (current_date-interval '9 months') AND spfh_suitable=true
+                )
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#FFFF00';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ //corn for coming year.
+        $obj=new stdClass();
+        $obj->name='spfhCornPlanLayer';
+        $obj->desc='SPFH: Corn Plan';
+        
+        //what years data to show for crop planning? If it's past Sept 1? Show next year?
+        if (date('n') >= 9) {
+            $obj->year = date('Y', strtotime('+1 year'));
+        } else {
+            $obj->year = date("Y");
+        }
+      
+        $obj->sql=<<<SQL
+                with temp as (
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >=  ({$obj->year} || '-01-01')::date  AND seed_event_scheduled.event_time <=  ({$obj->year} || '-05-31')::date
+AND specific_type='Corn' AND spfh_suitable=true
+UNION
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, 'e6e54b' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >= ({$obj->year} || '-01-01')::date  AND seed_event_scheduled.event_time <= ({$obj->year} || '-05-31')::date 
+AND specific_type='BMR Corn' AND spfh_suitable=true
+                ) 
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#FFFF00';
+        $obj->opacity=.9;
+        $obj->borderWeight=3;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ 
+        $obj=new stdClass();
+        $obj->name='spfhAlfalfaPlanLayer';
+        $obj->desc='SPFH: Alfalfa Plan';
+        
+         //what years data to show for crop planning? If it's past Sept 1? Show next year?
+        if (date('n') >= 9) {
+            $obj->year = date('Y', strtotime('+1 year'));
+        } else {
+            $obj->year = date("Y");
+        }
+        
+        $obj->sql=<<<SQL
+                   with temp as (
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >= ({$obj->year} || '-01-01')::date  AND seed_event_scheduled.event_time <  ({$obj->year} || '-12-31')::date 
+AND specific_type='Alfalfa' AND spfh_suitable=true
+                                ) 
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#68f442';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ //other forage planted in last 2 years.
+        $obj=new stdClass();
+        $obj->name='spfhOtherForagePlanLayer';
+        $obj->desc='SPFH: Other Forage Plan';
+        $obj->sql=<<<SQL
+                with temp as (
+SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor,ST_Area(border_geom,true)/10000 as area_calc
+        FROM cropping.seed_event_scheduled 
+        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
+        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
+        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
+        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
+ LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
+        WHERE  seed_event_scheduled.event_time >='2020-01-01' AND seed_event_scheduled.event_time < '2020-12-31'  AND
+   specific_type NOT IN ( 'BMR Corn','Corn', 'Alfalfa') AND spfh_suitable=true
+                          ) 
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp 
+SQL;
+        $obj->colour='#7f41f4';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ /* Fertilizer put on this year for spfh fields */
+        $obj=new stdClass();
+        $obj->name='allFertCurrLayer';
+        $obj->desc='All: Fertilizer This Year';
+        $obj->sql=<<<SQL
+SELECT  distinct(fertilizer_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, '42cef4' as fillcolor
+FROM cropping.fertilizer_event 
+JOIN cropping.fieldcurr on fieldcurr.id=fertilizer_event.field_id
+WHERE all_covered=true and date_part('year', fertilizer_event.event_time) = date_part('year', CURRENT_DATE) 
+SQL;
+        $obj->colour='#42cef4';
+        $obj->opacity=.9;
+        $obj->borderWeight=3;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+         /**/ /* Spray put on this year for spfh fields */
+        $obj=new stdClass();
+        $obj->name='allSprayCurrLayer';
+        $obj->desc='All: Spray This Year';
+        $obj->sql=<<<SQL
+SELECT  distinct(spray_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, 'f4b642' as fillcolor
+FROM cropping.spray_event 
+JOIN cropping.fieldcurr on fieldcurr.id=spray_event.field_id
+WHERE  date_part('year', spray_event.event_time) = date_part('year', CURRENT_DATE) 
+SQL;
+        $obj->colour='#f4b642';
+        $obj->opacity=.9;
+        $obj->borderWeight=3;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+        
+         /**/ 
+        $obj=new stdClass();
+        $obj->name='potassium';
+        $obj->desc='SPFH: Potassium Deficient (<99 ppm)';
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT soil_sample_event.*,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor
+FROM cropping.foragecurr 
+LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
+)
+    SELECT * from temp WHERE potassium <=99 AND spfh_suitable=true
+SQL;
+        $obj->colour='purple';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        $obj=new stdClass();
+        $obj->name='boron';
+        $obj->desc='SPFH: Boron Deficient (<1 ppm)'; //https://www.plant.uoguelph.ca/sites/plant.uoguelph.ca/files/forages/documents/A6-Boron%20fertilization%20of%20alfalfa-July1986.pdf
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT soil_sample_event.*,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor
+FROM cropping.foragecurr 
+LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
+)
+    SELECT * from temp WHERE boron <=1 AND spfh_suitable=true
+SQL;
+        $obj->colour='pink';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+         $obj=new stdClass();
+        $obj->name='phosphorus';
+        $obj->desc='SPFH: Phosphorus Excessive';
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT soil_sample_event.*,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor
+FROM cropping.foragecurr 
+LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
+)
+    SELECT * from temp WHERE phosphorus >=157 AND spfh_suitable=true
+SQL;
+        $obj->colour='purple';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        $obj=new stdClass();
+        $obj->name='drainage';
+        $obj->desc='SPFH: Drainage(Systematically only)';
+        $obj->sql=<<<SQL
+        with temp as (
+SELECT ST_Area(border_geom,true)/10000 as area_calc,*,gis.ST_AsGeoJSON (border_geom) as border_geojson, gis.ST_AsGeoJSON(gis.ST_Centroid(border_geom)) as point_geojson, 'purple' as fillcolor
+FROM cropping.foragecurr 
+WHERE spfh_suitable = true AND drainage_score =1
+)
+SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp
+SQL;
+        $obj->colour='pink';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+        
+        
+         //////////////////////////
+        
+        $obj=new stdClass();
+        $obj->name='nitrogen';
+        $obj->desc='All: Nitorgen this year >= 40 units';
+        $obj->sql=<<<SQL
+
+
+
+/* find total units of nitrogen this year so far on each field */
+with temp as (
+
+SELECT field_id as id,gis.ST_Area(border_geom,true)/10000 as area_calc,gis.ST_AsGeoJSON (border_geom) as border_geojson, gis.ST_AsGeoJSON(gis.ST_Centroid(border_geom)) as point_geojson, 'purple' as fillcolor
+,(SELECT sum((amount/100)*n) as units_of_n_this_year FROM cropping.fertilizer_event 
+LEFT JOIN cropping.fertilizer ON fertilizer.id=fertilizer_event.fertilizer_id
+WHERE fertilizer_event.field_id= fieldcurr.id and event_time >= DATE_TRUNC('year', current_date)) as units_of_n_this_year
+FROM cropping.fieldcurr 
+
+), temp2 as (
+
+/* get rid of null fields, with no nitrogen this year */
+SELECT * FROM temp WHERE units_of_n_this_year is not null AND units_of_n_this_year >=40
+)
+
+/* so total is correct */
+SELECT *,(SELECT sum(area_calc) as total_area from temp2) FROM temp2 
+SQL;
+        $obj->colour='red';
+        $obj->opacity=.6;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+                     
+         $obj=new stdClass();
+        $obj->name='tempFieldList1';
+        $obj->desc='Temp Field List';
+        $obj->sql=<<<SQL
+                with temp as (
+SELECT  ST_Area(border_geom,true)/10000 as area_calc,field_list_temp.field_id, *,ST_AsGeoJSON (border_geom) as border_geojson, '42cef4' as fillcolor
+FROM system.field_list_temp 
+JOIN cropping.fieldcurr on fieldcurr.id=field_list_temp.field_id)
+                SELECT *,(SELECT sum(area_calc) as total_area from temp) FROM temp
+SQL;
+        $obj->colour='brown';
+        $obj->opacity=.9;
+        $obj->borderWeight=1;
+        $outArr[$obj->name]=$obj;
+        unset($obj);
+        //////////////////////////
+        
+        
+        
+        //set class object
+        $this->basicOjectsArr=$outArr;
+    }
+    
+    
+    //dynamic js of $basicOjectsArr
+    function inputOnOff($objArr) {
+        $out=array();
+        $count=0;
+        foreach ($objArr as $obj) {
+                $out[]= <<<JS
+ <label><input type="checkbox" id="$obj->name" onclick="check()" />$obj->desc</label>    &nbsp;&nbsp;&nbsp;&nbsp;
+JS;
+                if ($count==2) {  $out[]=' <label>&nbsp;|&nbsp; &nbsp;</label>';} //draw spacer, depends on order of config.
+          $count++;     
+        }
+
+        return implode($out);
+    }
+    
+   //dynamic js of $basicOjectsArr
+     function jsVarOnOff($objArr) {
+        $out=array();
+        foreach ($objArr as $obj) {
+                $out[]= <<<JS
+         var $obj->name; \n\r
+JS;
+                
+        }
+        return implode($out);
+    }
+    
+   //dynamic js of $basicOjectsArr
+    function jsMapExtraOnOff($objArr) {
+        $out=array();
+        foreach ($objArr as $obj) {
+                $out[]= <<<JS
+        $obj->name = new google.maps.Data(); \n\r
+JS;
+                
+        }
+        return implode($out);
+    }
+    
+    //dynamic js of $basicOjectsArr
+       function jsDoLayerStuffOnOff($objArr) {
+        $out=array();
+        foreach ($objArr as $obj) {
+                $out[]= <<<JS
+       doLayerStuff($obj->name,'{$GLOBALS['config']['HTTP']['JSON_API']}/14/SpecificCroppingGISData/$obj->name','$obj->colour', $obj->opacity,$obj->borderWeight);\n\r
+                        
+JS;
+                
+        }
+        return implode($out);
+    }
+    
+  
+    
+    function jsCheckIfOnOff($objArr) {
+        $out=array();
+        foreach ($objArr as $obj) {
+                $out[]= <<<JS
+         checkIf($obj->name,"$obj->name");\n\r
+JS;
+                
+        }
+        return implode($out);
+    }
+    
+    
+    
     public function defaultDisplay() {
-        $this->drawMap2();
+        //setup
+     
+        $this->basicElementsConstructor(); 
+        
+      
+        
+        print($this->drawMap2());
     }
 
     public function drawMap2() {
-        ?>
         
-
+        $out[]=$this->mapHTML();
+        $out[]=$this->mapJavaScript();
+        return implode($out);
+    }
+    
+    
+    public function mapHTML() {
+           
         
-
-
-            <div class="row">
-                <div class="col-sm-6"> 
-
-
-
-                    <p>
-                        <label for="slider-manure-amount">Manure previous -X weeks:</label>
-                        <input type="text" id="slider-manure-amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-                    </p>
+        $sliderManure=<<<HTML
+                
+                 
+                        <label for="slider-manure-amount">Manure previous -X weeks:
+                            <input type="text" id="slider-manure-amount" readonly style="border:0; color:#f6931f; font-weight:bold;">                        
+                        </label>
+                       
+                    
                     <div id="slider-manure"></div>
-
-
-
-                    <p>
-                        <label for="slider-fertilizer-amount">Fertilizer previous -X weeks:</label>
-                        <input type="text" id="slider-fertilizer-amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-                    </p>
+                
+        HTML;        
+        
+         $sliderFertilizer=<<<HTML
+                
+                 
+                  
+                        <label for="slider-fertilizer-amount">Fertilizer previous -X weeks:
+                             <input type="text" id="slider-fertilizer-amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                        </label>
+                       
+                  
                     <div id="slider-fertilizer"></div>
 
-                    <label><input type="checkbox" id="spfhLayer" checked="checked" onclick="check()" />SPFH Fields</label>&nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="balerLayer" onclick="check()" />Baler Fields</label>&nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="pastureLayer" onclick="check()" />Pasture Fields</label>&nbsp;&nbsp;&nbsp;&nbsp;
-                    <label>&nbsp;|&nbsp; </label>
-                    <label><input type="checkbox" id="spfhLimeLayer" onclick="check()" />SPFH Fields: Needs Lime</label>&nbsp;&nbsp;&nbsp;&nbsp;
+                
+        HTML;    
+        
+         $sliderSprayed=<<<HTML
+                
+                  
+                        <label for="slider-sprayed-amount">Sprayed previous -X weeks:
+                            <input type="text" id="slider-sprayed-amount" readonly style="border:0; color:#f6931f; font-weight:bold;">    
+                        </label>
+                        
+                  
+                    <div id="slider-sprayed"></div>
+                
+        HTML;    
 
-                    <label><input type="checkbox" id="spfhAlfalfaLayer" onclick="check()" />SPFH: Alfalfa Currently</label>&nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="spfhCloverLayer" onclick="check()" />SPFH: Clover Currently</label>&nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="spfhOtherForageLayer" onclick="check()" />SPFH: Other Recent Forage</label>    &nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="spfhCornLayer" onclick="check()" />SPFH: Corn Currently</label>    &nbsp;&nbsp;&nbsp;&nbsp;
+      $sliderManureBox=(new BootStrap())->plainCard('Manure', $sliderManure);
+      $sliderFertilizerBox=(new BootStrap())->plainCard('Fertilizer', $sliderFertilizer);
+      $sliderSprayedBox=(new BootStrap())->plainCard('Sprayed', $sliderSprayed);
+         
+            $allBox=(new BootStrap())->plainCard('All', $this->inputOnOff($this->basicOjectsArr));
+            
+    $left=<<<HTML
+        {$sliderManureBox}
+        {$sliderFertilizerBox}
+        {$sliderSprayedBox}
+            
+        {$allBox}
+          <div id="checked-area"></div>    
+    HTML;        
+                    
+           
+              $right= ' <div class="fieldMapBig" id="map"></div>';
+                    
+                    
+                    
+              return      (new BootStrap())->oneFifthFourFifth($left, $right);
+                    
 
-                    <label><input type="checkbox" id="spfhCornPlanLayer" onclick="check()" />SPFH: Corn Plan</label>    &nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="spfhAlfalfaPlanLayer" onclick="check()" />SPFH: Alfalfa Plan</label>    &nbsp;&nbsp;&nbsp;&nbsp;
-                     <label><input type="checkbox" id="spfhOtherForagePlanLayer" onclick="check()" />SPFH: Other Forage Plan</label>    &nbsp;&nbsp;&nbsp;&nbsp;
-
-                    <label><input type="checkbox" id="allFertCurrLayer" onclick="check()" />All: Fertilizer This Year </label>    &nbsp;&nbsp;&nbsp;&nbsp;
-                    <label><input type="checkbox" id="allSprayCurrLayer" onclick="check()" />All: Spray This Year </label>    &nbsp;&nbsp;&nbsp;&nbsp;
-
-                    </div>
-
-                    </div><!-- /mapControl stuff -->
-
-                      <div class="row">
-                <div class="col-sm-12"> 
-                    <div class="fieldMapBig" id="map"></div>
-                     </div>
-
-                    </div><!-- /end map stuff -->
+    
+    }
+    
+    
+    public function mapJavaScript() {
+    ?>
                  
         <script>
             /*slider funtion */
@@ -95,6 +725,22 @@ class Map extends BasePage {
     $( "#slider-fertilizer-amount" ).val( $( "#slider-fertilizer" ).slider( "value" ) );
   } );
   
+  $( function() {
+    $( "#slider-sprayed" ).slider({
+      range: "min",
+      value: 0,
+      min: 0,
+      max: 104,
+      
+            slide: function( event, ui ) {
+                //show gui chnaginga mount as you slide
+        $( "#slider-sprayed-amount" ).val( ui.value );
+      }
+    });
+    $( "#slider-sprayed-amount" ).val( $( "#slider-sprayed" ).slider( "value" ) );
+  } );
+  
+  
 
   </script>
         
@@ -102,27 +748,19 @@ class Map extends BasePage {
             var map;
 
             /* have to be here for scope reasons */
-            var spfhLayer;
-            var balerLayer;
-            var pastureLayer;
-            var spfhLimeLayer;
-
-            var spfhAlfalfaLayer;
-            var spfhCornLayer;
-            var spfhCloverLayer;
-            var spfhOtherForageLayer;
-            var spfhCornPlanLayer;
-            var spfhAlfalfaPlanLayer;
-            var spfhOtherForagePlanLayer;
-            var allFertCurrLayer;
-             var allSprayCurrLayer;
-             var manureLayer;
-             var fertilizerLayer;
+         
+           
+           
+            var manureLayer;
+            var fertilizerLayer;
+             var sprayedLayer;
+            
+              <?php echo($this->jsVarOnOff($this->basicOjectsArr));?>
 
             function initMap() {
                 map = new google.maps.Map(document.getElementById('map'), {
                     center: {lat: 45.9788769346638, lng: -64.9880610086718},
-                    zoom: 16,
+                    zoom: 14,
                     mapTypeId: google.maps.MapTypeId.ROADMAP
                 });
 
@@ -142,24 +780,13 @@ class Map extends BasePage {
             /* extra stuff */
             function initMapExtras() {
 
-                spfhLayer = new google.maps.Data();
-                balerLayer = new google.maps.Data();
-                pastureLayer = new google.maps.Data();
-                spfhLimeLayer = new google.maps.Data();
-
-                spfhAlfalfaLayer = new google.maps.Data();
-                spfhCornLayer = new google.maps.Data();
-                spfhCloverLayer = new google.maps.Data();
-                spfhOtherForageLayer = new google.maps.Data();
-                spfhCornPlanLayer = new google.maps.Data();
-                spfhAlfalfaPlanLayer = new google.maps.Data();
-                spfhOtherForagePlanLayer = new google.maps.Data();
-                allFertCurrLayer = new  google.maps.Data();
-                 allSprayCurrLayer = new  google.maps.Data();
-                 manureLayer = new google.maps.Data();
-                 fertilizerLayer = new google.maps.Data();
+            
+            
+                manureLayer = new google.maps.Data();
+                fertilizerLayer = new google.maps.Data();
+                sprayedLayer = new google.maps.Data();
                  
-                 
+                   <?php echo($this->jsMapExtraOnOff($this->basicOjectsArr));?>
                
                  
                 /*
@@ -233,27 +860,12 @@ function doLayerStuff(layerObj,geoJsonUrl,colour,opacity,borderWeight=1) {
     
 }
 
-doLayerStuff(spfhLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh','#FF0000',.05);
-doLayerStuff(balerLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/baler','black',.05);
-doLayerStuff(pastureLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/pasture','grean',.05);
-doLayerStuff(spfhLimeLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_NeedLime','blue',.5);
 
-doLayerStuff(spfhAlfalfaLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_Alfalfa','#68f442',.9);
-doLayerStuff(spfhCornLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_Corn','#FFFF00',.9);
-doLayerStuff(spfhCloverLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_Clover','#f44197',.9);
-doLayerStuff(spfhOtherForageLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_OtherForage','#7f41f4',.9);
-//
-doLayerStuff(spfhCornPlanLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_Corn_Plan','#FFFF00',.9,3);
-doLayerStuff(spfhAlfalfaPlanLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_Alfalfa_Plan','#68f442',.9,3);
-doLayerStuff(spfhOtherForagePlanLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/spfh_OtherForage_Plan','#7f41f4',.9,3);
-//
-doLayerStuff(allFertCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/all_Fert_Curr','#42cef4',.9,3);
-doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificCroppingGISData/all_Spray_Curr','#f4b642',.9,3);
-//
-
-                //turn on spfh base layer as default...maybe
-                spfhLayer.setMap(map);
-
+  <?php echo($this->jsDoLayerStuffOnOff($this->basicOjectsArr));?>
+      
+             //turn on spfh base layer as default...maybe
+                    spfhLayer.setMap(map); //depends on config
+              
 
             }
             ;
@@ -261,36 +873,34 @@ doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificC
             /* watched checkbox divs and when clicked, turns on and off map layers */
             function check()
             {
-              
+            
               // turn layer on and off.          
                 function checkIf(layerObj,layerName) {
                  if (document.getElementById(layerName).checked)
                 {
                     layerObj.setMap(map);
+                    
+                     
+                     /* request to get layers area in hectares*/
+                     $.ajax({
+  url: "<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?>/14/SpecificCroppingTotalArea/"+layerName,
+  cache: false
+})
+  .done(function( html ) {
+    $( "#checked-area" ).append( layerName+': '+(html)+' ha. <br/>' );
+  });
                 } 
                 else
                 {
                     layerObj.setMap(null);
+                     $('#checked-area').text('');
                 }   
                 }
                 
-               checkIf(spfhLayer,"spfhLayer");
-               checkIf(balerLayer,"balerLayer");
-               checkIf(pastureLayer,"pastureLayer");
-               checkIf(spfhLimeLayer,"spfhLimeLayer");
-
-               checkIf(spfhAlfalfaLayer,"spfhAlfalfaLayer");
-               checkIf(spfhCornLayer,"spfhCornLayer");
-               checkIf(spfhCloverLayer,"spfhCloverLayer");
-               checkIf(spfhOtherForageLayer,"spfhOtherForageLayer");
-               // 
- checkIf(spfhCornPlanLayer,"spfhCornPlanLayer");
- checkIf(spfhAlfalfaPlanLayer,"spfhAlfalfaPlanLayer");
-  checkIf(spfhOtherForagePlanLayer,"spfhOtherForagePlanLayer");
- 
-//
- checkIf(allFertCurrLayer,"allFertCurrLayer");
-  checkIf(allSprayCurrLayer,"allSprayCurrLayer");
+             
+              
+                
+                  <?php echo($this->jsCheckIfOnOff($this->basicOjectsArr));?>
 
             };
             
@@ -342,13 +952,9 @@ doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificC
             
               /*run whenever the specified slider changes. */
                           function sliderAction() {
-                
-           
-         
-                
-                
-                
-                $( "#slider-manure" ).slider({                                           
+
+                    /* ** */
+                    $( "#slider-manure" ).slider({                                           
                        stop: function( event, ui ) {
                            //when you stop sliding, show on map                    
                           if (ui.value == null)  
@@ -358,8 +964,10 @@ doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificC
                                   else {
                                       var obj = {type:"manure", filter:createFieldFilter(), time:ui.value};                  
                                                  manureLayer.forEach(function(feature) {           manureLayer.remove(feature);   }); //remove all data from data layer, before we add more data.
-                                                 manureLayer.loadGeoJson('https://int.littleriver.ca/api/json/14/slider/'+encodeURIComponent(JSON.stringify(obj)));  //load geo json url for object, before we use it.
-                                                 manureLayer.setMap(map);                          
+                                                //load geo json url for object, before we use it.
+                                                  $.when(  manureLayer.loadGeoJson('<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?>/14/slider/'+encodeURIComponent(JSON.stringify(obj)))).done(function() {
+                                                       manureLayer.setMap(map); 
+                                                  })
                                         }                  
                       }
                  });
@@ -376,24 +984,79 @@ doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificC
                                   else {
                                       var obj = {type:"fertilizer", filter:createFieldFilter(), time:ui.value};                                     
                                                  fertilizerLayer.forEach(function(feature) {           fertilizerLayer.remove(feature);   }); //remove all data from data layer, before we add more data.
-                                                 fertilizerLayer.loadGeoJson('https://int.littleriver.ca/api/json/14/slider/'+encodeURIComponent(JSON.stringify(obj)));  //load geo json url for object, before we use it.
-                                                 fertilizerLayer.setMap(map);                          
+                                                 //load geo json url for object, before we use it.
+                                                  $.when(  fertilizerLayer.loadGeoJson('<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?>/14/slider/'+encodeURIComponent(JSON.stringify(obj)))).done(function() {
+                                                       fertilizerLayer.setMap(map); 
+                                                  })                        
                                         }                  
                       }
                  });
                     
                     
-                    
+                     /* **** */
+                     $( "#slider-sprayed" ).slider({                                           
+                       stop: function( event, ui ) {
+                  
+                           //when you stop sliding, show on map                    
+                          if (ui.value == null)  
+                                  {
+                                  sprayedLayer.setMap(null); 
+                                  }
+                                  else {
+                                      var obj = {type:"sprayed", filter:createFieldFilter(), time:ui.value};                                     
+                                                 sprayedLayer.forEach(function(feature) {           sprayedLayer.remove(feature);   }); //remove all data from data layer, before we add more data.
+                                                 //load geo json url for object, before we use it.
+                                                  $.when(  sprayedLayer.loadGeoJson('<?php echo($GLOBALS['config']['HTTP']['JSON_API']);?>/14/slider/'+encodeURIComponent(JSON.stringify(obj)))).done(function() {
+                                                       sprayedLayer.setMap(map); 
+                                                  })                          
+                                        }                  
+                      }
+                 });
                     
                     
                                         
                             }
+                       
                          
-
         </script>
         <?php
     }
 
+    /*
+     * returns the total area only
+     * 
+     */
+    public function SpecificCroppingTotalArea($request) {
+        if (!empty($request['item'])) {
+            if (is_string($request['item'])) {
+                $item = filter_var($request['item'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
+            }
+        } else {
+            header("HTTP/1.1 400 Error");
+            throw new Exception('Error: no resource specified');
+        }
+        
+          $this->basicElementsConstructor(); //run constructor, because class called via REST. hackish, maps should be seperate class. 
+        
+  
+       if (empty($this->basicOjectsArr[$item])) {
+            header("HTTP/1.1 400 Error");
+            throw new Exception("Error item $item does not exist.");
+        }
+        
+         $obj=$this->basicOjectsArr[$item];
+         $sqlToRun=$obj->sql;
+        
+              
+          $statement = $GLOBALS['pdo']->prepare($sqlToRun);
+        $statement->execute();
+        $row =$statement->fetch(PDO::FETCH_ASSOC);
+         
+        return round($row['total_area'],1);
+    }
+    
+    
+    
     public function SpecificCroppingGISData($request) {
         if (!empty($request['item'])) {
             if (is_string($request['item'])) {
@@ -404,200 +1067,17 @@ doLayerStuff(allSprayCurrLayer,'https://int.littleriver.ca/api/json/14/SpecificC
             throw new Exception('Error: no resource specified');
         }
 
-//forage fields with spfh          
-        $sqlSpfh_All = <<<EOD
-SELECT *,gis.ST_AsGeoJSON (border_geom) as border_geojson, gis.ST_AsGeoJSON(gis.ST_Centroid(border_geom)) as point_geojson, 'purple' as fillcolor
-FROM cropping.foragecurr 
-WHERE spfh_suitable = true
-EOD;
-
-//forage fields, but not spfh fields, thus BALER fields.
-        $sqlBaler_All = <<<EOD
-  SELECT *,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor
-  FROM cropping.foragecurr WHERE spfh_suitable = false
-EOD;
+       $this->basicElementsConstructor(); //run constructor, because class called via REST. hackish, maps should be seperate class. 
         
-        //forage fields, but not spfh fields, thus BALER fields.
-        $sqlPasture_All = <<<EOD
-  SELECT *,ST_AsGeoJSON (border_geom) as border_geojson, '89f441' as fillcolor
-  FROM cropping.pasturecurr
-EOD;
-
-
-//SPFH and pH below 6 and there hasn't been lime put on since soil test.
-        $sqlSpfh_NeedLime = <<<EOD
-        with temp as (
-SELECT soil_sample_event.pH as ph,soil_sample_event.event_time as soil_sample_event_time,(SELECT event_time FROM cropping.lime_event WHERE id=cropping.lime_event_id_at_timestamp (foragecurr.id, now()::timestamp)) as lime_event_time,foragecurr.*,ST_AsGeoJSON (foragecurr.border_geom) as border_geojson, '68f442' as fillcolor
-FROM cropping.foragecurr 
-LEFT JOIN cropping.soil_sample_event ON soil_sample_event.id=cropping.soil_sample_event_id_at_timestamp (foragecurr.id, now()::timestamp)
-)
-    SELECT * from temp WHERE spfh_suitable = true AND ph<6 AND soil_sample_event_time > lime_event_time
-EOD;
-
-
-
-
-//Alfalfa planted in last three years.
-        $sqlSpfh_Alfalfa = <<<EOD
-SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor
-from cropping.foragecurr
-LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
-LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
-LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-WHERE specific_type='Alfalfa' AND seed_event.event_time  >= (current_date-interval '3 year') AND spfh_suitable=true
-EOD;
-
-//Corn planted in last 14 months.
-        $sqlSpfh_Corn = <<<EOD
-SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor 
-from cropping.foragecurr
-LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
-LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
-LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-WHERE specific_type='Corn' AND seed_event.event_time  >= (current_date-interval '9 months') AND spfh_suitable=true
-UNION
-SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson, 'e6e54b' as fillcolor 
-from cropping.foragecurr
-LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
-LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
-LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-WHERE specific_type='BMR Corn' AND seed_event.event_time  >= (current_date-interval '9 months') AND spfh_suitable=true
-EOD;
-
-//Clover planted in last 2 years.
-        $sqlSpfh_Clover = <<<EOD
-SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson , '68f442' as fillcolor
-from cropping.foragecurr
-LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
-LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
-LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-WHERE specific_type='Clover' AND seed_event.event_time  >= (current_date-interval '2 years') AND spfh_suitable=true
-EOD;
-
-//other forage planted in last 2 years.
-        $sqlSpfh_OtherForage = <<<EOD
-SELECT foragecurr.*,specific_type,seed_event.event_time as seed_event_time,ST_AsGeoJSON (border_geom) as border_geojson , '68f442' as fillcolor
-FROM cropping.foragecurr
-LEFT JOIN cropping.seed_event ON seed_event.id=foragecurr.seed_event_id
-LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id
-LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-WHERE  specific_type NOT IN ('Clover', 'BMR Corn','Corn', 'Alfalfa') AND seed_event.event_time  >= (current_date-interval '2 years') AND spfh_suitable=true
-EOD;
-
-/* PLANNING FOR COMING YEAR */
-        
-//corn for coming year.
-        $sqlSpfh_Corn_Planning = <<<EOD
-SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor
-        FROM cropping.seed_event_scheduled 
-        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
-        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
-        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
- LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
-        WHERE  seed_event_scheduled.event_time >='2019-01-01' AND seed_event_scheduled.event_time < '2019-12-31'  
-AND specific_type='Corn' AND spfh_suitable=true
-UNION
-SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, 'e6e54b' as fillcolor
-        FROM cropping.seed_event_scheduled 
-        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
-        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
-        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
- LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
-        WHERE  seed_event_scheduled.event_time >='2019-01-01' AND seed_event_scheduled.event_time < '2019-12-31'  
-AND specific_type='BMR Corn' AND spfh_suitable=true
-EOD;
-        
-         $sqlSpfh_Alfalfa_Planning = <<<EOD
-SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor
-        FROM cropping.seed_event_scheduled 
-        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
-        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
-        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
- LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
-        WHERE  seed_event_scheduled.event_time >='2019-01-01' AND seed_event_scheduled.event_time < '2019-12-31'  
-AND specific_type='Alfalfa' AND spfh_suitable=true
-EOD;
-         
-$sqlSpfh_OtherForage_Planning     = <<<EOD
-SELECT field.id as id,field.id as field_id,datum.id as datum_id,ST_AsGeoJSON (geom) as border_geojson, '68f442' as fillcolor
-        FROM cropping.seed_event_scheduled 
-        LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
-        LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
-        LEFT JOIN cropping.field ON field.id=seed_event_scheduled.field_id
-        LEFT JOIN cropping.datum ON seed_event_scheduled.datum_id = datum.id
- LEFT JOIN cropping.foragecurr ON foragecurr.id =field.id
-        WHERE  seed_event_scheduled.event_time >='2019-01-01' AND seed_event_scheduled.event_time < '2019-12-31'  AND
-   specific_type NOT IN ( 'BMR Corn','Corn', 'Alfalfa') AND spfh_suitable=true
-EOD;
-         
-/* Fertilizer put on this year for spfh fields */
-         $sqlAll_Fertilizer_currentYear = <<<EOD
-SELECT  distinct(fertilizer_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, '42cef4' as fillcolor
-FROM cropping.fertilizer_event 
-JOIN cropping.fieldcurr on fieldcurr.id=fertilizer_event.field_id
-WHERE all_covered=true and date_part('year', event_time) = date_part('year', CURRENT_DATE) 
-EOD;
-   
-/* Spray put on this year for spfh fields */
-         $sqlAll_Spray_currentYear = <<<EOD
-SELECT  distinct(spray_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, 'f4b642' as fillcolor
-FROM cropping.spray_event 
-JOIN cropping.fieldcurr on fieldcurr.id=spray_event.field_id
-WHERE  date_part('year', event_time) = date_part('year', CURRENT_DATE) 
-EOD;
-         
-        
-
-        /* decide which sql code to run and thus what data to return */
-        switch ($item) {
-            case 'spfh':
-                $sqlToRun = $sqlSpfh_All;
-                break;
-            case 'baler':
-                $sqlToRun = $sqlBaler_All;
-                break;
-             case 'pasture':
-                $sqlToRun = $sqlPasture_All;
-                break;
-            case 'spfh_NeedLime':
-                $sqlToRun = $sqlSpfh_NeedLime;
-                break;
-            case 'spfh_Alfalfa':
-                $sqlToRun = $sqlSpfh_Alfalfa;
-                break;
-            case 'spfh_Corn':
-                $sqlToRun = $sqlSpfh_Corn;
-                break;
-            case 'spfh_Clover':
-                $sqlToRun = $sqlSpfh_Clover;
-                break;
-            case 'spfh_OtherForage':
-                $sqlToRun = $sqlSpfh_OtherForage;
-                break;
-            case 'spfh_Corn_Plan':
-                $sqlToRun = $sqlSpfh_Corn_Planning;
-                break;
-             case 'spfh_Alfalfa_Plan':
-                $sqlToRun = $sqlSpfh_Alfalfa_Planning;
-                break;         
-             case 'spfh_OtherForage_Plan':
-                $sqlToRun = $sqlSpfh_OtherForage_Planning;
-                break;                
-            case 'all_Fert_Curr':
-                $sqlToRun = $sqlAll_Fertilizer_currentYear;
-                break;     
-             case 'all_Spray_Curr':
-                $sqlToRun = $sqlAll_Spray_currentYear;
-                break;   
-                 
-            default:
-                header("HTTP/1.1 400 Error");
-                throw new Exception('Error: no resource specified');
+  
+       if (empty($this->basicOjectsArr[$item])) {
+            header("HTTP/1.1 400 Error");
+            throw new Exception("Error item $item does not exist.");
         }
-
+        
+         $obj=$this->basicOjectsArr[$item];
+         $sqlToRun=$obj->sql;
+        
         $statement = $GLOBALS['pdo']->prepare($sqlToRun);
         $statement->execute();
         //get data
@@ -639,12 +1119,14 @@ EOD;
               array_push($geojson['features'], $feature2);
               } */
         }
+        
 
 
         return ($geojson);
     }
 
-    
+
+        
     
     //changes '100' code back into usefule info
     private function decodeFieldlFilter($fieldFilter) {
@@ -707,7 +1189,8 @@ EOD;
             header("HTTP/1.1 400 Error");
             throw new Exception('Error: no resource specified');
         }
-
+   
+        //var_dump($fieldFilter);
    
         switch ($type) {
             case 'manure':
@@ -716,7 +1199,7 @@ EOD;
 SELECT  distinct(manure_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, '68f442' as fillcolor
 FROM cropping.manure_event 
 JOIN cropping.foragecurr on foragecurr.id=manure_event.field_id
-WHERE all_covered=true and event_time > now() - interval '$time week' AND field_id IN ({$this->decodeFieldlFilter($fieldFilter)})
+WHERE all_covered=true and manure_event.event_time > now() - interval '$time week' AND manure_event.field_id IN ({$this->decodeFieldlFilter($fieldFilter)})
 EOD;
                 break;
             case 'fertilizer':
@@ -725,7 +1208,16 @@ EOD;
 SELECT  distinct(fertilizer_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, 'e5b285' as fillcolor
 FROM cropping.fertilizer_event 
 JOIN cropping.fieldcurr on fieldcurr.id=fertilizer_event.field_id
-WHERE all_covered=true and event_time > now() - interval '$time week' AND field_id IN ({$this->decodeFieldlFilter($fieldFilter)})
+WHERE all_covered=true and fertilizer_event.event_time > now() - interval '$time week' AND fertilizer_event.field_id IN ({$this->decodeFieldlFilter($fieldFilter)})
+EOD;
+                break;
+               case 'sprayed':
+//sprayed vairable length of time in past
+                $sql = <<<EOD
+SELECT  distinct(spray_event.field_id), *,ST_AsGeoJSON (border_geom) as border_geojson, '5386fc' as fillcolor
+FROM cropping.spray_event 
+JOIN cropping.fieldcurr on fieldcurr.id=spray_event.field_id
+WHERE spray_event.event_time > now() - interval '$time week' AND spray_event.field_id IN ({$this->decodeFieldlFilter($fieldFilter)})
 EOD;
                 break;
             default:
@@ -765,7 +1257,17 @@ EOD;
         return ($geojson);
     }
 
-
+    //red to blue gradient
+//from: https://stackoverflow.com/questions/20579351/assigning-color-values-in-a-range-based-on-numberic-values
+    function colorGradient($value,$max=100,$min=0) {
+$position=($value-$min)/($max-$min);
+$highColor=hexdec("FF0000"); //converts to decimal for multiplication
+$lowColor=hexdec("00FF00");
+$newColor=intval($position*($highColor-$lowColor)+$lowColor);
+$newColorStr=dechex($newColor);
+return $newColorStr;
+    }
+    
 }
 //end class
 ?>

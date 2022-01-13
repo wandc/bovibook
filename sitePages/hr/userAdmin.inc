@@ -12,10 +12,18 @@ class UserAdmin extends BasePage {
          print("<div class='row'>"."\n\r");
         
         print("<div class='col-sm-4 col-sm-push-8'>");
-       if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+        //only allow add user when admin.
+      if ($GLOBALS['auth']->getAdminMode() == 1) {
             $this->addUserQuickForm('oauth2Local');
               $this->addUserToGroup();
         }
+        //show secure area hint to normal user. 
+        else {
+        print($GLOBALS['auth']->showAdminSecureAreaLockedOut('Add User'));
+        print($GLOBALS['auth']->showAdminSecureAreaLockedOut('Add User to Group'));    
+        }
+       
+        
         print("</div>")."\n\r";
         print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
    $this->displayUsersOauth2Local();
@@ -98,7 +106,7 @@ class UserAdmin extends BasePage {
 
 
             //forward to same page, ob_start() is key to making this work!
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation	
         else {
@@ -162,7 +170,7 @@ class UserAdmin extends BasePage {
             }
 
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } //end validation
 
@@ -207,7 +215,7 @@ class UserAdmin extends BasePage {
               $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
                 return false;
             }
         // Close the transaction   
@@ -273,7 +281,7 @@ $columnsStr= <<<EX
                 title: "Action"
             }
 EX;
-    print($dt->startLocal($this->usersOauth2Local(),$columnsStr,'highlight_attention',' "paging": false'));     
+    print($dt->startLocal('Title Local CHANGE ME', $this->usersOauth2Local(),$columnsStr,'highlight_attention',' "paging": false'));     
         
         
         
@@ -330,7 +338,7 @@ ORDER BY client_id
         $form = new HTML_QuickForm("formDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'userid', $userid);
-        $form->addElement('submit', 'btnDelete', 'Delete', array('id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete $userid? This cannot be undone.');")); //call javascript to confirm delete.
+        $form->addElement('submit', 'btnDelete', 'Delete', array('class'=>'btn btn-warning','id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete $userid? This cannot be undone.');")); //call javascript to confirm delete.
 
 
 // Try to validate a form 
@@ -353,14 +361,14 @@ ORDER BY client_id
               $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
                 return false;
             }
           
 
 
 //print("DELETING succesful");
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table

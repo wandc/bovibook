@@ -68,6 +68,7 @@ try {
     
 } catch (Exception $e) {
     //print($e); //DEBUG Enable this to see error messages from ajax requests.
+    error_log($e); //save to log
     header('404 Not Found');
     print("404 Not Found"."\n\r");
     exit;
@@ -124,6 +125,10 @@ function getUserid() {
         throw new Error("Unknown Auth Scheme.");
     }
 
+    if (empty($userid)) {
+        (new PageSecurityCheck)->forwardToLoginPage(); //if userid is empty, then send person to login page.
+    }
+    
 
     return $userid;
 }
@@ -133,6 +138,7 @@ function getUserid() {
 function ajaxSecurity($pageid) {
      $userid = getUserid();   
     
+     
     $res = $GLOBALS['pdo']->query("Select ajax_id FROM intWebsite.ajax_security WHERE ajax_security.ajax_id=$pageid AND ajax_security.group = any(array(SELECT groupid FROM wcauthentication.users_in_groups WHERE userid='$userid')) LIMIT 1");  
    
     if ($res->rowCount() >= 1) {
@@ -151,7 +157,7 @@ function   pageCall($pageid,$resource) {
     require_once('auth/pageSecurityCheck.inc');
      $PageSecurityCheckInstance=new PageSecurityCheck();
     if ($PageSecurityCheckInstance->canUserSeePage($_REQUEST['pageid'], $userid) == false) {
-        throw new Exception("Security failed, User:$userid not allowed to use resource!");
+        throw new Exception("Security failed, User: '$userid' not allowed to use resource of page_id={$_REQUEST['pageid']}!");
     }
     //////////
       

@@ -19,7 +19,7 @@ class Cqm extends TabPage {
     }
 
     function tab2() {
-        (self::record17());
+        print(self::record17());
     }
 
     function tab3() {
@@ -35,7 +35,7 @@ class Cqm extends TabPage {
     }
 
     function record8() {
-        print('<a href="/local/documents/cqm-prescrip.pdf">CQM Prescriptions</a>');
+        print('<p> See Black Binder in vet room.</p>');
     }
 
     function record16() {
@@ -86,7 +86,7 @@ class Cqm extends TabPage {
       
         $contentArr = array($row1, $row2, $row3, $row4, $row5, $row6, $row8);
 
-        $str[]=( (new JQueryDataTable)->startBasicArray($contentArr));
+        $str[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $contentArr));
        return implode($str);
         
     }
@@ -97,15 +97,20 @@ class Cqm extends TabPage {
 
     function record17() {
        
-        $this->record17Quickform();
-        print($this->record17Display());
+        $right=($this->record17Quickform());
+        $left=($this->record17Display());
+        
+      return  (new BootStrap)->oneThirdTwoThirds($left, $right);
         
     }
 
     function record13() {
       
-        $this->record13Quickform();
-        print($this->record13Display());
+        $right=$this->record13Quickform();
+        $left=$this->record13Display();
+
+        
+        print((new BootStrap)->fourFifthOneFifth($left, $right));
       
     }
 
@@ -246,12 +251,12 @@ class Cqm extends TabPage {
 
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     private function truefalse($var) {
@@ -275,9 +280,10 @@ SELECT * FROM misc.cqm_record13 ORDER BY event_time DESC;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {    
+               $rowOut[''] = ($row['event_time']);  //has to be at end.      
                $rowOut['Date'] = date("M d, Y", strtotime($row['event_time']));  //has to be at end.      
                $rowOut['Employee']=$row['userid'];
                $rowOut['Tank A Paddle']=$row['tanka_paddle'];   
@@ -310,7 +316,7 @@ SELECT * FROM misc.cqm_record13 ORDER BY event_time DESC;
         //output
         $dataArr = $resultsOut;
       
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Record 13', $dataArr)); 
          return implode($out); 
         
        
@@ -386,12 +392,12 @@ SELECT * FROM misc.cqm_record13 ORDER BY event_time DESC;
 
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     public function record17Display($mode = 'default') {
@@ -406,6 +412,7 @@ SELECT * FROM misc.cqm_record17 ORDER BY event_time DESC;
 
         //change presentation
         foreach ($results as &$row) {    
+              $rowOut[''] = ( strtotime($row['event_time']));  //has to be at end.      
                $rowOut['Date'] = date("M d, Y ", strtotime($row['event_time']));  //has to be at end.      
                $rowOut['Problem']=$row['problem'];
                $rowOut['Corrective Action']=$row['corrective_action'];   
@@ -416,8 +423,8 @@ SELECT * FROM misc.cqm_record17 ORDER BY event_time DESC;
             
         //output
         $dataArr = $resultsOut;
-      
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+       $out[]=(new BootStrap)->infoAlertBasic('TTR alarms due to no milk in tank because too much time has elapsed can be safely ignored, but everything else must be recorded and rectified.');
+         $out[]=( (new JQueryDataTable)->startBasicArrayNoSort('Corrective Action', $dataArr)); 
          return implode($out);  
         
        
@@ -449,7 +456,7 @@ SELECT * FROM misc.cqm_record9 ORDER BY event_time DESC;
         //output
         $dataArr = $resultsOut;
       
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr)); 
          return implode($out);  
         
     }

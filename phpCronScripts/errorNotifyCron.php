@@ -1,6 +1,6 @@
 <?php 
 //show errors.
-error_reporting(E_ERROR | E_PARSE);
+
 if (defined('STDIN')) { //when called from cli, command line define constant.
     $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
     include_once( $_SERVER['DOCUMENT_ROOT'].'global.php');
@@ -137,7 +137,7 @@ class ErrorNotifyCron {
      $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
         
     }

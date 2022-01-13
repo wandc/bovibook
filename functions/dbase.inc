@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 error_reporting(E_ALL);
 require_once('../global.php');
 
@@ -26,7 +27,7 @@ class dBase {
         $this->dBaseExportBreedingChoices();
         $this->dBaseExportCalvings();
         $this->dBaseExportHerdCull();
-        SSE_Message::send_message('CLOSE', 'Process complete',100);//sse
+        SSE_Message::send_message('CLOSE', 'Process complete', 100); //sse
     }
 
     function dBaseExportBovine() {
@@ -42,12 +43,15 @@ class dBase {
         }
 
         $fp = fopen(self::CSVDIR . '/bovine.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportLocation() {
@@ -63,12 +67,17 @@ class dBase {
         }
 
         $fp = fopen(self::CSVDIR . '/loc.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
+
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportSalePrice() {
@@ -88,12 +97,15 @@ ORDER BY local_number");
         }
 
         $fp = fopen(self::CSVDIR . '/price.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportHeats() {
@@ -115,12 +127,15 @@ ORDER BY event_time");
         }
 
         $fp = fopen(self::CSVDIR . '/heats.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportBreedings() {
@@ -146,18 +161,29 @@ ORDER BY actual_breeding_time ASC");
 
             $row['freeze_date'] = date('ymd', strtotime($row['freeze_date'])); //change to 2 digit year and get rid of dashes for dBase.
 //$row['freeze_date']=str_replace('-','',$row['freeze_date']);//line to change date type to string? for fred.
+            //sometimes there is no size, so cannot be null.
+            $sireRegArray['breed'] = $sireRegArray['breed'] ?? '';
+            $sireRegArray['country'] = $sireRegArray['country'] ?? '';
+            $sireRegArray['sex'] = $sireRegArray['sex'] ?? '';
+            $sireRegArray['number'] = $sireRegArray['number'] ?? '';
+
+
 //create a csv line
             $line = "{$row['id']},{$row['actual_breeding_time']},{$row['local_number']},{$row['full_name']},{$cowRegArray['breed']},{$cowRegArray['country']}{$cowRegArray['sex']}{$cowRegArray['number']},{$row['service_sire_full_name']},{$row['short_name']},{$sireRegArray['breed']},{$sireRegArray['country']},{$sireRegArray['sex']},{$sireRegArray['number']},{$row['semen_code']},{$row['bin']},{$row['freeze_date']},{$row['supplier_code']},{$row['breeding_comment']}";
+
             $fileArray[] = $line;
         }
 
         $fp = fopen(self::CSVDIR . '/breeding.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportHerdCull() {
@@ -172,25 +198,46 @@ ORDER BY actual_breeding_time ASC");
 //break up registration number for fred.
             $cowRegArray = $GLOBALS['MiscObj']->breakUpFullRegNumber($row['full_reg_number']);
 
+            $row['reason'] = empty($row['reason']) ? '' : $row['reason'];
+
+            $cowRegArray['breed'] = $cowRegArray['breed'] ?? '';
+            $cowRegArray['country'] = $cowRegArray['country'] ?? '';
+            $cowRegArray['sex'] = $cowRegArray['sex'] ?? '';
+            $cowRegArray['number'] = $cowRegArray['number'] ?? '';
+
+
 //create a csv line
             $line = "{$row['id']},{$row['event_time']},{$row['local_number']},{$row['full_name']},{$cowRegArray['breed']},{$cowRegArray['country']}{$cowRegArray['sex']}{$cowRegArray['number']},{$row['reason']},{$row['comment']}";
             $fileArray[] = $line;
+   
         }
 
         $fp = fopen(self::CSVDIR . '/culls.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportCalvings() {
-        $sql = "Select calving_event_ease_types.name as calving_ease, bovine.full_name, bovine.local_number,bovine.id as bovine_id, calving_event.id,calving_event.update_time,calving_event.event_time,calving_event.userid,calving_event.create_time,calving_event.alive_or_dead,calving_event.calf_rfid_number,calving_event.calf_sex,calving_event.id as calving_event_id,calving_event.calf_mass,calving_event.lactation_id,bovine.full_reg_number,bovine.birth_date as dam_birth_date, (SELECT local_number FROM bovinemanagement.bovine WHERE bovine.full_reg_number='HOCANF' || calf_rfid_number LIMIT 1) as calf_local_number 
-FROM bovinemanagement.calving_event LEFT JOIN bovinemanagement.lactation ON lactation.id=calving_event.lactation_id LEFT JOIN bovinemanagement.calving_event_ease_types ON calving_event_ease_types.id = calving_event.calving_ease LEFT JOIN bovinemanagement.bovine ON bovine.id=lactation.bovine_id ORDER BY calving_event.event_time  DESC 
-";
 
+        $sql = <<<SQL
+                
+                Select calving_event_ease_types.name as calving_ease, bovine.full_name, bovine.local_number,bovine.id as bovine_id, calving_event.id,calving_event.update_time,
+                    calving_event.event_time,calving_event.userid,calving_event.create_time,calving_event.alive_or_dead,calving_event.calf_rfid_number,calving_event.calf_sex,
+                        calving_event.id as calving_event_id,calving_event.calf_mass,calving_event.lactation_id,bovine.full_reg_number,bovine.birth_date as dam_birth_date, 
+                            (SELECT local_number FROM bovinemanagement.bovine WHERE bovine.full_reg_number='HOCANF' || calf_rfid_number LIMIT 1) as calf_local_number 
+FROM bovinemanagement.calving_event 
+    LEFT JOIN bovinemanagement.lactation ON lactation.id=calving_event.lactation_id 
+        LEFT JOIN bovinemanagement.calving_event_ease_types ON calving_event_ease_types.id = calving_event.calving_ease 
+            LEFT JOIN bovinemanagement.bovine ON bovine.id=lactation.bovine_id ORDER BY calving_event.event_time  DESC 
+
+SQL;
 
         $res = $GLOBALS['pdo']->query($sql);
 
@@ -207,12 +254,15 @@ FROM bovinemanagement.calving_event LEFT JOIN bovinemanagement.lactation ON lact
         }
 
         $fp = fopen(self::CSVDIR . '/calving.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportPregnancies() {
@@ -245,12 +295,15 @@ ORDER BY preg_check_event.id DESC;");
         }
 
         $fp = fopen(self::CSVDIR . '/preg.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportReproHormone() {
@@ -271,12 +324,15 @@ ORDER BY preg_check_event.id DESC;");
         }
 
         $fp = fopen(self::CSVDIR . '/reprohor.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportVaccine() {
@@ -297,37 +353,56 @@ ORDER BY preg_check_event.id DESC;");
         }
 
         $fp = fopen(self::CSVDIR . '/vaccine.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
     function dBaseExportBreedingChoices() {
 
 
 
-        $sql = "SELECT * FROM bovinemanagement.bovinecurr";
+        $sql = "SELECT * FROM bovinemanagement.bovinecurr WHERE id is not null";
         $res = $GLOBALS['pdo']->query($sql);
-       
+
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-             $BovineQueryBreedingChoice=new BovineQueryBreedingChoice($row['id']);
+            $BovineQueryBreedingChoice = new BovineQueryBreedingChoice($row['id']);
             $retArr = $BovineQueryBreedingChoice->nextBreedingAction($row['id'], true);
-            $line = "{$row['id']},{$row['local_number']},{$row['full_reg_number']},{$retArr['row']['p1_name']},{$retArr['row']['p2_name']},{$retArr['row']['p3_name']},{$retArr['row']['s1_name']},{$retArr['row']['s2_name']},{$retArr['row']['s3_name']},{$retArr['nextActionTxt']}";
-            $fileArray[] = $line;
+
+            if (!empty($retArr)) {
+
+
+                $retArr['row']['p1_name'] = $retArr['row']['p1_name'] ?? '';
+                $retArr['row']['p2_name'] = $retArr['row']['p2_name'] ?? '';
+                $retArr['row']['p3_name'] = $retArr['row']['p3_name'] ?? '';
+                $retArr['row']['s1_name'] = $retArr['row']['s1_name'] ?? '';
+                $retArr['row']['s2_name'] = $retArr['row']['s2_name'] ?? '';
+                $retArr['row']['s3_name'] = $retArr['row']['s3_name'] ?? '';
+
+                $line = "{$row['id']},{$row['local_number']},{$row['full_reg_number']},{$retArr['row']['p1_name']},{$retArr['row']['p2_name']},{$retArr['row']['p3_name']},{$retArr['row']['s1_name']},{$retArr['row']['s2_name']},{$retArr['row']['s3_name']},{$retArr['nextActionTxt']}";
+
+                $fileArray[] = $line;
+            }
         }
 
 
 
         $fp = fopen(self::CSVDIR . '/breedcho.csv', 'w');
+        if (!$fp) {
+            echo "Error! Couldn't open the file.";
+        } else {
+            foreach ($fileArray as $line) {
+                $this->fputcsvDBASE($fp, explode(',', $line));
+            }
 
-        foreach ($fileArray as $line) {
-            $this->fputcsvDBASE($fp, explode(',', $line));
+            fclose($fp);
         }
-
-        fclose($fp);
     }
 
 //from fputcsv docs.

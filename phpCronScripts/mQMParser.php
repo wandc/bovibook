@@ -27,106 +27,144 @@ class MQMParser {
         SSE_Message::send_message(80, 'Started Processing data.', 80); //sse
         $componentsArr = $this->processComponents($data);
         $healthArr = $this->processHealth($data);
-         //now insert only new data in database.
-          SSE_Message::send_message(90, 'Insering into DB.', 90); //sse
-          $this->insertComponentsData($componentsArr);
-          $this->insertHealthData($healthArr);
-          SSE_Message::send_message('CLOSE', 'Process complete', 100); //sse
-          //DEBUG
-        //print_r($data);
-        //print_r($healthArr);
-        //print_r($componentsArr);
+        //now insert only new data in database.
+        SSE_Message::send_message(90, 'Insering into DB.', 90); //sse
+        $this->storeInfoInDBComponents($componentsArr);
+        $this->insertHealthData($healthArr);
+        SSE_Message::send_message('CLOSE', 'Process complete', 100); //sse
+        //DEBUG
+       // print_r($data);
+       // print_r($healthArr);
+       // print_r($componentsArr);
     }
 
     function downloadData() {
 
-        print("helllo\n\r");
-        $crl = curl_init();
-        $url ="https://www.milkquality.ca/mqm.d7/?q=node/1&amp;destination=node/1";
-        curl_setopt($crl, CURLOPT_URL, $url);
-        curl_setopt($crl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt");
-        curl_setopt($crl, CURLOPT_COOKIEJAR, "/tmp/cookie.txt");
-        curl_setopt($crl, CURLOPT_FOLLOWLOCATION, 1);
-        curl_setopt($crl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($crl, CURLOPT_POST, 1);
-        $postdata = array(
-            "name" => $GLOBALS['config']['MARITIME_QUALITY_MILK']['login'],
-            "pass" => $GLOBALS['config']['MARITIME_QUALITY_MILK']['password'],
-            "form_id" => "user_login_block",
-            "op" => "Log in",
-        );
-        curl_setopt($crl, CURLOPT_POSTFIELDS, $postdata);
-        $result = curl_exec($crl);
-        $headers = curl_getinfo($crl);
-        //curl_close($crl);
-        if (strpos($result, 'Log out') !== false) {
-            print("We have sucessfully logged in!\n\r");
-            print("Now see if we can download form of MQM component data...\n\r");
+        //first we use JSON drupal method to login...GREAT!
+        $ch = curl_init();
+
+        $login = $GLOBALS['config']['MARITIME_QUALITY_MILK']['login'];
+        $pass = $GLOBALS['config']['MARITIME_QUALITY_MILK']['password'];
 
 
-            curl_setopt($crl, CURLOPT_URL, 'https://www.milkquality.ca/?q=mqm_data_tbl/form'); // set url for next request
+        curl_setopt($ch, CURLOPT_URL, 'https://www.milkquality.ca/user/login?_format=json');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, "/tmp/cookie.txt");
+        curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/cookie.txt");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, "{\"name\":\"$login\", \"pass\":\"$pass\"}");
 
-            $result2 = curl_exec($crl); // make request on the same handle with the current login session
-          
-            if (empty($result2)) {
-                throw new Exception("Error: results page returned from curl is empty, ie we have wrong url or didn't post correctly.");
-            }
-   
-            $doc = new DOMDocument();
-            libxml_use_internal_errors(true); //suppress tag errors, because MQM does not know how to write html....probably.
-            $doc->loadHTML($result2);
-            libxml_use_internal_errors(false);  //enable tag errors again
-            $xpath = new DOMXpath($doc);
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
-            //get the table rows
-            $tableComponents = $xpath->query('//*[@id="div-ajax-mqm-dt"]/table/thead/tr');
-
-
-            $tableData = array();
-            foreach ($tableComponents as $row) {
-                $cells = $row->getElementsByTagName('td');
+        $json = curl_exec($ch);
+        if (curl_errno($ch)) {
+            echo 'Error:' . curl_error($ch);
+        }
 
 
-                $cellData = [];
-                foreach ($cells as $cell) {
-                    $cellData[] = $cell->nodeValue;
-                }
-                //make table row look like csv, for later processing
-                $tableData[] = (implode(",", $cellData) );
-            }
-            //print_r($tableData);
-            return $tableData;
+        json_decode($json);
+        if (json_last_error() == JSON_ERROR_NONE) {
+            //all good! Getting token.
+            //TOKEN not needed for anything. Using cookies instead it seems. 
+            $arr = (json_decode($json, true));
+            //var_dump($arr); //DEBUG
+            //$token=($arr['csrf_token']); //maybe only gets the first time we log in?
         } else {
-            print("Login failed. Exiting!\n\r");
+            print("Login failed. JSON login did not work for some reason. $json . Exiting!\n\r");
             exit();
         }
+
+        //now we are logged in and have a token to use for queries. 
+
+        print("We have sucessfully logged in!\n\r");
+        print("Now see if we can download form of MQM component data...\n\r");
+
+
+        curl_setopt($ch, CURLOPT_URL, 'https://www.milkquality.ca/mqm-data-viewer'); // set url for next request
+
+        $result2 = curl_exec($ch); // make request on the same handle with the current login session
+        //print($result2);
+        if (empty($result2)) {
+            throw new Exception("Error: results page returned from curl is empty, ie we have wrong url or didn't post correctly.");
+        }
+
+        $doc = new DOMDocument();
+        libxml_use_internal_errors(true); //suppress tag errors, because MQM does not know how to write html....probably.
+        $doc->loadHTML($result2);
+        libxml_use_internal_errors(false);  //enable tag errors again
+        $xpath = new DOMXpath($doc);
+
+        //get the table rows
+        $tableComponents = $xpath->query('//*[@id="div-ajax-mqm-dt"]/table/thead/tr');
+
+
+        $tableData = array();
+        foreach ($tableComponents as $row) {
+            $cells = $row->getElementsByTagName('td');
+
+
+            $cellData = [];
+            foreach ($cells as $cell) {
+                $cellData[] = $cell->nodeValue;
+            }
+            //make table row look like csv, for later processing
+            $tableData[] = (implode(",", $cellData) );
+        }
+        //print_r($tableData);
+        return $tableData;
     }
 
-    function insertComponentsData($componentsArr) {
+    /*
+     * Tank	PeriodDate	Period	SPC	LPC	BF	PROT	LOS	TOS	SCC	SNF	SNF/BF	FREZ
+     */
+
+    //store info in DB.
+    function storeInfoInDBComponents($infoArray) {
+// Open a DB transaction
+        try {
+            $res = $GLOBALS['pdo']->beginTransaction();
+
+            foreach ($infoArray as $data) {
+                
+                //onluy do daily tests, 4x month no longer supported. only insert non null
+                if (!empty($data)) {
+                if  (($data['type'] == 'daily') && (array_key_exists('butterfat', $data))) {
+                
+$query = <<<SQL
+                INSERT INTO batch.nb_bulk_tank_sample_every
+                               (fat,protein,lactose,scc,tank_num,test_collection_date,test_reporting_date,mun)
+                        VALUES (:butterfat,:protein,:lactose,:scc,:tank_num,:test_date,:email_date,:mun)
+                        ON CONFLICT DO NOTHING
+SQL;
 
 
-        $BulkTankTestPeriods = new BulkTankTestPeriods();
+                    //print_r($data);
 
+                    $statement = $GLOBALS['pdo']->prepare($query);
+                    $statement->bindValue(':butterfat', $data['butterfat'], PDO::PARAM_STR);
+                    $statement->bindValue(':protein', $data['protein'], PDO::PARAM_STR);
+                    $statement->bindValue(':lactose', $data['lactose'], PDO::PARAM_STR);
+                    $statement->bindValue(':scc', $data['scc'], PDO::PARAM_INT);
+                    $statement->bindValue(':tank_num', $data['tank_num'], PDO::PARAM_STR);
+                    $statement->bindValue(':test_date', $data['test_date'], PDO::PARAM_STR);
+                    $statement->bindValue(':email_date', date("Y-m-d"), PDO::PARAM_STR);
+                    $statement->bindValue(':mun', null, PDO::PARAM_NULL);
+                    $statement->execute();
+                
+            }}}
 
-
-        foreach ($componentsArr as &$row) {
-            $month = date('M', strtotime($row['date']));
-            $year = date('Y', strtotime($row['date']));
-            $dateMonthYearUnix = strtotime("1-{$month}-{$year} 00:00:00"); //return seconds since unix epoch to start of month
-
-            $testData = $BulkTankTestPeriods->generateTestDateRange($row['period'], $dateMonthYearUnix);
-
-            $sql1 = "SELECT test_time_start FROM batch.nb_bulk_tank_sample WHERE test_time_start='{$testData['startTime']}'";
-            $res1 = $GLOBALS['pdo']->query($sql1);
-
-            //only insert if it has not been done before.
-            if ($res1->rowCount() == 0) {
-                $query = "INSERT INTO batch.nb_bulk_tank_sample 
-(test_time_start,test_time_finish,average_test_time, fat, protein, lactose, scc,test_period) VALUES ('{$testData['startTime']}','{$testData['endTime']}','{$testData['testDate']}',{$row['fat']},{$row['prot']},{$row['los']},{$row['scc']},{$row['period']});";
-
-                $res = $GLOBALS['pdo']->exec($query);
-            }
+            $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+            echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
         }
+
+
+
+        return null;
     }
 
     function insertHealthData($healthArr) {
@@ -148,34 +186,86 @@ class MQMParser {
         }
     }
 
+    /*
+     * old tests that were 4x per month. 
+     * 
+     */
+
+    private function processComponents4xMonth($Row) {
+
+        preg_match("/(?<tank_number>(A|B)),(?<date>([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])),(?<period>(1|2|3|4)),,,\s*(?<fat>([0-9.]+)),\s*(?<prot>([0-9.]+)),\s*(?<los>([0-9.]+)),\s*(?<tos>([0-9.]+)),\s*(?<scc>([0-9,]+)),\s*(?<snf>([0-9.,]+)),\s*(?<snf_bf>([0-9.,]+)),/", $Row, $matches);
+
+        if (!empty($matches)) {
+
+            //print_r($matches);
+            $out = array();
+            $out['type'] = '4xMonth';
+            $out['period'] = $matches['period'];
+            $out['date'] = $matches['date'];
+            $out['fat'] = $matches['fat'];
+            $out['prot'] = $matches['prot'];
+            $out['los'] = $matches['los'];
+            $out['tos'] = $matches['tos'];
+            $out['scc'] = str_replace(',', '', $matches['scc']);
+            $out['snf'] = $matches['snf'];
+            $out['snf_bf'] = $matches['snf_bf'];
+
+
+            return $out;
+        }
+    }
+
+    /*
+     * daily tests used after August 2020. 
+     * Tanks changed to numierc from letters
+     */
+
+    private function processComponentsDaily($Row) {
+
+        preg_match("/(?<tank_number>(1|2)),(?<date>([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])),,,,\s*(?<fat>([0-9.]+)),\s*(?<prot>([0-9.]+)),\s*(?<los>([0-9.]+)),\s*(?<tos>([0-9.]+)),\s*(?<scc>([0-9,]+)),\s*(?<snf>([0-9.,]+)),\s*(?<snf_bf>([0-9.,]+)),/", $Row, $matches);
+
+        if (!empty($matches)) {
+
+            //print_r($matches);
+            $out = array();
+            $out['type'] = 'daily';
+            $out['test_date'] = $matches['date'];
+            $out['butterfat'] = $matches['fat'];
+            $out['protein'] = $matches['prot'];
+            $out['lactose'] = $matches['los'];
+            $out['tos'] = $matches['tos'];
+
+            //the SCC has some weird leading zeros thing going on.
+            $out['scc'] = ltrim($matches['scc'], '0');
+            //they have rounding errors
+            $out['snf'] = round($matches['snf'], 3);
+            $out['snf_bf'] = $matches['snf_bf'];
+
+            //tank number needs to be in letter format.
+           
+            if ($matches['tank_number']==1) {
+                 $out['tank_num'] = 'A'; 
+            }
+            elseif ($matches['tank_number']==2) {
+                 $out['tank_num'] = 'B'; 
+            }else {
+                throw new Exception("Error Tank number does not match 1 or 2.");
+            }
+
+            return $out;
+        }
+    }
+
     function processComponents($data) {
         /*
-         * matches the every 4 times a month component pattern
+         * process all rows based on daily or 4x per month. 
          * 
          */
         $holderArr = array();
         foreach ($data as &$Row) {
-            //from mqm drupal table
-            //"A,2016-07-07,1,,,  4.11,  3.53,  5.81, 13.45, 140000,9.34,2.27,"
 
-            preg_match("/(?<tank_number>(A|B)),(?<date>([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])),(?<period>(1|2|3|4)),,,\s*(?<fat>([0-9.]+)),\s*(?<prot>([0-9.]+)),\s*(?<los>([0-9.]+)),\s*(?<tos>([0-9.]+)),\s*(?<scc>([0-9,]+)),\s*(?<snf>([0-9.,]+)),\s*(?<snf_bf>([0-9.,]+)),/", $Row, $matches);
-
-            if (!empty($matches)) {
-                $out = array();
-                //$out['farm_number'] = $matches['farm_number'];
-                $out['period'] = $matches['period'];
-                $out['date'] = $matches['date'];
-                $out['fat'] = $matches['fat'];
-                $out['prot'] = $matches['prot'];
-                $out['los'] = $matches['los'];
-                $out['tos'] = $matches['tos'];
-                $out['scc'] = str_replace(',', '', $matches['scc']);
-                $out['snf'] = $matches['snf'];
-                $out['snf_bf'] = $matches['snf_bf'];
-
-
-                $holderArr[] = $out;
-            }
+            $holderArr[] = $this->processComponents4xMonth($Row);
+            $holderArr[] = $this->processComponentsDaily($Row);
         }
         return $holderArr;
     }
@@ -193,7 +283,7 @@ class MQMParser {
             preg_match("/(?<tank_number>(A|B|)),(?<date>([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])),,(?<spc>([0-9]+)),(?<lpc>([0-9]+)),,,,,,,,/", $Row, $matches);
 
 
-//print_r($matches);
+            //print_r($matches);
             if (!empty($matches)) {
                 $out = array();
 
@@ -208,92 +298,23 @@ class MQMParser {
         return $holderArr2;
     }
 
+    // returns datetime of last DB update
+    public function lastRun() {
+        $sql = "SELECT max(create_time) as max_update_time FROM batch.nb_bulk_tank_sample";
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        return strtotime($row['max_update_time']);
+    }
+
 }
 
 //end class
 //if it is run from the command line.
 //only run when called direectly from stdin
-if ((defined('STDIN')) AND ( !empty($argc) && strstr($argv[0], basename(__FILE__)))) {
+if ((defined('STDIN')) AND (!empty($argc) && strstr($argv[0], basename(__FILE__)))) {
     $cls = new MQMParser();
     $cls->main();
 } else {
 //nothing.
 }
-
-/**
- * used to create date ranges for bulk tank test.
- */
-class BulkTankTestPeriods {
-
-    function generateTestDateRange($period, $dateMonthYearUnix) {
-//period 1	1-7   
-//period 2	8-15
-//period 3	16-23
-//period 4	24-31
-//Don't use the above method....
-//create date. based on dviding the year into 48 periods, 7.06 days each. evenly distributing.
-        $testDateUnix = ($period * 657450 - 328725) + $dateMonthYearUnix;
-        $testDate = date('Y-m-d H:i:s', $testDateUnix);
-//do range.
-        $testDateRangeArray = $this->createTestDateRange($period, $dateMonthYearUnix);
-        $testDateRangeArray['testDate'] = $testDate;
-        $testDateRangeArray['period'] = $period;
-
-        return $testDateRangeArray;
-    }
-
-    function createTestDateRange($period, $dateMonthYearUnix) {
-//create start time based on first day of period.
-//create end time based on last day of period.
-//period 1	1-7   
-//period 2	8-15
-//period 3	16-23
-//period 4	24-31
-
-        switch ($period) {
-            case 1:
-                $one = 1;
-                $two = 7;
-                break;
-            case 2:
-                $one = 8;
-                $two = 15;
-                break;
-            case 3:
-                $one = 16;
-                $two = 23;
-                break;
-            case 4:
-                $one = 24;
-                $two = $this->GetLastDayofMonth(date('Y', $dateMonthYearUnix), date('m', $dateMonthYearUnix)); //tricky need to get last day of month, not just 31.
-                break;
-            default:
-                throw new Exception("Test period is not valid." . "\n\r");
-        }
-
-        $startTime = date("Y-m-$one 00:00:00", $dateMonthYearUnix);
-        $endTime = date("Y-m-$two 23:59:59", $dateMonthYearUnix);
-
-//print("StartTime:$startTime");
-//print("EndTime:$endTime");
-
-
-        $ret['startTime'] = $startTime;
-        $ret['endTime'] = $endTime;
-        return $ret;
-    }
-
-// This is a simple function that will get the last day of the month.
-//FROM:http://php.net/manual/en/function.checkdate.php
-    function GetLastDayofMonth($year, $month) {
-        for ($day = 31; $day >= 28; $day--) {
-            if (checkdate($month, $day, $year)) {
-                return $day;
-            }
-        }
-    }
-
-}
-
-//end class
 ?>

@@ -51,6 +51,8 @@ abstract class AccordionSub {
 
         //always creates the same hash string, based on the accordion array, to maintain state.
         $this->uuid = (md5(serialize($accordionArray)));
+        
+        $this->numberOfTabs = count($accordionArray);
 
 
         /* ACCORDIAN */
@@ -87,88 +89,93 @@ $js = <<<JS
         </script>  
 JS;
 
-    print($js);
+    $out[]=$js;
     
-        $this->numberOfTabs = count($accordionArray);
+       
 
 
 
-        print("<div id='accordion_{$this->uuid}' class='{$this->classCSS}'>" . "\n\r");
+        $out[]=("<div id='accordion_{$this->uuid}' class='{$this->classCSS}'>" . "\n\r");
 
         //key is tab number
         foreach ($accordionArray as $key => $value) {
-            if ($this->numberOfTabs == 15) {
+            if ($this->numberOfTabs > 15) {
                 throw new Exception("Accordion only supports a max of 15 tabs. Reduce your number.");
             }
 
-            print("<h3><a href='#'>{$value['name']}</a></h3>" . "\n\r");
-            print('<div>' . "\n\r");
-            $this->chooser($key); //content
-            print('</div>' . "\n\r");
+            $out[]=("<h3><a href='#'>{$value['name']}</a></h3>" . "\n\r");
+            $out[]=('<div>' . "\n\r");
+            $out[]=$this->chooser($key); //content
+            $out[]=('</div>' . "\n\r");
         }
 
-        print('</div>' . "\n\r");
+        $out[]=('</div>' . "\n\r");
+        
+        
+        return implode($out);
     }
 
     function chooser($number) {
-
+        $str=null;
 
         switch ($number) {
             case 1:
-                $this->tab1();
+                $str=$this->tab1();
                 break;
             case 2:
-                $this->tab2();
+                $str=$this->tab2();
                 break;
             case 3:
-                $this->tab3();
+                $str=$this->tab3();
                 ;
                 break;
             case 4:
-                $this->tab4();
+                $str=$this->tab4();
                 break;
             case 5:
-                $this->tab5();
+                $str=$this->tab5();
                 break;
             case 6:
-                $this->tab6();
+                $str=$this->tab6();
                 ;
                 break;
             case 7:
-                $this->tab7();
+                $str=$this->tab7();
                 break;
             case 8:
-                $this->tab8();
+                $str=$this->tab8();
                 break;
             case 9:
-                $this->tab9();
+                $str=$this->tab9();
                 ;
                 break;
             case 10:
-                $this->tab10();
+                $str=$this->tab10();
                 break;
             case 11:
-                $this->tab11();
+                $str=$this->tab11();
                 break;
             case 12:
-                $this->tab12();
+                $str=$this->tab12();
                 ;
                 break;
             case 13:
-                $this->tab13();
+                $str=$this->tab13();
                 ;
                 break;
             case 14:
-                $this->tab14();
+                $str=$this->tab14();
                 ;
                 break;
             case 15:
-                $this->tab15();
+                $str=$this->tab15();
                 ;
                 break;
             default:
                 throw new Exception("ERROR: Unknown accordion tab number.");
         }//end switch
+        
+        return $str;
     }
 
     abstract protected function tab1();

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/milk2006.inc');
 
@@ -12,7 +12,6 @@ class DrawSVGBags {
     public function __construct($dateOfInterest) {
         $this->dateOfInterest = $dateOfInterest;
         //this has to go here because if you put it after it still hasn't loaded the external svg.php file yet.
-    
     }
 
     // this will be called automatically at the end of scope
@@ -37,8 +36,8 @@ class DrawSVGBags {
         print("<h2>As of " . date('M d, Y', strtotime($this->dateOfInterest)) . "</h2>");
 
 //go through each bag and draw them out.
-      //  print("<div id='bagContainer' class='container'>");
       
+
         foreach ($listOfBagsArray as $slot => $bagsInSlot) {
 
             if ($slot == $this->lastSlot) {
@@ -50,10 +49,10 @@ class DrawSVGBags {
 
 //preamble
             $str = ""; //start with blank string
-                //viewbox and no styling allows it to be responsive. */
-            $str=$str."<svg version='1.1' viewBox='0 0 {$this->widthSlot} $heightX' >";
-            
-            
+            //viewbox and no styling allows it to be responsive. */
+            $str = $str . "<svg version='1.1' viewBox='0 0 {$this->widthSlot} $heightX' >";
+
+
 //do something different if slot currently has no bags.
             if ($bagsInSlot != null) {
                 foreach ($bagsInSlot as $bagId) {
@@ -66,6 +65,9 @@ class DrawSVGBags {
 //postamble
             $str = $str . "</svg>" . "\n\r";
 
+            //draw HTML (used for modals)
+            $str = $str . $this->drawHTMLOfSpecificBag($bagId, $scaleMultiplier, $heightScale, $slot);
+
 //make the last one wider to show numbers.
             if ($slot == $this->lastSlot) {
                 $height = $this->heightSlot + 50;
@@ -73,19 +75,19 @@ class DrawSVGBags {
                 $height = $this->heightSlot + 20;
             }
 
-            $this->showSVG($str); 
-           
+          $out[]=  $this->showSVG($str);
         } //end foreach
-       //   print("</div>");
+ 
+        return implode($out);
     }
 
 //end function
 
     function drawLegend() {
         $str = '';
-     //   $str = $str . '<p><svg xmlns="http://www.w3.org/2000/svg"  version="1.1" viewBox="0 0 140 53" width: 100%; >   <rect width="30" height="10" style="fill:#983191;" /> <text x="40" y="8" fill="#000000">High cow suitable</text></svg>';
-     //   $str = $str . '<svg  xmlns="http://www.w3.org/2000/svg"  version="1.1"  viewBox="0 0 140 53" width: 100%;>   <rect width="30" height="10" style="fill:#ef8995;" /> <text x="40" y="8" fill="#000000">Low cow suitable</text></svg>';
-     //   $str = $str . '<svg  xmlns="http://www.w3.org/2000/svg"  version="1.1"  viewBox="0 0 140 53" width: 100%;>   <rect width="30" height="10" style="fill:#f3b149;" /> <text x="40" y="8" fill="#000000">Dry cow suitable</text></svg></p>';
+        //   $str = $str . '<p><svg xmlns="http://www.w3.org/2000/svg"  version="1.1" viewBox="0 0 140 53" width: 100%; >   <rect width="30" height="10" style="fill:#983191;" /> <text x="40" y="8" fill="#000000">High cow suitable</text></svg>';
+        //   $str = $str . '<svg  xmlns="http://www.w3.org/2000/svg"  version="1.1"  viewBox="0 0 140 53" width: 100%;>   <rect width="30" height="10" style="fill:#ef8995;" /> <text x="40" y="8" fill="#000000">Low cow suitable</text></svg>';
+        //   $str = $str . '<svg  xmlns="http://www.w3.org/2000/svg"  version="1.1"  viewBox="0 0 140 53" width: 100%;>   <rect width="30" height="10" style="fill:#f3b149;" /> <text x="40" y="8" fill="#000000">Dry cow suitable</text></svg></p>';
         return $str;
     }
 
@@ -124,7 +126,7 @@ SELECT * from temp EXCEPT (SELECT * from temp WHERE (max_feed_footage = max_forw
 
 
         /* 2nd loop is used for case of multiple bags in one slot */
-        
+
         // a bag is considered consumed when the consumption footage is equal or greater than then bag finished_footage.
         //FIXME does not do bags feeding from reverse side.
         $res = $GLOBALS['pdo']->query("SELECT * FROM temp_bags_of_interest WHERE location='North Silage Pad' Order BY location,slot ASC");
@@ -154,6 +156,11 @@ SELECT * from temp EXCEPT (SELECT * from temp WHERE (max_feed_footage = max_forw
         }
 
         return $listOfBags;
+    }
+
+    function drawHTMLOfSpecificBag($bagId, $scaleMultiplier, $heightScale, $slot) {
+
+        return $this->drawForageTestHTML($bagId, $scaleMultiplier, $heightScale);
     }
 
     function drawSVGOfSpecificBag($bagId, $scaleMultiplier, $heightScale, $slot) {
@@ -323,85 +330,169 @@ SELECT * from temp EXCEPT (SELECT * from temp WHERE (max_feed_footage = max_forw
         return $str;
     }
 
-//FIXME add data from db
-    function drawForageTest($bagId, $scaleMultiplier, $heightScale) {
-        $str = ""; //start with blank string
+    /*
+     * calculate RFQ based on type of silage
+     */
+
+    private function RFQcalc($row) {
+
+        $rfq = null;
+        switch ($row->bag_feed_name_at_footage) {
+            case 'Corn Silage (BMR)':
+                $rfq = $row->TDN;
+                break;
+            case 'Corn Silage':
+                $rfq = $row->TDN;
+                break;
+            case 'Legume/Grass Mix':
+                $rfq = $row->RFQ; //alwyas use relative feed quality, maybe move to milk per ton.
+                break;
+            case 'Haylage':
+                $rfq = $row->RFQ;
+                break;
+            case 'Soybean Silage':
+                $rfq = $row->RFQ;
+                break;
+            case 'Snaplage':
+                $rfq = $row->TDN;
+                break;
+            default:
+                $rfq = $row->RFQ;
+                ; //unknown feed.
+        }
+
+        if (empty($rfq)) {
+            $rfq = -1;
+        }
+
+        return $rfq;
+    }
+
+    function drawForageTestHTML($bagId, $scaleMultiplier, $heightScale) {
+
         $sql = <<<SQL
-                SELECT nutrition.bag_feed_name_at_footage(bag_id,footage),bag_id,footage,sample_number,info_template->'DM' as "DM", info_template->'RFQ' as "RFQ", info_template->'TDN' as "TDN",info_template->'CP' as "CP",info_template->'Ca' as "Ca",info_template->'P' as "P",
-                    info_template->'K' as "K",info_template->'TDN'as "TDN",info_template->'ADF' as "ADF",info_template->'NDF' as "NDF",info_template->'lignin' as "lignin",info_template->'ash' as "ash",info_template->'starch' as "starch"        
+                SELECT nutrition.bag_feed_name_at_footage(bag_id,footage),bag_id,footage,sample_number,info_template->'DM' as "DM", info_template->'RFQ' as "RFQ", 
+                    info_template->'TDN' as "TDN",info_template->'CP' as "CP",info_template->'Ca' as "Ca",info_template->'P' as "P",
+                    info_template->'K' as "K",info_template->'TDN'as "TDN",info_template->'ADF' as "ADF",info_template->'NDF' as "NDF",
+                        info_template->'lignin' as "lignin",info_template->'ash' as "ash",info_template->'starch' as "starch", nrc2001_template->'Fat (%DM)' as fat       
                             FROM nutrition.bag_analysis 
                             WHERE bag_id=$bagId
 SQL;
 
-    
-            
+
+
         $res = $GLOBALS['pdo']->query($sql);
+
+        $out = array();
+
         while (($row = $res->fetch(PDO::FETCH_OBJ))) {
-            $footage = $row->footage * $scaleMultiplier; //choose where to place text
-//create String to display forage results for the given test.
-            $forageTestResults = "Test Results:
-DM: {$row->DM},\n\r\t\n\r\t
-CP: {$row->CP},
-ADF: {$row->ADF}, 
-NDF: {$row->NDF},
-Lignin: {$row->lignin},
-Starch {$row->starch},
-TDN {$row->TDN},
-Ca {$row->Ca},
-P {$row->P},
-K {$row->K},
-RFQ {$row->RFQ},
-sample_number {$row->sample_number}
-";
-
-            $pdfUrl = "http://{$_SERVER['HTTP_HOST']}/functions/displayForageAnalysisPdf.php?sample_number={$row->sample_number}";
 
 
-            $tdn = null;
-            $rfq = null;
+            /*
+             * calculate Corn Silage Index. 
+             */
+
             switch ($row->bag_feed_name_at_footage) {
                 case 'Corn Silage (BMR)':
-                 $rfq = $row->TDN;
                     //use TDN as potenital digestibility, not sure this is right.
-                    $retArr = CornSilageMilk2006Calculation::calculateMilk2006($row->DM, $row->CP, $row->NDF, $row->TDN, $row->ash, $row->CF, $row->starch, 1);
-                    $forageTestResults = $forageTestResults . ' Milk 2006 lb/ton dm: ' . round($retArr['lb_milk_per_ton_dm']);
+                    $retArr = CornSilageMilk2006Calculation::calculateMilk2006($row->DM, $row->CP, $row->NDF, $row->TDN, $row->ash, $row->fat, $row->starch, 1);
+                    $milk2006 = ' Milk 2006 lb/ton dm: ' . round($retArr['lb_milk_per_ton_dm']);
                     break;
                 case 'Corn Silage':
-                    $rfq = $row->TDN;
                     //use TDN as potenital digestibility, not sure this is right.
-                    $retArr = CornSilageMilk2006Calculation::calculateMilk2006($row->DM, $row->CP, $row->NDF, $row->TDN, $row->ash, $row->CF, $row->starch, 1);
-                    $forageTestResults = $forageTestResults . ' Milk 2006 lb/ton dm: ' . round($retArr['lb_milk_per_ton_dm']);
-                    break;
-                case 'Legume/Grass Mix':
-                    $rfq = $row->RFQ; //alwyas use relative feed quality, maybe move to milk per ton.
-                    break;
-                case 'Haylage':
-                    $rfq = $row->RFQ;
-                    break;
-                case 'Soybean Silage':
-                    $rfq = $row->RFQ;
-                    break;
-                case 'Snaplage':
-                    $rfq = $row->TDN;
+                    //$dm_perc,$cp_perc,$ndf_perc,$potential_digest_perc,$ash_perc,$fat_perc,$starch_perc,$dm_yield_ton_per_acre=1                                                                       
+                    $retArr = CornSilageMilk2006Calculation::calculateMilk2006($row->DM, $row->CP, $row->NDF, $row->TDN, $row->ash, $row->fat, $row->starch, 1);
+                    $milk2006 = ' Milk 2006 lb/ton dm: ' . round($retArr['lb_milk_per_ton_dm']);
                     break;
                 default:
-                    $rfq = $row->RFQ;
-                    ; //unknown feed.
+                    $milk2006 = '';
             }
 
-            if (empty($rfq)) {
-                $rfq = -1;
-            }
+            $cornIndex = empty($milk2006) ? '' : '<li>' . $milk2006 . '</li>';
 
 
-            $forageTestResultsEscaped=json_encode($forageTestResults);
-            
-//choose colour of dot based on rfq test.
-            $color_code = $this->chooseColourCodeFromInt($rfq);
-$rfq=round($rfq,1);
+            //create String to display forage results for the given test.
+            $forageTestResults = <<<HTML
+                    <h2>Test Results</h2>
+<li>DM: {$row->DM}</li>
+<li>CP: {$row->CP}</li>
+<li>ADF: {$row->ADF} (30% is ideal, this shows when forage was harvested)</li> <!-Jean Brisson 2021 --> 
+<li>NDF: {$row->NDF}</li>
+<li>Lignin: {$row->lignin}</li>
+<li>Starch: {$row->starch}</li>
+<li>Crude Fat: {$row->fat}</li>
+<li>TDN: {$row->TDN}</li>
+<li>Ca: {$row->Ca}</li>
+<li>P: {$row->P}</li>
+<li>K: {$row->K}</li>
+<li>RFQ: {$row->RFQ}</li>
+<li>sample_number: {$row->sample_number}</li>
+$cornIndex
+HTML;
+
+
+
+            $modal = <<<HTML
+
+<!-- Modal -->
+<div id="Modal_{$row->sample_number}" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+<!-- Modal content-->
+<div class="modal-content">
+  <div class="modal-header">
+   
+    <h4 class="modal-title">Results for Sample #{$row->sample_number} @ {$row->footage}ft</h4>
+ 
+  </div>
+  <div class="modal-body">
+   
+$forageTestResults
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+  </div>
+</div>
+
+  </div>
+</div>
+                    
+                       
+                    
+HTML;
+
+            $out[] = $modal;
+        }
+        return implode($out);
+    }
+
+//FIXME add data from db
+    function drawForageTest($bagId, $scaleMultiplier, $heightScale) {
+        $str = ""; //start with blank string
+        $sql = <<<SQL
+                SELECT nutrition.bag_feed_name_at_footage(bag_id,footage),bag_id,footage,sample_number,info_template->'DM' as "DM", info_template->'RFQ' as "RFQ", 
+                    info_template->'TDN' as "TDN",info_template->'CP' as "CP",info_template->'Ca' as "Ca",info_template->'P' as "P",
+                    info_template->'K' as "K",info_template->'TDN'as "TDN",info_template->'ADF' as "ADF",info_template->'NDF' as "NDF",
+                        info_template->'lignin' as "lignin",info_template->'ash' as "ash",info_template->'starch' as "starch", nrc2001_template->'Fat (%DM)' as fat       
+                            FROM nutrition.bag_analysis 
+                            WHERE bag_id=$bagId
+SQL;
+        $res = $GLOBALS['pdo']->query($sql);
+        while (($row = $res->fetch(PDO::FETCH_OBJ))) {
+
+            $footage = $row->footage * $scaleMultiplier; //choose where to place text
+            $pdfUrl = "http://{$_SERVER['HTTP_HOST']}/functions/displayForageAnalysisPdf.php?sample_number={$row->sample_number}";
+            $rfq = round($this->RFQcalc($row), 1);
+            $color_code = $this->chooseColourCodeFromInt($rfq); //choose colour of dot based on rfq test.
+            //used to show corresponding HTML added with drawForageTestHTML
+            $modalJS = <<<JS
+console.log("one");
+                     $("#Modal_{$row->sample_number}").modal("show");
+JS;
+
 //draw colour coded circle and text with rfq.
-            $str = $str . "<circle onclick='alert($forageTestResultsEscaped);' cx='$footage' cy='8' r='8' stroke='#$color_code' stroke-width='1' fill='#$color_code'/>" . "\n\r";
-            $str = $str . "<text   onclick='alert($forageTestResultsEscaped);'  x='$footage' y='" . ($heightScale * 5) . "' dx='0,0,0,0,0' dy='0,0,0,0,2' textLength='0' lengthAdjust='spacing' font-size='.5em' fill='#000000' text-anchor='middle' >$rfq</text>" . "\n\r";
+            $str = $str . "<circle onclick='$modalJS' cx='$footage' cy='8' r='8' stroke='#$color_code' stroke-width='1' fill='#$color_code'/>" . "\n\r";
+            $str = $str . "<text   onclick='$modalJS'  x='$footage' y='" . ($heightScale * 5) . "' dx='0,0,0,0,0' dy='0,0,0,0,2' textLength='0' lengthAdjust='spacing' font-size='.5em' fill='#000000' text-anchor='middle' >$rfq</text>" . "\n\r";
             $str = $str . "<circle   onclick='window.open(\"$pdfUrl\");'  cx='$footage' cy='28' r='3' stroke='purple' stroke-width='1' fill='purple'/>" . "\n\r";
         }
         return $str;
@@ -540,7 +631,7 @@ WHERE bag_id=$bagId";
             $xc = 250 * $scaleMultiplier;
             $x4 = 300 * $scaleMultiplier;
             $y = 26.25 * $heightScale;
-            
+
             $str = $str . "<text  x='$xaa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >-50'</text>" . "\n\r";
             $str = $str . "<text  x='$x1' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >0'</text>" . "\n\r";
             $str = $str . "<text  x='$xa' y='$y' dx='0,0,0,0,20' dy='0,0,0,0,8' textLength='0' lengthAdjust='spacing' font-size='.9em' text-anchor='middle' >50'</text>" . "\n\r";
@@ -600,8 +691,8 @@ WHERE bag_id=$bagId";
     }
 
     public function showSVG($svg) {
-        
-        print($svg);
+
+        return($svg);
     }
 
 }

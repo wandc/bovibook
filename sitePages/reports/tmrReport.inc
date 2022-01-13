@@ -1,16 +1,9 @@
 <?php 
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'functions/googleCharts.inc');
-
-/*
-  Page to show video camera feeds
- */
-
 class TmrReport extends TabPage {
 
     public function defaultDisplay() {
+        ini_set('memory_limit','512M');
+
         //setup for tabs.
         $tabArray[1]['name'] = 'Historical Chart';
           $tabArray[2]['name'] = 'Log';
@@ -86,7 +79,7 @@ class TmrReport extends TabPage {
     //display weigths on mixer scale last 3 days.
     function tmrLast3DaysMass() {
         
-		$sql="SELECT event_time,display_weight FROM bas.tmr_event WHERE event_time >= current_date - (interval '3 days') 
+		$sql="SELECT event_time,display_weight FROM bas.tmr_event WHERE event_time >= current_date - (interval '2 days') 
 AND display_weight > 50
 ORDER BY event_time ASC";
                 
@@ -131,7 +124,7 @@ ORDER BY event_time ASC";
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Display Weight (kg)'] = 'number';
          $opt='';
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $massArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $massArray);
         print($x->toString());
     }
 }

@@ -44,22 +44,22 @@ class TmrHistorical extends TabPage {
 
     function tab4() {
         $location_id = 41;
-        $this->displayNrcArchive($location_id);
+        print($this->displayNrcArchive($location_id));
     }
 
     function tab5() {
         $location_id = 40;
-        $this->displayNrcArchive($location_id);
+        print($this->displayNrcArchive($location_id));
     }
 
     function tab6() {
         $location_id = 42;
-        $this->displayNrcArchive($location_id);
+        print($this->displayNrcArchive($location_id));
     }
 
     function tab7() {
         $location_id = 37;
-        $this->displayNrcArchive($location_id);
+        print($this->displayNrcArchive($location_id));
     }
 
     
@@ -89,7 +89,7 @@ ORDER BY recipe_create_time DESC";
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['kg_day_cost_sum'] = 'number';
         $headerStrArr['kg_day_dry_sum'] = 'number';
-        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine( null, null, $headerStrArr, $one, $two);
         print($x->toString());
     }
     
@@ -124,7 +124,7 @@ ORDER BY recipe_create_time DESC";
         }
         //specific location
         else {
-         $sql="SELECT nrc_recipe_id,title,	recipe_create_time,recipe
+         $sql="SELECT nrc_recipe_id,title,	recipe_create_time,recipe         
 FROM nutrition.nrc_archive 
 LEFT JOIN nutrition.nrc_recipe_param ON nrc_recipe_param.nrc_recipe=nrc_archive.nrc_recipe_id 
 where recipe->0->>'location_id_arr' like '%$location_id%'
@@ -147,6 +147,10 @@ ORDER BY recipe_create_time DESC";
           
           $row['cost_per_day']=$recipeObj[0]->kg_day_cost_sum;
          
+            $row['mix_cost']=$recipeObj[0]->modified_mix_total_count * $recipeObj[0]->kg_day_cost_sum;
+      
+          
+          
          $jsonOut=array();
          foreach ($recipeObj as $key2 => $value2) {
            $jsonOut[]=$value2->feed_type.' '.$value2->kg_day_dry.' (dry kg)'.   '<br>';           
@@ -191,14 +195,18 @@ ORDER BY recipe_create_time DESC";
            {
                 data: "cost_per_day",
                 title: "cost_per_day"
+        },
+                 {
+                data: "mix_cost",
+                title: "mix_cost"
         }
                 
                 
                 
            
 EX;
-        print("<h3>Recipe Log Through Time</h3>");
-        print($dt->start(92, 'nrcArchive', $location_id, $columnsStr));
+
+        return ($dt->start('Recipe Log Through Time', 92, 'nrcArchive', $location_id, $columnsStr));
     }
     
     
@@ -240,7 +248,7 @@ WHERE mix.location_id=$location_id AND valacta_group_averages.location_id=$locat
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['avg_milk_production'] = 'number';
         $headerStrArr['cor_avg_fat_per'] = 'number';
-        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine( null, null, $headerStrArr, $one, $two);
         print("<h3>Milk for $location_name</h3>");
         print($x->toString());
     }

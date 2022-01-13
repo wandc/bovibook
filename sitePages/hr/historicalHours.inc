@@ -5,19 +5,25 @@ class HistoricalHours extends BasePage{
 
 
     public function defaultDisplay() {   
-  $this->hoursWorkedInAYear(2017);
-
- $this->calendarChartAllDaily(2017);
-$this->calendarChartAllWeekly(2017,'Darcy');
-$this->calendarChartCropperDaily(2017);
-$this->calendarChartMilkerDaily(2017);
-$this->calendarChartCropperWeekly(2017);
-
-$this->calendarChartMilkerWeekly(2017);
-
+    $this->showChartsForSpecificYear(date("Y",strtotime("-1 year")));
+    $this->showChartsForSpecificYear(date("Y",strtotime("-2 year")));
     }
     
-   
+    function showChartsForSpecificYear($year) {
+           print("<h3>Year:$year</h3>");
+        $this->hoursWorkedInAYear($year);
+        $this->calendarChartAllYearly($year);
+        $this->calendarChartAllDaily($year);
+        $this->calendarChartAllWeekly($year, 'Darcy');
+        $this->calendarChartCropperDaily($year);
+        $this->calendarChartMilkerDaily($year);
+        $this->calendarChartCropperWeekly($year);
+         $this->calendarChartCropperYearly($year);
+        $this->calendarChartMilkerWeekly($year);
+        $this->calendarChartMilkerYearly($year);
+        print("<hr>");
+    }
+
     function hoursWorkedInAYear($year) {
         $sql="
          with temp as (
@@ -32,15 +38,26 @@ order by date
         ";
         $res = $GLOBALS['pdo']->query($sql);
             while($row = $res->fetch(PDO::FETCH_ASSOC)) {
-          print_r2($row);
+         // print_r2($row);
             }
         
     }
     
 
+  
+        public function calendarChartAllYearly($year) {
+        
+        $sql="
+               with temp as (
+SELECT event_time::date as date,time_worked,userid,date_trunc('year',event_time)
+FROM hr.time_sheet WHERE EXTRACT('year' FROM event_time)='$year'
+)
+SELECT distinct date,((sum(time_worked) OVER (PARTITION BY date_trunc('year',date)) )) as data from temp order by date
+                ";
+ $this->calendarChart($sql,'Total by All That Year');
+    }
     
     public function calendarChartAllDaily($year) {
-     print("<h3>Year:$year</h3>");
         
         $sql="
                with temp as (
@@ -119,6 +136,23 @@ order by date
     $this->calendarChart($sql,'Cropping Weekly');
     }
     
+    function calendarChartCropperYearly($year) {
+        
+    $sql=" 
+        with temp as (
+SELECT event_time::date as date,time_worked,time_sheet.userid,milking_number::boolean as milker
+FROM hr.time_sheet 
+LEFT JOIN batch.employee_shift ON (employee_shift.userid,employee_shift.date)=(time_sheet.userid,time_sheet.event_time::date)
+WHERE EXTRACT('year' FROM event_time)='$year'
+)  SELECT distinct date_trunc('year',date)::date as date,((sum(time_worked) OVER (PARTITION BY milker,date_trunc('year',date)) )) as data 
+from temp 
+WHERE milker is null
+order by date
+";
+    $this->calendarChart($sql,'Cropping Yearly');
+    }
+    
+    
     function calendarChartMilkerWeekly($year) {
         
     $sql=" 
@@ -135,6 +169,21 @@ order by date
     $this->calendarChart($sql,'Milker Weekly');
     }
     
+     function calendarChartMilkerYearly($year) {
+        
+    $sql=" 
+        with temp as (
+SELECT event_time::date as date,time_worked,time_sheet.userid,milking_number::boolean as milker
+FROM hr.time_sheet 
+LEFT JOIN batch.employee_shift ON (employee_shift.userid,employee_shift.date)=(time_sheet.userid,time_sheet.event_time::date)
+WHERE EXTRACT('year' FROM event_time)='$year'
+)  SELECT distinct date_trunc('year',date)::date as date,((sum(time_worked) OVER (PARTITION BY milker,date_trunc('year',date)) )) as data 
+from temp 
+WHERE milker is true
+order by date
+";
+    $this->calendarChart($sql,'Milker Yearly');
+    }
     
     /* sql must output date and data field */
     /* generic function */
@@ -168,7 +217,7 @@ order by date
 
        var options = {
          title: "<?php echo($title);?>",
-         height: 350,
+         height: 200,
        };
 
        chart.draw(dataTable, options);

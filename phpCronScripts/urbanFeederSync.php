@@ -27,6 +27,18 @@
 
   IMPORT FOREIGN SCHEMA tiere LIMIT TO (tabelle_trinkgeschwindigkeit, tabelle_stationsbesuch,	identifikation, view_mh_aktuelle_tier_bewertungen, tageswerte_verbrauch_milch)
   FROM SERVER foreign_server_urban_feeder INTO urban_feeder_foreign_tiere;
+  
+  // 2nd schema 
+CREATE SCHEMA urban_feeder_foreign_terminal
+    AUTHORIZATION r2d2;
+
+COMMENT ON SCHEMA urban_feeder_foreign_terminal
+    IS 'urban feeder terminal schema foreign link';
+ 
+ IMPORT FOREIGN SCHEMA terminal LIMIT TO (view_mh_futter_anrecht,view_bp_automaten_nummer, view_mh_futterwerte_letzte_72h )
+  FROM SERVER foreign_server_urban_feeder INTO urban_feeder_foreign_terminal;
+  
+ 
   --------
  * 
  */
@@ -37,11 +49,7 @@ if (defined('STDIN')) { //when called from cli, command line
     include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
 }
 
-/*
-  ini_set('display_errors', 1);
-  ini_set('display_startup_errors', 1);
-  error_reporting(-1);
- */
+
 
 class UrbanFeederSync {
 

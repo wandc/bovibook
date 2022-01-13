@@ -23,7 +23,8 @@ class ValactaTestInput extends BasePage {
 
         print("<h3>Herd Cull</h3>");
         $culled = new HerdCull();
-        $culled->displayCowsWhoHaveBeenCulled('milkTestInputsDisplay');
+        print($culled->displayCowsWhoHaveBeenCulled('milkTestInputsDisplay',98));
+       
     }
 
     function displayCombinedBreedingsAndEmbryos() {
@@ -58,7 +59,7 @@ SQL;
         $dataArr = $resultsOut;
       
         $out[]="<h3>Combined Breeding and Embryo Implantations (last 9 weeks)</h3>";
-        $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+        $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Combined Breedings and Embryos', $dataArr,'paging: false')); 
         return implode($out);   
         
 

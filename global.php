@@ -11,15 +11,8 @@ if (defined('STDIN')) { //when called from cli, command line define constant.
 
 $iniFile = 'local/config/config.ini'; //load custom config
 
-
-
-//require_once('HTML/QuickForm.php'); //one off loader for old deprecated pear class. remove forms then delete this. FIXME
-//require_once 'HTML/QuickForm/Renderer/Tableless.php'; //one off loader for old deprecated pear class. remove forms then delete this. FIXME
-
-
-//autoloader
-new IntAutoLoader(); //bovibook loader
-require_once('vendor/autoload.php'); // autoloads all composer files.
+//
+define("DEBUG", true); //default is debug off when true.
 
 /*
  * Initiate Misc Class and make global
@@ -27,6 +20,37 @@ require_once('vendor/autoload.php'); // autoloads all composer files.
  */
 require_once('functions/misc.inc');
 $GLOBALS['MiscObj']= new Misc();
+
+/*
+ * Exceptions are handled by Xdebug extension
+ * 
+ */
+
+/* custom excetion handler to show exception and log to error log */
+/*
+function exception_handler($exception) {
+    
+  echo "BoviBook Uncaught exception: " . "\n";
+ // print_r(debug_backtrace());
+  var_dump(debug_backtrace());
+  var_dump($exception->getMessage());
+     
+  error_log($exception->getMessage()); //Yay it goes to my file now
+}
+set_exception_handler('exception_handler');
+*/
+
+//autoloader
+new IntAutoLoader(); //bovibook loader
+require_once('vendor/autoload.php'); // autoloads all composer files.
+
+
+
+/*
+ * Class is not being found for some employees and should be.
+ * Added here since it is so fundamental anyway
+ */
+require_once('functions/bootStrap.inc');
 
 ////
 try {
@@ -41,9 +65,9 @@ date_default_timezone_set($GLOBALS['config']['timezone']['default']);
 // CONNECTS TO DB USING PHP PDO
  try {
     $pdoDsn = ($GLOBALS['config']['PDO']['dsnMain']); //local socket
-    $pdo = new PDO($pdoDsn);
+    $pdo = new ExtendedPdo($pdoDsn);
     //$pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES,false); //is this slow? no idea
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); //DEBUG:: turns on DB debugging site wide.
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); //DEBUG:: turns on DB debugging site wide. 
     $GLOBALS['pdo']=$pdo; //set db handle global
 } catch (PDOException $Exception) {
     print("Exception: ".$Exception->getMessage());
@@ -123,7 +147,7 @@ class IntAutoLoader {
 
     function __construct() {
                         
-        $this->_directoriesToLook= preg_filter('/^/', $_SERVER['DOCUMENT_ROOT'], array("auth/","sitePages/bovineManagement/",  "sitePages/cropping/",  "sitePages/heifer/",  "sitePages/hr/",  "sitePages/machinery/",  "sitePages/medical/",  "sitePages/misc/",  "sitePages/nutrition/",  "sitePages/parlor/",  "sitePages/reports/",  "sitePages/reproduction/",  "sitePages/structure/", "sitePages/transition/", "sitePages/", "functions/", "template/", "phpCronScripts/"));
+        $this->_directoriesToLook= preg_filter('/^/', $_SERVER['DOCUMENT_ROOT'], array("auth/","sitePages/bovineManagement/", "sitePages/building/", "sitePages/cropping/",  "sitePages/heifer/",  "sitePages/hr/",  "sitePages/management/","sitePages/machinery/",  "sitePages/medical/",  "sitePages/misc/",  "sitePages/nutrition/",  "sitePages/parlor/",  "sitePages/reports/",  "sitePages/reproduction/",  "sitePages/structure/", "sitePages/transition/", "sitePages/video/", "sitePages/", "functions/google/", "functions/", "nrc2001/", "template/", "phpCronScripts/"));
        // echo(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $this->_directoriesToLook));
      // print_r($this->_directoriesToLook);
        $a= set_include_path(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $this->_directoriesToLook));
@@ -133,6 +157,98 @@ class IntAutoLoader {
          spl_autoload_register(array($this, "customAutoloader"));
        // print_r(get_declared_classes());
     }
+
+}
+
+
+/*
+ * FROM: https://coderwall.com/p/rml5fa/nested-pdo-transactions
+ *  adds support for nested transactions. 
+ */
+
+/**
+ * This class extends native PDO one but allow nested transactions
+ * by using the SQL statements `SAVEPOINT', 'RELEASE SAVEPOINT' AND 'ROLLBACK SAVEPOINT'
+ */
+class ExtendedPdo extends PDO
+{
+
+  /**
+   * @var array Database drivers that support SAVEPOINT * statements.
+   */
+  protected static $_supportedDrivers = array("pgsql", "mysql");
+
+  /**
+   * @var int the current transaction depth
+   */
+  protected $_transactionDepth = 0;
+
+
+  /**
+   * Test if database driver support savepoints
+   *
+   * @return bool
+   */
+  protected function hasSavepoint()
+  {
+    return in_array($this->getAttribute(PDO::ATTR_DRIVER_NAME),
+      self::$_supportedDrivers);
+  }
+
+
+  /**
+   * Start transaction
+   *
+   * @return bool|void
+   */
+  public function beginTransaction()
+  {
+    if($this->_transactionDepth == 0 || !$this->hasSavepoint()) {
+      parent::beginTransaction();
+    } else {
+      $this->exec("SAVEPOINT LEVEL{$this->_transactionDepth}");
+    }
+
+    $this->_transactionDepth++;
+  }
+
+  /**
+   * Commit current transaction
+   *
+   * @return bool|void
+   */
+  public function commit()
+  {
+    $this->_transactionDepth--;
+
+    if($this->_transactionDepth == 0 || !$this->hasSavepoint()) {
+      parent::commit();
+    } else {
+      $this->exec("RELEASE SAVEPOINT LEVEL{$this->_transactionDepth}");
+    }
+  }
+
+  /**
+   * Rollback current transaction,
+   *
+   * @throws PDOException if there is no transaction started
+   * @return bool|void
+   */
+  public function rollBack()
+  {
+
+    if ($this->_transactionDepth == 0) {
+      throw new PDOException('Rollback error : There is no transaction started');
+    }
+
+    $this->_transactionDepth--;
+
+    if($this->_transactionDepth == 0 || !$this->hasSavepoint()) {
+      parent::rollBack();
+    } else {
+      $this->exec("ROLLBACK TO SAVEPOINT LEVEL{$this->_transactionDepth}");
+    }
+  }
 
 }
 

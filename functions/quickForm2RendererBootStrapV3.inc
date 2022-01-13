@@ -46,6 +46,38 @@ function renderer() {
   $renderer = HTML_QuickForm2_Renderer::factory('callback');
    
   
+  //$renderer->setCallbackForClass( 'HTML_QuickForm2_Container',function($renderer, $element) { $html[]= 'DDDDD'.$element;           return implode('', $html);   });
+  
+  
+/*
+$renderer->setCallbackForClass('HTML_QuickForm2_Element_Hierselect', function($renderer, $element) {
+     
+     //Hierselect has N number of selects inside it. 
+    
+      //turn element to string and add the correct class to the multiple select forms inside
+     //of course this is a terrible way to do this and we should be getting element upstream somewhere before the HTML is added.
+       $main=str_replace('<select ','<select class="form-control" ',$element->__toString()); //removing <p></p> tags, not necessary with bootstrap.
+  
+    
+      $error = $element->getError();
+            $errorSpan = '';
+            if ($error) {
+                $html[] = '<div class="form-group  has-error">';
+                $errorSpan = "<span class='help-block'>$error</span>";
+            } else {
+                $html[] = '<div class="form-group ">';
+            }      
+
+            $html[] = '<label for="' . $element->getId() . '">' . $element->getLabel() . '</label>';
+
+            $html[] = $main;
+           //  $html[] = $element; 
+            $html[] = $errorSpan;  
+            $html[] ='</div>';
+            return implode('', $html);
+        });
+  */
+  
   
   //LITTLE RIVER
   //select object
@@ -53,12 +85,12 @@ function renderer() {
       $error = $element->getError();
       $errorSpan='';
             if ($error) {
-                 $html[]='<div class="form-group form-inline has-error">';            
+                 $html[]='<div class="form-group  has-error">';            
                 $errorSpan= "<span class='help-block'>$error</span>";
             } else {
-                 $html[]='<div class="form-group form-inline">';
+                 $html[]='<div class="form-group ">';
             }   
-            $element->addClass('form-control');          
+            $element->addClass('form-control');    
         $html[] ='<label for="'.$element->getId().'">'.$element->getLabel().'</label>';
         $html[] = $element;   
         $html[]=$errorSpan.'</div>';
@@ -71,10 +103,10 @@ function renderer() {
       $error = $element->getError();
       $errorSpan='';
             if ($error) {
-                 $html[]='<div class="form-group form-inline has-error">';            
+                 $html[]='<div class="form-group  has-error">';            
                 $errorSpan= "<span class='help-block'>$error</span>";
             } else {
-                 $html[]='<div class="form-group form-inline">';
+                 $html[]='<div class="form-group ">';
             }   
             $element->addClass('form-control');          
         $html[] ='<label for="'.$element->getId().'">'.$element->getLabel().'</label>';
@@ -88,7 +120,16 @@ function renderer() {
   //submit object 
   //note these have to stay inputs AFAIK and can't be changed to buttons.
    $renderer->setCallbackForClass('HTML_QuickForm2_Element_InputSubmit', function($renderer, $element) {
-       $element->addClass('btn btn-default');
+       $element->addClass('btn btn-primary');
+       $html[]=$element;
+          return implode('', $html);
+  });
+    
+    //LITTLE RIVER
+  //clear object 
+  //note these have to stay inputs AFAIK and can't be changed to buttons.
+   $renderer->setCallbackForClass('HTML_QuickForm2_Element_InputReset', function($renderer, $element) {
+       $element->addClass('btn btn-warning');
        $html[]=$element;
           return implode('', $html);
   });
@@ -97,10 +138,10 @@ function renderer() {
    $error = $element->getError();
       $errorSpan='';
             if ($error) {
-                 $html[]='<div class="form-group form-inline has-error">';            
+                 $html[]='<div class="form-group  has-error">';            
                 $errorSpan= "<span class='help-block'>$error</span>";
             } else {
-                 $html[]='<div class="form-group form-inline">';
+                 $html[]='<div class="form-group ">';
             }   
             //$element->addClass('form-control');          
         $html[] ='<label for="">'.$element->getLabel().'</label>';
@@ -109,7 +150,7 @@ function renderer() {
           return implode('', $html);
 });
   
-  /*
+  
   
        // Global callback for all the elements
 
@@ -124,7 +165,7 @@ $renderer->setCallbackForClass('HTML_QuickForm2_Element', function($renderer, $e
     }
      //remove  <p></p> //
     $temp=$renderer->renderLabel($element);
-    $html[] = str_replace('</p>',"",str_replace('<p class="label">',"",$temp)); //removing <p></p> tags, not necessary with bootstrap.
+    $html[] = str_replace('</p>',"",str_replace('<p class="badge">',"",$temp)); //removing <p></p> tags, not necessary with bootstrap.
     //                 //
     $html[] = '<div class="input">';
     if ($element->toggleFrozen()) {
@@ -147,11 +188,17 @@ $renderer->setCallbackForClass('HTML_QuickForm2_Element', function($renderer, $e
     return implode('', $html);
 });
 
+
+
+
+
 // Callback for the error message
 
 $renderer->setErrorGroupCallback(function($renderer, $form) {
     $html = array();
+     
     if (!empty($renderer->errors)) {
+      var_dump($renderer->errors);
         $html[] = '<div class="alert-message has-error">';
         $html[] = '<a class="close" href="#">x</a>';
         $html[] = '<p>' . $renderer->getOption('errors_prefix') . '</p>';
@@ -160,12 +207,16 @@ $renderer->setErrorGroupCallback(function($renderer, $form) {
     return implode("", $html);
 });
 
+/*
+ * NOTE: not checked from here on down. 
+ */
+
 // Callback for groups of checkboxes and radios
 
 $renderer->setCallbackForClass('InputList', function($renderer, $group) {
     $error = $group->getError();
     if ($error) {
-        $html[] = '<div class="form-group">';
+        $html[] = '<div class="form-group has-error">';
         $renderer->errors[] = $error;
     } else {
         $html[] = '<div class="form-group">';
@@ -244,12 +295,12 @@ $renderer->setCallbackForClass('InlineInputs', function($renderer, $group) {
 
 // Callback for elements inside an inline inputs group
 
-function renderInlineElement($renderer, $element) {
-    return (string)$element;
-}
+//function renderInlineElement($renderer, $element) {
+//    return (string)$element;
+//}
 
-$renderer->setElementCallbackForGroupClass('InlineInputs',
-    'HTML_QuickForm2_Element', 'renderInlineElement');
+//$renderer->setElementCallbackForGroupClass('InlineInputs',
+//    'HTML_QuickForm2_Element', 'renderInlineElement');
 
 // Callback for action inputs
 
@@ -264,10 +315,10 @@ $renderer->setCallbackForClass('ActionInputs', function($renderer, $group) {
 // Callback for elements inside an action inputs group
 // Note : same as InlineInputs
 
-$renderer->setElementCallbackForGroupClass('ActionInputs',
-    'HTML_QuickForm2_Element', 'renderInlineElement');
+//$renderer->setElementCallbackForGroupClass('ActionInputs',
+//    'HTML_QuickForm2_Element', 'renderInlineElement');
 
-*/
+
 // Set some options
 
 $renderer->setOption(array(
@@ -285,8 +336,12 @@ $renderer->setOption(array(
 
 
 /*
- * 
- * 
+ //example of raw element output.
+ foreach ($form as $element) {
+    echo '<label for="' . $element->getId() . '">' . $element->getLabel()
+         . '</label> ' . $element->__toString() . '<br />';
+}
+  
  * 
  */
 /*
@@ -309,6 +364,3 @@ $quickForm2_Renderer_BootStrapV3 = new QuickForm2_Renderer_BootStrapV3();
 echo $form->render($quickForm2_Renderer_BootStrapV3->renderer());
 
 */
-
-
-?>

@@ -36,7 +36,7 @@ SQL;
         $dataArr = $resultsOut;
       
          $out[]='<h3>Number of Cows Milking on a Specific Date</h3>';
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr)); 
          return implode($out); 
             
             

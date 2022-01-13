@@ -1,14 +1,4 @@
 <?php
-
-
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-
-
-
 class Feet extends TabPage {
 
     public static $bovineID;
@@ -86,7 +76,7 @@ SQL;
          $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-    
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
           
@@ -101,7 +91,7 @@ SQL;
        //output
         $dataArr = $resultsOut;
     
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Foot Action List', $dataArr)); 
          return implode($out); 
       
     }
@@ -150,7 +140,7 @@ SQL;
         $dataArr = $resultsOut;
     
          $out[]=("<h3>Foot Log</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr)); 
          return implode($out); 
         
     }
@@ -258,12 +248,12 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id={$this->bovine_id}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id={$this->bovine_id}");
             exit();
         } //end validation
 
@@ -320,7 +310,7 @@ SQL;
         $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'footEventID', $footEventID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
         // Try to validate a form
         if ($form->validate()) {
@@ -341,7 +331,7 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
 
@@ -356,6 +346,7 @@ SQL;
      */
     public function error() {
         //cows that probably need to have there foot looked at.
+        $error = array();
         $sql = "with footcurrsingle as(
 SELECT DISTINCT ON (footcurr.bovine_id) local_number,full_name,footcurr.bovine_id,footcurr.foot_event_id,foot,footcurr.name,foot_type_id,userid,footcurr.comment,footcurr.event_time as event_time,locationcurr.name as location_name FROM bovinemanagement.footcurr 
                 LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id = footcurr.bovine_id
@@ -419,31 +410,11 @@ SELECT * FROM footcurrsingle WHERE (name='Lame' OR name='Foot Rot' OR name='Cut'
                 title: "f"
             }
 EX;
-        print($dt->start(63, 'milk2020TrimEvents', null, $columnsStr));
+        print($dt->start('Title CHANGE ME', 63, 'milk2020TrimEvents', null, $columnsStr));
     }
 
     public function milk2020TrimEvents($request) {
-        $sql = "SELECT  chain_number,trim_time,
-data->'id'::text as trim_id,
-COALESCE(data->>'c','') as c,
-COALESCE(data->>'d','') as d,
-COALESCE(data->>'e','') as e,
-COALESCE(data->>'f','') as f,
-COALESCE(data->>'g','') as g,
-COALESCE(data->>'h','') as h,
-COALESCE(data->>'i','') as i,
-COALESCE(data->>'k','') as k,
-COALESCE(data->>'t','') as t,
-COALESCE(data->>'u','') as u,
-COALESCE(data->>'v','') as v,
-COALESCE(data->>'w','') as w,
-COALESCE(data->>'x','') as x,
-COALESCE(data->>'z','') as z,
-data->'num_lesions' as num_lesions,
-data->'blocked' as blocked,
-data->'username' as trimmer,
-data->'reg_num' as reg_number
- FROM batch.milk2020_hoof order by trim_time DESC ";
+        $sql = "SELECT  * FROM batch.milk2020_hoof_all order by trim_time DESC ";
 
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
@@ -466,7 +437,7 @@ data->'reg_num' as reg_number
         return ($output);
     }
 
-    public function notTrimmedInLast6Months() {
+    public function notTrimmedInLast9Months() {
         $sql = " with temp as (
 SELECT * from bovinemanagement.bovinecurr where location_id IN (37,38,39,40,41,42)
 )
@@ -475,7 +446,7 @@ LEFT JOIN
 (SELECT  chain_number,trim_time, data->'id'::text as trim_id,data->'username' as trimmer,
 data->'reg_num' as reg_number
  FROM batch.milk2020_hoof 
-WHERE trim_time >= (current_date - interval '6 months')) subquery
+WHERE trim_time >= (current_date - interval '9 months')) subquery
 ON subquery.chain_number=temp.local_number
 WHERE trim_id is null
 ORDER BY location_id,local_number";
@@ -511,8 +482,8 @@ ORDER BY location_id,local_number";
                 title: "DIM"
             }
 EX;
-        print("<h3>Not Trimmed in the last 6 Months</h3>");
-        print($dt->start(63, 'notTrimmedInLast6Months', null, $columnsStr));
+        print("<h3>Not Trimmed in the last 9 Months</h3>");
+        print($dt->start('Title CHANGE ME', 63, 'notTrimmedInLast9Months', null, $columnsStr));
     }
 
 }

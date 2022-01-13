@@ -57,6 +57,15 @@ class PageSecurityCheck {
         return $authUserGroupsArray;
     }
 
+    /*
+     * immedicate forward to login page, used if ajax detects someone not logged in (session expired).
+     */
+    function forwardToLoginPage() {
+         header("Location: {$GLOBALS['config']['HTTP']['URL']}?resetauth=1");
+         exit();
+    }
+    
+    
 }
 
 //end class

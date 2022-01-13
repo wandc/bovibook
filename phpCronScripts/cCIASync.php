@@ -256,6 +256,11 @@ order by location_event.event_time asc
 //124000299971900-124000299971919
 //https://www.clia.livestockid.ca/CLTS/public/help/en/webservices/WebServiceAnimalSearch/IAnimalSearchWSv2.wsdl
 
+        
+        /*
+         * Note this is a SOAP service that will be ending DEC 31 2019.
+         */
+        
         $urlSuffix = '/uploadEvent'; //always this
         $urlDemo = 'https://www.clia.demo.livestockid.ca/CLTS/webservice'; //used when testing with test tags
         $urlProduction = 'https://www.clia.livestockid.ca/CLTS/webservice'; //used for actual tags and data

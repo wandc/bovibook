@@ -17,11 +17,6 @@ if (defined('STDIN')) { //when called from cli, command line
     include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/misc.inc');
 }
 
-/*
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(-1);
-*/
 
 //
 // Contact the CDN website and get progeny inbreeding and LPI info by giving the Dam and Sire Reg Number
@@ -351,7 +346,7 @@ private function parseCDNInbreedingPageDataXPath($pageContent, $dam,$potential_s
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
         } else {
             throw new CDNNoDataException("CDN has no data for this dam/sire combination."); //we catch this later

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /** used to generate an Holstein Canada ERA file 
   //Based on the data format at:
@@ -12,11 +12,13 @@ if (defined('STDIN')) { //when called from cli, command line
     include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
     include_once($_SERVER['DOCUMENT_ROOT'] . '/functions/misc.inc');
 }
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-  class HolsteinCanadaERA_NoConceptionEventException extends Exception {}
 
-      class HolsteinCanadaERA {
+
+class HolsteinCanadaERA_NoConceptionEventException extends Exception {
+    
+}
+
+class HolsteinCanadaERA {
 
     public function __construct($bovine_id) {
 
@@ -45,45 +47,57 @@ ini_set('display_errors', 1);
      * @return type 
      */
     private function processAndUploadERAFile($bovine_id, $strFile, $ftp = true) {
+        
+        if (empty($bovine_id)) {
+            throw new Exception("No Bovine id supplied, thus cannot proceed.");
+        }
+        
+        
         //find local number
         $sql = "SELECT local_number FROM bovinemanagement.bovine WHERE id=$bovine_id LIMIT 1";
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
-
-        $uuidShort = $this->writeOutERAFile($strFile, $row['local_number']);
-                print("Deciding to ftp $uuidShort<br/>");
+        $local_number=$row['local_number'];
+        
+        $uuidShort = $this->writeOutERAFile($strFile, $local_number);
+        print("Deciding to ftp: $uuidShort<br/>");
         //ftp the file when told to.
         if ($ftp == true) {
+            print("Yes Lets ftp: $uuidShort<br/>");
 
+            //see if already in holstein_canada_registered table
             $sql3 = "SELECT bovine_id,short_uuid,event_time_reg_sent FROM batch.holstein_canada_registered WHERE bovine_id=$bovine_id LIMIT 1";
             $res3 = $GLOBALS ['pdo']->query($sql3);
             $row3 = $res3->fetch(PDO::FETCH_ASSOC);
 
-            if ($row3['bovine_id'] != $bovine_id) { //no rows found in db, so insert one. 
-
+            if ($res3->rowCount() == 0) {
                 $query = "INSERT INTO batch.holstein_canada_registered (bovine_id,local_reg_status,parentage_verified) VALUES ($bovine_id,'false','true')"; //so insert one.
                 $res5 = $GLOBALS['pdo']->exec($query);
-            }   
+                
+            }
+            else {
+                print("BovineID# $bovine_id already in holstein_canada_registered DB.");
+            }
             
             //now look again
-            $sql3 = "SELECT bovine_id,short_uuid,event_time_reg_sent FROM batch.holstein_canada_registered WHERE bovine_id=$bovine_id LIMIT 1";
-            $res3 = $GLOBALS ['pdo']->query($sql3);
-            $row3 = $res3->fetch(PDO::FETCH_ASSOC);
-            
-            print_r($row3);
-            //if not submitted via ftp before, it must have a blank short_uuid and event_time_reg_sent in DB for that bovines entry.
-            if ((empty($row3['short_uuid']) ) AND ($res3->rowCount() == 1)) {
+            $sql33 = "SELECT bovine_id,short_uuid,event_time_reg_sent FROM batch.holstein_canada_registered WHERE bovine_id=$bovine_id LIMIT 1";
+            $res33 = $GLOBALS ['pdo']->query($sql33);
+            $row33 = $res33->fetch(PDO::FETCH_ASSOC);
 
-                
-            
-               
+            var_dump($row33);
+            //if not submitted via ftp before, it must have a blank short_uuid and event_time_reg_sent in DB for that bovines entry.
+            if ((empty($row33['short_uuid']) ) AND ($res33->rowCount() == 1)) {
+
+   print("<br>XXXXX<br>");
+
+
                 //ftp file to holstein canada
-                $uuidShort2 = $this->ftpERAtoHolsteinCanada($uuidShort, $row['local_number']);
+                print("Next step is actual FTP of: $uuidShort<br/>");
+                $uuidShort2 = $this->ftpERAtoHolsteinCanada($uuidShort, $local_number);
 
                 //now do a db update to say we were successful sending it in..  
                 $sql2 = "UPDATE batch.holstein_canada_registered SET local_reg_status='true',short_uuid='$uuidShort2',event_time_reg_sent='now()' WHERE bovine_id=$bovine_id";
                 $res2 = $GLOBALS ['pdo']->exec($sql2);
-             
             } else {
                 throw new Exception("ERROR: ERA file already submitted for bovine_id=$bovine_id and file partial name: $uuidShort.<br />\n\r");
             }
@@ -106,13 +120,13 @@ ini_set('display_errors', 1);
         }
 
         //now get to the main program.
-        print("OK!, let's go \n\r");
-        
- //var_dump($eraFormatArr);
+        print("OK!, let's go for bovine_id=$bovine_id.\n\r");
+
+        //var_dump($eraFormatArr);
         $answerArr = $this->singleCowRegGenerator($eraFormatArr, $bovine_id);
 
-       print("YES");
-        
+        print("YES");
+
         // print_r2($answerArr);
         //check that everything that is mandatory has an answer.
         foreach ($answerArr as $key => $val) {
@@ -191,11 +205,11 @@ ini_set('display_errors', 1);
      */
     function ftpERAtoHolsteinCanada($uuidShort, $local_number) {
         //use the $uuid to create the file location again.
-        $fileName2 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'].'_' . $local_number . '_' . $uuidShort . '.zip';
+        $fileName2 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'] . '_' . $local_number . '_' . $uuidShort . '.zip';
         $pathLocal = '/tmp/';
         $pathRemote = '/pub/ERA/';
         //login credentials
-        $ftp_server = 'ftp.holstein.ca';
+        $ftp_server = $GLOBALS['config']['HOLSTEIN_CANADA']['era_site']; //from config file
         $ftp_user_name = $GLOBALS['config']['HOLSTEIN_CANADA']['era_username']; //from config file
         $ftp_user_pass = $GLOBALS['config']['HOLSTEIN_CANADA']['era_password']; //from config file
         // set up basic connection
@@ -212,7 +226,7 @@ ini_set('display_errors', 1);
         }
 
         // upload the file
-        ftp_pasv($conn_id, true); 
+        ftp_pasv($conn_id, true);
         $upload = ftp_put($conn_id, $pathRemote . $fileName2, $pathLocal . $fileName2, FTP_BINARY);
 
         // check upload status
@@ -242,14 +256,14 @@ ini_set('display_errors', 1);
         $uuidShort = substr($GLOBALS['MiscObj']->uuid_create(), 19, 32);
 
         //create a fileName prefix.
-        $fileName1 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'].'_' . $local_number . '_' . $uuidShort . '.era';
-        $fileName2 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'].'_' . $local_number . '_' . $uuidShort . '.zip';
+        $fileName1 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'] . '_' . $local_number . '_' . $uuidShort . '.era';
+        $fileName2 = $GLOBALS['config']['HOLSTEIN_CANADA']['era_file_prefix'] . '_' . $local_number . '_' . $uuidShort . '.zip';
 
         //write out era file.
         $fp = fopen($tempDir . $fileName1, 'w');
         fwrite($fp, $strIn);
         fclose($fp);
-        
+
         //php has awhole zip class, but didn't seem to work, this is easier, but less secure.
         $output = shell_exec("cd /tmp/; zip $fileName2 $fileName1");
         if (!$output) {
@@ -288,28 +302,26 @@ ini_set('display_errors', 1);
 
         //information on calving and twin.
         $ret = $GLOBALS['MiscObj']->breakUpFullRegNumber($row['full_reg_number']);
-        $sql2 =
-                "SELECT id,event_time,lactation_id,calf_mass,(SELECT count(lactation_id) FROM bovinemanagement.calving_event where lactation_id=xxx.lactation_id) as twin_count
+        $sql2 = "SELECT id,event_time,lactation_id,calf_mass,(SELECT count(lactation_id) FROM bovinemanagement.calving_event where lactation_id=xxx.lactation_id) as twin_count
 FROM bovinemanagement.calving_event xxx
 WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         $res2 = $GLOBALS ['pdo']->query($sql2);
-        $row2 = $res2->fetch(PDO::FETCH_ASSOC);
 
         if ($res2->rowCount() == 0) {
             throw new Exception("Error: Calving information not found for bovineID $bovine_id." . " </br>\n\r");
         }
-
-        $twin_sex=null;
+        $row2 = $res2->fetch(PDO::FETCH_ASSOC);
+        $twin_sex = null;
         if ($row2['twin_count'] >= 2) {
             //we have twins ( or more), look up sex of the another one
             //NOTE: the data format daoesn't seem to support triplets, I assume they catch it based on birth date and raise all kinds of flags.
             //      So it doesn't matter which calf of the triplets we choose the sex from.        
             //NOTE2: because one twin could have died we could have null partial reg number and thus "distince from" is needed
-            $sql3 = "SELECT calf_sex FROM bovinemanagement.calving_event WHERE lactation_id={$row2['lactation_id']} AND calf_rfid_number::integer IS DISTINCT FROM '{$ret['number']}'::integer LIMIT 1";
+            $sql3 = "SELECT calf_sex FROM bovinemanagement.calving_event WHERE lactation_id={$row2['lactation_id']} AND calf_rfid_number::BIGINT IS DISTINCT FROM '{$ret['number']}'::BIGINT LIMIT 1";
             $res3 = $GLOBALS ['pdo']->query($sql3);
             $row3 = $res3->fetch(PDO::FETCH_ASSOC);
 
-           
+
             //holstein canada needs a Y or N answer for this.
             if (trim($row3['calf_sex']) == 'male') {
                 $twin_sex = 'Y';
@@ -326,8 +338,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
 
         //sire and conception information, from the dam or recipient (whoever had the calf).
         $conceptionArr = $this->listMostLikelyConceptionEvents($row2['event_time'], $row_dam['id'], true);
-        //print_r2($conceptionArr);
-
+        //print_r($conceptionArr);
         //find the actual name of the calf from the calf nameing db table.
         $sql5 = "SELECT potential_name FROM bovinemanagement.calf_potential_name WHERE bovine_id=$bovine_id LIMIT 1";
         $res5 = $GLOBALS ['pdo']->query($sql5);
@@ -416,8 +427,8 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
                         throw new Exception("Error: key: $key for bovineID $bovine_id has no sire short name for animal name." . " </br>\n\r");
                     }
                     $aniNamePot = $conceptionArr[0]['service_sire_short_name'] . ' ' . $row_name['potential_name'];
-                    
-                      //automaticaally truncate the sire name if it is over 30 characters.
+
+                    //automaticaally truncate the sire name if it is over 30 characters.
                     if (strlen($prefix . ' ' . $aniNamePot) > 30) {
                         //this will leave at least one letter for sire name and truncate up to the rest. This can still not be short enough and if so it will cause an exception below.
                         $aniNamePot = substr($conceptionArr[0]['service_sire_short_name'], 0, 1) . substr($conceptionArr[0]['service_sire_short_name'], 1, (strlen($conceptionArr[0]['service_sire_short_name']) - 1) - (strlen($prefix . ' ' . $aniNamePot) - 30)) . ' ' . $row_name['potential_name'];
@@ -431,9 +442,9 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
                     if (stristr($aniNamePot, ' ') == false) {
                         throw new Exception("Error: key: $key for bovineID $bovine_id does not have at least two names in it." . " </br>\n\r");
                     }
-           
+
                     if (strlen($aniNamePot) > 30) {
-                         throw new Exception("Error: key: $key for bovineID $bovine_id full name longer then 30 character limit." . " </br>\n\r");
+                        throw new Exception("Error: key: $key for bovineID $bovine_id full name longer then 30 character limit." . " </br>\n\r");
                     }
                     //we need to put the potential name, and the potenital first sire short name         
                     $ans = $aniNamePot;
@@ -714,7 +725,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
             //// SIRE #2 Info OPTIONAL
             //////////////////  
             //only run if there is another sire
-           if (!empty($conceptionArr[1]['type']))  { 
+            if (!empty($conceptionArr[1]['type'])) {
 
                 switch ($key) {
 
@@ -939,7 +950,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
             ///// EMBRYO TRANSFER
             /////////////////
             //if the first concenption event was embryo, then assume embryo transfer
-            $conceptionArr[0]['type']=empty($conceptionArr[0]['type']) ? ''  : $conceptionArr[0]['type'];
+            $conceptionArr[0]['type'] = empty($conceptionArr[0]['type']) ? '' : $conceptionArr[0]['type'];
             if (trim($conceptionArr[0]['type']) == 'embryo7day') {
 
 
@@ -975,7 +986,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
                         break;
                     /* embryo id */
                     case '01D070':
-                        if (!empty($row_embryo['donor_dam_full_reg_number']) AND  (!empty($row_embryo['embryo_straw_id']))) {
+                        if (!empty($row_embryo['donor_dam_full_reg_number']) AND (!empty($row_embryo['embryo_straw_id']))) {
                             $ans = $row_embryo['donor_dam_full_reg_number'] . date('Ymd', strtotime($row_embryo['flush_date'])) . $row_embryo['embryo_straw_id']; //just a concatenation of info. Maybe not specific enough?
                         } else {
                             throw new Exception("Error: key: $key for bovineID $bovine_id is wrong format." . " </br>\n\r");
@@ -1257,7 +1268,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // ANIMAL ID
         //
-       $eraFormatArr['01D000']['field_no'] = '01D000';
+        $eraFormatArr['01D000']['field_no'] = '01D000';
         $eraFormatArr['01D000']['field_name'] = 'Sequence Number';
         $eraFormatArr['01D000']['length'] = 3;
         $eraFormatArr['01D000']['field_type'] = 'N';
@@ -1427,7 +1438,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // DAM
         //
-       $eraFormatArr['01D015']['field_no'] = '01D015';
+        $eraFormatArr['01D015']['field_no'] = '01D015';
         $eraFormatArr['01D015']['field_name'] = 'Dam Breed';
         $eraFormatArr['01D015']['length'] = 2;
         $eraFormatArr['01D015']['field_type'] = 'A';
@@ -1525,7 +1536,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // Sire Service #0 (first)
         //
-       $eraFormatArr['01D026']['field_no'] = '01D026';
+        $eraFormatArr['01D026']['field_no'] = '01D026';
         $eraFormatArr['01D026']['field_name'] = 'Service Number';
         $eraFormatArr['01D026']['length'] = 1;
         $eraFormatArr['01D026']['field_type'] = 'N';
@@ -1703,7 +1714,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // Sire Service #1 (second)
         //
-       $eraFormatArr['01D040']['field_no'] = '01D040';
+        $eraFormatArr['01D040']['field_no'] = '01D040';
         $eraFormatArr['01D040']['field_name'] = 'Service Number';
         $eraFormatArr['01D040']['length'] = 1;
         $eraFormatArr['01D040']['field_type'] = 'N';
@@ -1880,9 +1891,9 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         $eraFormatArr['01D145']['required'] = 'O';
         //////////////////
         //
-       // Sire Service #2 (third)
+        // Sire Service #2 (third)
         //
-       $eraFormatArr['01D054']['field_no'] = '01D054';
+        $eraFormatArr['01D054']['field_no'] = '01D054';
         $eraFormatArr['01D054']['field_name'] = 'Service Number';
         $eraFormatArr['01D054']['length'] = 1;
         $eraFormatArr['01D054']['field_type'] = 'N';
@@ -2102,7 +2113,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         //OWNER ID
         //
-       $eraFormatArr['01D076']['field_no'] = '01D076';
+        $eraFormatArr['01D076']['field_no'] = '01D076';
         $eraFormatArr['01D076']['field_name'] = 'Prefix/ClientID';
         $eraFormatArr['01D076']['length'] = 25;
         $eraFormatArr['01D076']['field_type'] = 'A/N';
@@ -2128,7 +2139,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // #2
         //
-       $eraFormatArr['01D215']['field_no'] = '01D215';
+        $eraFormatArr['01D215']['field_no'] = '01D215';
         $eraFormatArr['01D215']['field_name'] = 'Prefix/ClientID 2';
         $eraFormatArr['01D215']['length'] = 25;
         $eraFormatArr['01D215']['field_type'] = 'A/N';
@@ -2154,7 +2165,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // #3
         //
-       $eraFormatArr['01D218']['field_no'] = '01D218';
+        $eraFormatArr['01D218']['field_no'] = '01D218';
         $eraFormatArr['01D218']['field_name'] = 'Prefix/ClientID 3';
         $eraFormatArr['01D218']['length'] = 25;
         $eraFormatArr['01D218']['field_type'] = 'A/N';
@@ -2180,7 +2191,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // #4
         //
-       $eraFormatArr['01D221']['field_no'] = '01D221';
+        $eraFormatArr['01D221']['field_no'] = '01D221';
         $eraFormatArr['01D221']['field_name'] = 'Prefix/ClientID 4';
         $eraFormatArr['01D221']['length'] = 25;
         $eraFormatArr['01D221']['field_type'] = 'A/N';
@@ -2206,7 +2217,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // #5
         //
-       $eraFormatArr['01D224']['field_no'] = '01D224';
+        $eraFormatArr['01D224']['field_no'] = '01D224';
         $eraFormatArr['01D224']['field_name'] = 'Prefix/ClientID 5';
         $eraFormatArr['01D224']['length'] = 25;
         $eraFormatArr['01D224']['field_type'] = 'A/N';
@@ -2232,7 +2243,7 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
         //
         // #6
         //
-       $eraFormatArr['01D227']['field_no'] = '01D227';
+        $eraFormatArr['01D227']['field_no'] = '01D227';
         $eraFormatArr['01D227']['field_name'] = 'Prefix/ClientID 6';
         $eraFormatArr['01D227']['length'] = 25;
         $eraFormatArr['01D227']['field_type'] = 'A/N';
@@ -2290,92 +2301,95 @@ WHERE calf_rfid_number = '{$row['rfid_number']}' LIMIT 1";
      * 
      * used for holstein canada registration and here to find most likely conception event.
      */
-    public static function listMostLikelyConceptionEvents($calvingTime, $bovine_id, $orderByTime = false,$calvingIntervalRange=21) {
+    public static function listMostLikelyConceptionEvents($calvingTime, $bovine_id, $orderByTime = false, $calvingIntervalRange = 21) {
         //calvingIntervalRange days plus or minus the calving date to look for breedings (minus 280 days).
-        
-           
         // Open a transaction
-        try {$res = $GLOBALS['pdo']->beginTransaction();
+        try {
+            $res = $GLOBALS['pdo']->beginTransaction();
 
-        //temp table is used so we can sort it two different ways.  
-        $sql = "
+            //temp table is used so we can sort it two different ways.  
+            $sql = "
           CREATE OR REPLACE TEMP VIEW temp_conc_events_$bovine_id AS
-            SELECT combined_breeding_embryo_view.id as com_id,table_id, type,event_time,recipient_bovine_id,service_sire_full_name,service_sire_short_name,service_sire_full_reg_number,donor_dam_bovine_id,donor_dam_local_number,donor_dam_full_name,bovinemanagement.short_name(donor_dam_full_name) as donor_dam_short_name, donor_dam_full_reg_number,calculated_potential_due_date,
+            SELECT combined_breeding_embryo_view.id as com_id,table_id, type,event_time,recipient_bovine_id,service_sire_full_name,service_sire_short_name,service_sire_full_reg_number,donor_dam_bovine_id,donor_dam_local_number,donor_dam_full_name,bovinemanagement.short_name(donor_dam_full_name) as donor_dam_short_name, donor_dam_full_reg_number,calculated_potential_due_date,service_sire_breed_dairy,
 	date_trunc('days','$calvingTime'- ( calculated_potential_due_date - interval '280 days')) as days_ago, abs(calculated_potential_due_date::date - '$calvingTime'::date) as time_since
  FROM bovinemanagement.combined_breeding_embryo_view 
 WHERE recipient_bovine_id=$bovine_id AND calculated_potential_due_date >= (date '$calvingTime'- interval '$calvingIntervalRange days') AND calculated_potential_due_date <= (date '$calvingTime'+ interval '$calvingIntervalRange days') AND type='breeding'
             UNION
-            SELECT combined_breeding_embryo_view.id as com_id,table_id, type,event_time,recipient_bovine_id,service_sire_full_name,service_sire_short_name,service_sire_full_reg_number,donor_dam_bovine_id,donor_dam_local_number,donor_dam_full_name,bovinemanagement.short_name(donor_dam_full_name) as donor_dam_short_name, donor_dam_full_reg_number,calculated_potential_due_date,
+            SELECT combined_breeding_embryo_view.id as com_id,table_id, type,event_time,recipient_bovine_id,service_sire_full_name,service_sire_short_name,service_sire_full_reg_number,donor_dam_bovine_id,donor_dam_local_number,donor_dam_full_name,bovinemanagement.short_name(donor_dam_full_name) as donor_dam_short_name, donor_dam_full_reg_number,calculated_potential_due_date,service_sire_breed_dairy,
 	date_trunc('days','$calvingTime'- ( calculated_potential_due_date - interval '273 days')) as days_ago, abs(calculated_potential_due_date::date - '$calvingTime'::date) as time_since
  FROM bovinemanagement.combined_breeding_embryo_view 
 WHERE recipient_bovine_id=$bovine_id AND calculated_potential_due_date >= (date '$calvingTime'- interval '$calvingIntervalRange days') AND calculated_potential_due_date <= (date '$calvingTime'+ interval '$calvingIntervalRange days') AND type='embryo7day'
        
             ";
-        $res = $GLOBALS['pdo']->query($sql);
+            $res = $GLOBALS['pdo']->query($sql);
 
-        //orders by closest to calving date + or -.
-        if ($orderByTime == false) {
-            $sql2 = " SELECT * FROM temp_conc_events_$bovine_id ORDER BY time_since ASC;";
-        }
-        //orders from most current to least current holstein canada wants it this way.
-        else {
-            $sql2 = "With temp as (SELECT * FROM temp_conc_events_$bovine_id ORDER BY time_since ASC LIMIT 3) SELECT * FROM temp ORDER BY event_time DESC;";
-        }
-
-
-        $res2 = $GLOBALS['pdo']->query($sql2);
-
-        $outArr = array();
-        $counter=0;
-        while ($row = $res2->fetch(PDO::FETCH_ASSOC)) {
-            
-            //Alta Genetics has a tenency to name there bull things like ALTAIOTA.
-            //we don't like marketing for them, so replace this and just leave whatever is left.
-            $row['service_sire_short_name']=str_replace ('ALTA' , '', $row['service_sire_short_name'] );
-            
-            $i = $counter;//start index at zero and continue higher.
-            $outArr[$i]['com_id'] = $row['com_id'];
-            $outArr[$i]['type'] = $row['type'];
-            $outArr[$i]['event_time'] = $row['event_time'];
-            $outArr[$i]['table_id'] = $row['table_id'];
-            $outArr[$i]['days_ago'] = $row['days_ago'];
-            $outArr[$i]['service_sire_short_name'] = $row['service_sire_short_name'];
-            $outArr[$i]['service_sire_full_reg_number'] = $row['service_sire_full_reg_number'];
-            $outArr[$i]['donor_dam_local_number'] = $row['donor_dam_local_number'];
-            $outArr[$i]['donor_dam_full_name'] = $row['donor_dam_full_name'];
-            $outArr[$i]['donor_dam_short_name'] = $row['donor_dam_short_name'];
-            $counter++;
-        }
-
-        //drop temp table.
-        $sql3 = " DROP view temp_conc_events_$bovine_id ;";
-        $res3 = $GLOBALS['pdo']->query($sql3);
-
-
-        // determine if the commit or rollback
-
-           $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+            //orders by closest to calving date + or -.
+            if ($orderByTime == false) {
+                $sql2 = " SELECT * FROM temp_conc_events_$bovine_id ORDER BY time_since ASC;";
             }
-            
-            
-        //emergency stop, this would get triggered when abortions are put in and we milk the cow, so thus they need a laction and to have calved.
-          if (($calvingIntervalRange>=180))    {      
-           throw new HolsteinCanadaERA_NoConceptionEventException("Error: No conception events for dam (bovine_id=$bovine_id) to regsiter calf going back $calvingIntervalRange days.". "</br>\n\r");
-           exit();
-       }
-       
-       //does a RECURSIVE search, looking for the breeding if necessary.
-       if (count($outArr)==0)     {
-           //run it again recursively until it finds a conception event.
-           $calvingIntervalRange=$calvingIntervalRange+11;
-           $outArr = $this->listMostLikelyConceptionEvents($calvingTime, $bovine_id, $orderByTime,$calvingIntervalRange);
-          }
+            //orders from most current to least current holstein canada wants it this way.
+            else {
+                $sql2 = "With temp as (SELECT * FROM temp_conc_events_$bovine_id ORDER BY time_since ASC LIMIT 3) SELECT * FROM temp ORDER BY event_time DESC;";
+            }
 
-            
-           
+
+            $res2 = $GLOBALS['pdo']->query($sql2);
+
+            $outArr = array();
+            $counter = 0;
+            while ($row = $res2->fetch(PDO::FETCH_ASSOC)) {
+
+                //Alta Genetics has a tenency to name there bull things like ALTAIOTA.
+                //we don't like marketing for them, so replace this and just leave whatever is left.
+                $row['service_sire_short_name'] = str_replace('ALTA', '', $row['service_sire_short_name']);
+
+                $i = $counter; //start index at zero and continue higher.
+                $outArr[$i]['com_id'] = $row['com_id'];
+                $outArr[$i]['type'] = $row['type'];
+                $outArr[$i]['event_time'] = $row['event_time'];
+                $outArr[$i]['table_id'] = $row['table_id'];
+                $outArr[$i]['days_ago'] = $row['days_ago'];
+                $outArr[$i]['service_sire_short_name'] = $row['service_sire_short_name'];
+                $outArr[$i]['service_sire_full_reg_number'] = $row['service_sire_full_reg_number'];
+                $outArr[$i]['donor_dam_local_number'] = $row['donor_dam_local_number'];
+                $outArr[$i]['donor_dam_full_name'] = $row['donor_dam_full_name'];
+                $outArr[$i]['donor_dam_short_name'] = $row['donor_dam_short_name'];
+                $outArr[$i]['service_sire_breed_dairy'] = $row['service_sire_breed_dairy'];
+
+
+                $counter++;
+            }
+
+            //drop temp table.
+            $sql3 = " DROP view temp_conc_events_$bovine_id ;";
+            $res3 = $GLOBALS['pdo']->query($sql3);
+
+
+            // determine if the commit or rollback
+
+            $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+            echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
+        }
+
+
+        //emergency stop, this would get triggered when abortions are put in and we milk the cow, so thus they need a laction and to have calved.
+        if (($calvingIntervalRange >= 180)) {
+            throw new HolsteinCanadaERA_NoConceptionEventException("Error: No conception events for dam (bovine_id=$bovine_id) to regsiter calf going back $calvingIntervalRange days." . "</br>\n\r");
+            exit();
+        }
+
+        //does a RECURSIVE search, looking for the breeding if necessary.
+        if (!isset($outArr)) {
+            //run it again recursively until it finds a conception event.
+            $calvingIntervalRange = $calvingIntervalRange + 11;
+            $outArr = self::listMostLikelyConceptionEvents($calvingTime, $bovine_id, $orderByTime, $calvingIntervalRange);
+        }
+
+
+
         return $outArr;
     }
 

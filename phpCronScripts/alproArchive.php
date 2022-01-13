@@ -4,8 +4,7 @@ if (defined('STDIN')) { //when called from cli, command line define constant.
 }
 include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+
 
 /**
  * Reads through odbc link to access db information from alrpo.
@@ -131,13 +130,13 @@ PeakFlowY2, AverFlowY2, DurationY2, MPCYesterday2,  ManualIDYest2
                         $dateY = date("Y-m-d", strtotime("$lastUpdateTime -1 day"));
                         self::insertMilkData($bovine_id, $dateY, 1, $row['MilkYesterday1'], $row['DurationY1'], $row['MilkTimeYesterd1'], $row['PeakFlowY1'], $row['AverFlowY1'], $row['MPCYesterday1'], $row['ManualIDYest1'], $dataArr[$cowno][0]['ManualDetatchYester1'], $dataArr[$cowno][0]['ManualKeyYester1'], $dataArr[$cowno][0]['OverrideKeyYester1'], $dataArr[$cowno][0]['ReattatchYester1'], $dataArr[$cowno][0]['IDTimeYesterMM1'], $dataArr[$cowno][0]['IDTimeYesterSS1'], $dataArr[$cowno][0]['MilkTimeYesterSS1'], $dataArr[$cowno][0]['MilkFlow0_15_Yester1'], $dataArr[$cowno][0]['MilkFlow15_30_Yester1'], $dataArr[$cowno][0]['MilkFlow30_60_Yester1'], $dataArr[$cowno][0]['MilkFlow60_120Yester1'], $dataArr[$cowno][0]['LowMilkFloPercYester1'], $dataArr[$cowno][0]['TakeOffFlowYester1'], $dataArr[$cowno][0]['BatchNoYesterday1'], $dataArr[$cowno][0]['NoMilkYestSession1']); //do an insert of the milking data for the current cow.
                     } catch (Exception $e) {
-                        echo "\n\nSkipping Insert 3 for $cowno Caught exception: ", $e->getMessage(), "\n\n";
+                        echo "\n\nSkipping Insert 3 for $cowno and date $dateY Caught exception: ", $e->getMessage(), "\n\n";
                     }
                     //
                     try {
                         self::insertMilkData($bovine_id, $dateY, 2, $row['MilkYesterday2'], $row['DurationY2'], $row['MilkTimeYesterd2'], $row['PeakFlowY2'], $row['AverFlowY2'], $row['MPCYesterday2'], $row['ManualIDYest2'], $dataArr[$cowno][0]['ManualDetatchYester2'], $dataArr[$cowno][0]['ManualKeyYester2'], $dataArr[$cowno][0]['OverrideKeyYester2'], $dataArr[$cowno][0]['ReattatchYester2'], $dataArr[$cowno][0]['IDTimeYesterMM2'], $dataArr[$cowno][0]['IDTimeYesterSS2'], $dataArr[$cowno][0]['MilkTimeYesterSS2'], $dataArr[$cowno][0]['MilkFlow0_15_Yester2'], $dataArr[$cowno][0]['MilkFlow15_30_Yester2'], $dataArr[$cowno][0]['MilkFlow30_60_Yester2'], $dataArr[$cowno][0]['MilkFlow60_120Yester2'], $dataArr[$cowno][0]['LowMilkFloPercYester2'], $dataArr[$cowno][0]['TakeOffFlowYester2'], $dataArr[$cowno][0]['BatchNoYesterday2'], $dataArr[$cowno][0]['NoMilkYestSession2']);
                     } catch (Exception $e) {
-                        echo "\n\nSkipping Insert 4 for $cowno Caught exception: ", $e->getMessage(), "\n\n";
+                        echo "\n\nSkipping Insert 4 for $cowno and date $dateY Caught exception: ", $e->getMessage(), "\n\n";
                     }
 
                     //self::insertMilkData($bovine_id,$dateY,2,$row['MilkYesterday2'],$row['DurationY2'],$row['MilkTimeYesterd2'],$row['PeakFlowY2'], $row['AverFlowY2'], $row['MPCYesterday2'],  $row['ManualIDYest2']  ); //do an insert of the milking data for the current cow.
@@ -217,9 +216,10 @@ PeakFlowY2, AverFlowY2, DurationY2, MPCYesterday2,  ManualIDYest2
             $sql4 = "SELECT milkyield,duration,peakflow,mpcnumber FROM alpro.cow WHERE bovine_id=$bovine_id AND date='$yesterdayDate'  AND milking_number=$milking_number LIMIT 1";
             $res4 = $GLOBALS['pdo']->query($sql4);
             $row4 = $res4->fetch(PDO::FETCH_ASSOC);
+            if (!empty($row4)) {
             if (($row4['milkyield'] == $milkyield) AND ($row4['duration'] == $durationTimeInt) AND ($row4['peakflow'] == $peakFlow) AND ($row4['mpcnumber'] == $MPCnumber)) {
                 throw new Exception("Current data for $bovine_id is equal to yesterday's data for that milking, error.");
-            }
+            }}
 
 
             //look to see if data was already put in.
@@ -227,13 +227,50 @@ PeakFlowY2, AverFlowY2, DurationY2, MPCYesterday2,  ManualIDYest2
             $res3 = $GLOBALS['pdo']->query($sql);
             $row3 = $res3->fetch(PDO::FETCH_ASSOC);
             if ($row3 == null) { //then no records exist and we can do an insert
-                $query = "INSERT INTO alpro.cow (bovine_id,date,milking_number,milkyield,duration,milktime,peakflow,averflow,mpcnumber,manualid,"
-                        . "manualdetatch,manualkey,overridekey,reattatch,idtimemm,idtimess,milktimess,milkflow0_15,milkflow15_30,milkflow30_60,milkflow60_120,lowmilkfloperc,takeoffflow,batchno,nomilk) VALUES "
-                        . "($bovine_id,'$date',$milking_number,$milkyield,'$durationTimeInt','$milkTimeDate',$peakFlow,$averFlow,$MPCnumber,$ManualID,
- $ManualDetatch,$ManualKey,$OverrideKey,$Reattatch,'$IDTimeMMFixed',$IDTimeSS,$milkTimeSS,$MilkFlow0_15,$MilkFlow15_30,$MilkFlow30_60,$MilkFlow60_120,$LowMilkFloPerc,$TakeOffFlow,$BatchNo,$NoMilk)";
-                unset($statement);
-                $statement = $GLOBALS['pdo']->prepare($query);
-                $statement->execute();
+                
+
+    
+             $query = <<<SQL
+INSERT INTO alpro.cow (bovine_id,date,milking_number,milkyield,duration,milktime,peakflow,averflow,mpcnumber,manualid,
+                     manualdetatch,manualkey,overridekey,reattatch,idtimemm,idtimess,milktimess,milkflow0_15,milkflow15_30,milkflow30_60,milkflow60_120,lowmilkfloperc,takeoffflow,batchno,nomilk) VALUES 
+                     (:bovine_id,:date,:milking_number,:milkyield,:durationTimeInt,:milkTimeDate,:peakFlow,:averFlow,:MPCnumber,:ManualID,
+ :ManualDetatch,:ManualKey,:OverrideKey,:Reattatch,:IDTimeMMFixed,:IDTimeSS,:milkTimeSS,:MilkFlow0_15,:MilkFlow15_30,:MilkFlow30_60,:MilkFlow60_120,:LowMilkFloPerc,:TakeOffFlow,:BatchNo,:NoMilk)
+SQL;
+       
+              $stmt = $GLOBALS['pdo']->prepare($query);
+                        
+                 
+                    
+$stmt->bindValue(':bovine_id' , $bovine_id, PDO::PARAM_INT);
+$stmt->bindValue(':date' , $date, PDO::PARAM_STR);
+$stmt->bindValue(':milking_number' , $milking_number, PDO::PARAM_INT);
+$stmt->bindValue(':milkyield' , $milkyield, PDO::PARAM_INT);
+$stmt->bindValue(':durationTimeInt' , $durationTimeInt, PDO::PARAM_INT);
+$stmt->bindValue(':milkTimeDate' , $milkTimeDate, PDO::PARAM_STR);
+$stmt->bindValue(':peakFlow' , empty($peakFlow) ? 0: $peakFlow, PDO::PARAM_STR); //new system controller seems to pass this as null sometimes. not an issue before. 
+$stmt->bindValue(':averFlow' , $averFlow, PDO::PARAM_STR);
+$stmt->bindValue(':MPCnumber' , $MPCnumber, PDO::PARAM_INT);
+$stmt->bindValue(':ManualID' , $ManualID, PDO::PARAM_BOOL);
+$stmt->bindValue(':ManualDetatch' , $ManualDetatch, PDO::PARAM_BOOL);
+$stmt->bindValue(':ManualKey' , $ManualKey, PDO::PARAM_BOOL);
+$stmt->bindValue(':OverrideKey' , $OverrideKey, PDO::PARAM_BOOL);
+$stmt->bindValue(':Reattatch' , $Reattatch, PDO::PARAM_INT);
+$stmt->bindValue(':IDTimeMMFixed' , $IDTimeMMFixed, PDO::PARAM_STR);
+$stmt->bindValue(':IDTimeSS' , $IDTimeSS, PDO::PARAM_INT);
+ $stmt->bindValue(':IDTimeSS' , $IDTimeSS, PDO::PARAM_INT);
+ $stmt->bindValue(':milkTimeSS' , $milkTimeSS, PDO::PARAM_INT);
+ $stmt->bindValue(':MilkFlow0_15' , $MilkFlow0_15, PDO::PARAM_STR);
+ $stmt->bindValue(':MilkFlow15_30' , $MilkFlow15_30, PDO::PARAM_STR);
+ $stmt->bindValue(':MilkFlow30_60' , $MilkFlow30_60, PDO::PARAM_STR);
+ $stmt->bindValue(':MilkFlow60_120' , $MilkFlow60_120, PDO::PARAM_STR);
+ $stmt->bindValue(':LowMilkFloPerc' , $LowMilkFloPerc, PDO::PARAM_STR);
+ $stmt->bindValue(':TakeOffFlow' , $TakeOffFlow, PDO::PARAM_INT);
+ $stmt->bindValue(':BatchNo' , $BatchNo, PDO::PARAM_INT);
+ $stmt->bindValue(':NoMilk' , $NoMilk, PDO::PARAM_INT);
+
+                $stmt->execute();
+               // $stmt->debugDumpParams(); //DEBUG bascially this is not helpful, look at DB log is only way, with extra loggin on.
+                
                 return 1;
             } else {
                 return 0; //didn't do anything

@@ -116,7 +116,7 @@ ORDER BY close_timestamp DESC,event DESC
         $sql1 = "SELECT DISTINCT ON (summary_created) event_name,coverage_area,implement_width,start_time,end_time,coverage_time,geo_point FROM gis.summary 
 WHERE st_intersects( gis.ST_SetSRID(('$geom_to_intersect'::geometry),4326),(gis.ST_SetSRID(geo_point,4326)))
 ORDER BY summary_created DESC";
-        print( (new JQueryDataTable)->startBasicSql($sql1)); 
+        print( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql1)); 
         print("<br/>");
 
 
@@ -228,7 +228,7 @@ ORDER BY close_timestamp DESC,event DESC limit 1 offset 2";
     }
 
 //POINT(-64.9601102202882 45.9816123758737) to new google.maps.LatLng(45.98, -64.96)
-    private function convertPostgisPointStringToLanLngPoint($point) {
+    public function convertPostgisPointStringToLanLngPoint($point) {
         $str = $point;
         $str = str_replace('POINT(', '', $str);
         $str = str_replace(')', '', $str);

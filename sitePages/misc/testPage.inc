@@ -1,81 +1,607 @@
 <?php
-//
-
-//require_once($_SERVER['DOCUMENT_ROOT'].'/functions/croppingHelper.inc');
-;
-
-
-
-      
-
-/**
-  Test page to try new things with.
- */
-
- 
-
-   
-
 class TestPage extends BasePage {
 
-      function defaultDisplay() {
-          
-          print("h");
+   
+    
+    
+     function defaultDisplay() {
+         
+         $this->unfi();
+         
+         
+         
+         
+         return('<h1> TEST HERE </h1>');
+         
+     }
+       
+     
+     function unfi() {
+         
+         require_once 'vendor/autoload.php';
 
-;
-  $dt = new JQueryDataTable();
-           print($dt->start($this->pageid, 'anywhereToMaternity',  null, $columnsStr, null, false," \"pageLength\": 7,\"order\": [[ 3, 'desc' ]],"));    
+/**
+ * initialize the Unifi API connection class, log in to the controller and request the alarms collection
+ * (this example assumes you have already assigned the correct values to the variables used)
+ */
+        $controller_url='https://192.168.9.5';
+        $site_id='default';
+                $controller_version='6.2.25';
+         $controller_user='dave_moo';
+         $controller_password='o?-p!V.pyJW}';
+         
+         
+$unifi_connection = new UniFi_API\Client($controller_user, $controller_password, $controller_url, $site_id, $controller_version, false);
+$login            = $unifi_connection->login();
+$results          = $unifi_connection->list_alarms(); // returns a PHP array containing alarm objects
+         
+         //var_dump($results);
+
+
+$clients_array    = $unifi_connection->list_clients();
+var_dump($clients_array);
+         
+         $aps_array        = $unifi_connection->list_devices();
+         foreach ($aps_array as $ap) {
+    if ($ap->type === 'uap') {
+        echo '<b>AP name:</b>' . $ap->name . ' <b>model:</b>' . $ap->model . ' <b># connected clients:</b>' . $ap->num_sta . '<br>';
     }
+}
+         
+     }
+     
+       
+       
+      function table4545() {
+          
+          ?>
+
+
+
+
+<table id="example" class="display" style="width:100%">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Position</th>
+							<th>Office</th>
+							<th>Age</th>
+							<th>Start date</th>
+							<th>Salary</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Tiger Nixon</td>
+							<td>System Architect</td>
+							<td>Edinburgh</td>
+							<td>61</td>
+							<td>2011/04/25</td>
+							<td>$320,800</td>
+						</tr>
+						<tr>
+							<td>Garrett Winters</td>
+							<td>Accountant</td>
+							<td>Tokyo</td>
+							<td>63</td>
+							<td>2011/07/25</td>
+							<td>$170,750</td>
+						</tr>
+						<tr>
+							<td>Ashton Cox</td>
+							<td>Junior Technical Author</td>
+							<td>San Francisco</td>
+							<td>66</td>
+							<td>2009/01/12</td>
+							<td>$86,000</td>
+						</tr>
+						<tr>
+							<td>Cedric Kelly</td>
+							<td>Senior Javascript Developer</td>
+							<td>Edinburgh</td>
+							<td>22</td>
+							<td>2012/03/29</td>
+							<td>$433,060</td>
+						</tr>
+						<tr>
+							<td>Airi Satou</td>
+							<td>Accountant</td>
+							<td>Tokyo</td>
+							<td>33</td>
+							<td>2008/11/28</td>
+							<td>$162,700</td>
+						</tr>
+						<tr>
+							<td>Brielle Williamson</td>
+							<td>Integration Specialist</td>
+							<td>New York</td>
+							<td>61</td>
+							<td>2012/12/02</td>
+							<td>$372,000</td>
+						</tr>
+						<tr>
+							<td>Herrod Chandler</td>
+							<td>Sales Assistant</td>
+							<td>San Francisco</td>
+							<td>59</td>
+							<td>2012/08/06</td>
+							<td>$137,500</td>
+						</tr>
+						<tr>
+							<td>Rhona Davidson</td>
+							<td>Integration Specialist</td>
+							<td>Tokyo</td>
+							<td>55</td>
+							<td>2010/10/14</td>
+							<td>$327,900</td>
+						</tr>
+						<tr>
+							<td>Colleen Hurst</td>
+							<td>Javascript Developer</td>
+							<td>San Francisco</td>
+							<td>39</td>
+							<td>2009/09/15</td>
+							<td>$205,500</td>
+						</tr>
+						<tr>
+							<td>Sonya Frost</td>
+							<td>Software Engineer</td>
+							<td>Edinburgh</td>
+							<td>23</td>
+							<td>2008/12/13</td>
+							<td>$103,600</td>
+						</tr>
+						<tr>
+							<td>Jena Gaines</td>
+							<td>Office Manager</td>
+							<td>London</td>
+							<td>30</td>
+							<td>2008/12/19</td>
+							<td>$90,560</td>
+						</tr>
+						<tr>
+							<td>Quinn Flynn</td>
+							<td>Support Lead</td>
+							<td>Edinburgh</td>
+							<td>22</td>
+							<td>2013/03/03</td>
+							<td>$342,000</td>
+						</tr>
+						<tr>
+							<td>Charde Marshall</td>
+							<td>Regional Director</td>
+							<td>San Francisco</td>
+							<td>36</td>
+							<td>2008/10/16</td>
+							<td>$470,600</td>
+						</tr>
+						<tr>
+							<td>Haley Kennedy</td>
+							<td>Senior Marketing Designer</td>
+							<td>London</td>
+							<td>43</td>
+							<td>2012/12/18</td>
+							<td>$313,500</td>
+						</tr>
+						<tr>
+							<td>Tatyana Fitzpatrick</td>
+							<td>Regional Director</td>
+							<td>London</td>
+							<td>19</td>
+							<td>2010/03/17</td>
+							<td>$385,750</td>
+						</tr>
+						<tr>
+							<td>Michael Silva</td>
+							<td>Marketing Designer</td>
+							<td>London</td>
+							<td>66</td>
+							<td>2012/11/27</td>
+							<td>$198,500</td>
+						</tr>
+						<tr>
+							<td>Paul Byrd</td>
+							<td>Chief Financial Officer (CFO)</td>
+							<td>New York</td>
+							<td>64</td>
+							<td>2010/06/09</td>
+							<td>$725,000</td>
+						</tr>
+						<tr>
+							<td>Gloria Little</td>
+							<td>Systems Administrator</td>
+							<td>New York</td>
+							<td>59</td>
+							<td>2009/04/10</td>
+							<td>$237,500</td>
+						</tr>
+						<tr>
+							<td>Bradley Greer</td>
+							<td>Software Engineer</td>
+							<td>London</td>
+							<td>41</td>
+							<td>2012/10/13</td>
+							<td>$132,000</td>
+						</tr>
+						<tr>
+							<td>Dai Rios</td>
+							<td>Personnel Lead</td>
+							<td>Edinburgh</td>
+							<td>35</td>
+							<td>2012/09/26</td>
+							<td>$217,500</td>
+						</tr>
+						<tr>
+							<td>Jenette Caldwell</td>
+							<td>Development Lead</td>
+							<td>New York</td>
+							<td>30</td>
+							<td>2011/09/03</td>
+							<td>$345,000</td>
+						</tr>
+						<tr>
+							<td>Yuri Berry</td>
+							<td>Chief Marketing Officer (CMO)</td>
+							<td>New York</td>
+							<td>40</td>
+							<td>2009/06/25</td>
+							<td>$675,000</td>
+						</tr>
+						<tr>
+							<td>Caesar Vance</td>
+							<td>Pre-Sales Support</td>
+							<td>New York</td>
+							<td>21</td>
+							<td>2011/12/12</td>
+							<td>$106,450</td>
+						</tr>
+						<tr>
+							<td>Doris Wilder</td>
+							<td>Sales Assistant</td>
+							<td>Sydney</td>
+							<td>23</td>
+							<td>2010/09/20</td>
+							<td>$85,600</td>
+						</tr>
+						<tr>
+							<td>Angelica Ramos</td>
+							<td>Chief Executive Officer (CEO)</td>
+							<td>London</td>
+							<td>47</td>
+							<td>2009/10/09</td>
+							<td>$1,200,000</td>
+						</tr>
+						<tr>
+							<td>Gavin Joyce</td>
+							<td>Developer</td>
+							<td>Edinburgh</td>
+							<td>42</td>
+							<td>2010/12/22</td>
+							<td>$92,575</td>
+						</tr>
+						<tr>
+							<td>Jennifer Chang</td>
+							<td>Regional Director</td>
+							<td>Singapore</td>
+							<td>28</td>
+							<td>2010/11/14</td>
+							<td>$357,650</td>
+						</tr>
+						<tr>
+							<td>Brenden Wagner</td>
+							<td>Software Engineer</td>
+							<td>San Francisco</td>
+							<td>28</td>
+							<td>2011/06/07</td>
+							<td>$206,850</td>
+						</tr>
+						<tr>
+							<td>Fiona Green</td>
+							<td>Chief Operating Officer (COO)</td>
+							<td>San Francisco</td>
+							<td>48</td>
+							<td>2010/03/11</td>
+							<td>$850,000</td>
+						</tr>
+						<tr>
+							<td>Shou Itou</td>
+							<td>Regional Marketing</td>
+							<td>Tokyo</td>
+							<td>20</td>
+							<td>2011/08/14</td>
+							<td>$163,000</td>
+						</tr>
+						<tr>
+							<td>Michelle House</td>
+							<td>Integration Specialist</td>
+							<td>Sydney</td>
+							<td>37</td>
+							<td>2011/06/02</td>
+							<td>$95,400</td>
+						</tr>
+						<tr>
+							<td>Suki Burks</td>
+							<td>Developer</td>
+							<td>London</td>
+							<td>53</td>
+							<td>2009/10/22</td>
+							<td>$114,500</td>
+						</tr>
+						<tr>
+							<td>Prescott Bartlett</td>
+							<td>Technical Author</td>
+							<td>London</td>
+							<td>27</td>
+							<td>2011/05/07</td>
+							<td>$145,000</td>
+						</tr>
+						<tr>
+							<td>Gavin Cortez</td>
+							<td>Team Leader</td>
+							<td>San Francisco</td>
+							<td>22</td>
+							<td>2008/10/26</td>
+							<td>$235,500</td>
+						</tr>
+						<tr>
+							<td>Martena Mccray</td>
+							<td>Post-Sales support</td>
+							<td>Edinburgh</td>
+							<td>46</td>
+							<td>2011/03/09</td>
+							<td>$324,050</td>
+						</tr>
+						<tr>
+							<td>Unity Butler</td>
+							<td>Marketing Designer</td>
+							<td>San Francisco</td>
+							<td>47</td>
+							<td>2009/12/09</td>
+							<td>$85,675</td>
+						</tr>
+						<tr>
+							<td>Howard Hatfield</td>
+							<td>Office Manager</td>
+							<td>San Francisco</td>
+							<td>51</td>
+							<td>2008/12/16</td>
+							<td>$164,500</td>
+						</tr>
+						<tr>
+							<td>Hope Fuentes</td>
+							<td>Secretary</td>
+							<td>San Francisco</td>
+							<td>41</td>
+							<td>2010/02/12</td>
+							<td>$109,850</td>
+						</tr>
+						<tr>
+							<td>Vivian Harrell</td>
+							<td>Financial Controller</td>
+							<td>San Francisco</td>
+							<td>62</td>
+							<td>2009/02/14</td>
+							<td>$452,500</td>
+						</tr>
+						<tr>
+							<td>Timothy Mooney</td>
+							<td>Office Manager</td>
+							<td>London</td>
+							<td>37</td>
+							<td>2008/12/11</td>
+							<td>$136,200</td>
+						</tr>
+						<tr>
+							<td>Jackson Bradshaw</td>
+							<td>Director</td>
+							<td>New York</td>
+							<td>65</td>
+							<td>2008/09/26</td>
+							<td>$645,750</td>
+						</tr>
+						<tr>
+							<td>Olivia Liang</td>
+							<td>Support Engineer</td>
+							<td>Singapore</td>
+							<td>64</td>
+							<td>2011/02/03</td>
+							<td>$234,500</td>
+						</tr>
+						<tr>
+							<td>Bruno Nash</td>
+							<td>Software Engineer</td>
+							<td>London</td>
+							<td>38</td>
+							<td>2011/05/03</td>
+							<td>$163,500</td>
+						</tr>
+						<tr>
+							<td>Sakura Yamamoto</td>
+							<td>Support Engineer</td>
+							<td>Tokyo</td>
+							<td>37</td>
+							<td>2009/08/19</td>
+							<td>$139,575</td>
+						</tr>
+						<tr>
+							<td>Thor Walton</td>
+							<td>Developer</td>
+							<td>New York</td>
+							<td>61</td>
+							<td>2013/08/11</td>
+							<td>$98,540</td>
+						</tr>
+						<tr>
+							<td>Finn Camacho</td>
+							<td>Support Engineer</td>
+							<td>San Francisco</td>
+							<td>47</td>
+							<td>2009/07/07</td>
+							<td>$87,500</td>
+						</tr>
+						<tr>
+							<td>Serge Baldwin</td>
+							<td>Data Coordinator</td>
+							<td>Singapore</td>
+							<td>64</td>
+							<td>2012/04/09</td>
+							<td>$138,575</td>
+						</tr>
+						<tr>
+							<td>Zenaida Frank</td>
+							<td>Software Engineer</td>
+							<td>New York</td>
+							<td>63</td>
+							<td>2010/01/04</td>
+							<td>$125,250</td>
+						</tr>
+						<tr>
+							<td>Zorita Serrano</td>
+							<td>Software Engineer</td>
+							<td>San Francisco</td>
+							<td>56</td>
+							<td>2012/06/01</td>
+							<td>$115,000</td>
+						</tr>
+						<tr>
+							<td>Jennifer Acosta</td>
+							<td>Junior Javascript Developer</td>
+							<td>Edinburgh</td>
+							<td>43</td>
+							<td>2013/02/01</td>
+							<td>$75,650</td>
+						</tr>
+						<tr>
+							<td>Cara Stevens</td>
+							<td>Sales Assistant</td>
+							<td>New York</td>
+							<td>46</td>
+							<td>2011/12/06</td>
+							<td>$145,600</td>
+						</tr>
+						<tr>
+							<td>Hermione Butler</td>
+							<td>Regional Director</td>
+							<td>London</td>
+							<td>47</td>
+							<td>2011/03/21</td>
+							<td>$356,250</td>
+						</tr>
+						<tr>
+							<td>Lael Greer</td>
+							<td>Systems Administrator</td>
+							<td>London</td>
+							<td>21</td>
+							<td>2009/02/27</td>
+							<td>$103,500</td>
+						</tr>
+						<tr>
+							<td>Jonas Alexander</td>
+							<td>Developer</td>
+							<td>San Francisco</td>
+							<td>30</td>
+							<td>2010/07/14</td>
+							<td>$86,500</td>
+						</tr>
+						<tr>
+							<td>Shad Decker</td>
+							<td>Regional Director</td>
+							<td>Edinburgh</td>
+							<td>51</td>
+							<td>2008/11/13</td>
+							<td>$183,000</td>
+						</tr>
+						<tr>
+							<td>Michael Bruce</td>
+							<td>Javascript Developer</td>
+							<td>Singapore</td>
+							<td>29</td>
+							<td>2011/06/27</td>
+							<td>$183,000</td>
+						</tr>
+						<tr>
+							<td>Donna Snider</td>
+							<td>Customer Support</td>
+							<td>New York</td>
+							<td>27</td>
+							<td>2011/01/25</td>
+							<td>$112,000</td>
+						</tr>
+					</tbody>
+					<tfoot>
+						<tr>
+							<th>Name</th>
+							<th>Position</th>
+							<th>Office</th>
+							<th>Age</th>
+							<th>Start date</th>
+							<th>Salary</th>
+						</tr>
+					</tfoot>
+				</table>
+
+
+
+
+
+<script src="https://cdn.datatables.net/buttons/1.10.20/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.2.0/jszip.min.js"></script>
+
+
+
+<script>
+    $(document).ready(function() {
+    $('#example').DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'excelHtml5',
+            'csvHtml5',
+           
+        ]
+    } );
+} );
+    
+   
+
+</script>
+
+    <div class="circle"><span class="initials">DW</span></div>
+
+<?php
+    
+                 $res = $GLOBALS['pdo']->query("
+		SELECT id,local_number,score,location_name,date_trunc('day',current_date-bovinecurr.fresh_date) as dim,checked  FROM bovinemanagement.bovinecurr 
+LEFT JOIN system.salesreport_temp ON salesreport_temp.bovine_id=bovinecurr.id
+LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bovinecurr.full_reg_number
+ ORDER BY local_number,location_name
+		");
+        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
+        }
+        
+        
+          
+         ?>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-Knob/1.2.13/jquery.knob.min.js"></script>
+
     
     
-    function timeline() {
-        ?>
-        <ul class="timeline">
-
-    <!-- timeline time label -->
-    <li class="time-label">
-        <span class="bg-red">
-            10 Feb. 2014
-        </span>
-    </li>
-    <!-- /.timeline-label -->
-
     
-    <li>
-        <i class="fa fa-wrench bg-aqua"></i>
-        <div class="timeline-item">
-            <span class="time"><i class="fa fa-clock-o"></i> 5 mins ago</span>
-            <h3 class="timeline-header no-border"><a href="#">Sarah Young</a> accepted your friend request</h3>
-        </div>
-    </li>
+    <input type="text" value="0" class="dial">
+
+<script>
+    $(function() {
+        $(".dial").knob({
+                
+                'data-step':.1
+                ,'data-min':100
+                ,'value':0
+                ,'data-displayPrevious':true
+                });
+    });
+</script>
     
     
-    
-    <!-- timeline item -->
-    <li>
-        <!-- timeline icon -->
-        <i class="fa fa-envelope bg-blue"></i>
-        <div class="timeline-item">
-            <span class="time"><i class="fa fa-clock-o"></i> 12:05</span>
-
-            <h3 class="timeline-header"><a href="#">Support Team</a> ...</h3>
-
-            <div class="timeline-body">
-                ...
-                Content goes here
-            </div>
-
-            <div class="timeline-footer">
-                <a class="btn btn-primary btn-xs">...</a>
-            </div>
-        </div>
-    </li>
-    <!-- END timeline item -->
-
-    ...
-
-</ul>
-      <?php
+        <?php
     }
     
     
@@ -254,7 +780,7 @@ LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bov
 
             //return to same page.
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -469,7 +995,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
 
     function ddd666() {
         include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/.Calendar.inc');
-        $gCal = new GoogleCalendar('littleriver.ca_phrs87e7efrsf6qc0hk4bfk88g@group.calendar.google.com'); //bovine_treatement
+        $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['BOVINE_TREATMENT']); //bovine_treatement
     }
 
     function ddd555() {
@@ -480,7 +1006,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
 
         try {
             include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCalendar.inc');
-            $gCal = new GoogleCalendar('littleriver.ca_phrs87e7efrsf6qc0hk4bfk88g@group.calendar.google.com'); //bovine_treatement
+            $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['BOVINE_TREATMENT']); //bovine_treatement
             $eventId = null;
             $eventId = $gCal->createEvent($gCal->calendarID, $title, $description, '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $startTime, '-04');
         } catch (Exception $e) {
@@ -628,7 +1154,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
 
     function defaultDisplay44q332() {
 
-        require_once('HTML/QuickForm2.php');
+
         $form = new HTML_QuickForm2('ContactForm', 'post', array('action' => $_SERVER['REQUEST_URI']));
         // Let's start with a fieldset
         $fs = $form->addFieldset('contact_us')->setLabel("Contact us");
@@ -902,7 +1428,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
         <?php
      
         // include the Zebra_Form class
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/framework/Zebra_Form/Zebra_Form.php');
+ 
         print("http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]");
         // instantiate a Zebra_Form object
         $form = new Zebra_Form('form', 'post', "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]");
@@ -955,7 +1481,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
 
     function defaultDisplayQuickForm2() {
         // Load the main class
-        require_once 'HTML/QuickForm2.php';
+  
 
 // Instantiate the HTML_QuickForm2 object
         $form = new HTML_QuickForm2('tutorial', 'post', $_SERVER ["REQUEST_URI"]);
@@ -978,7 +1504,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
 // Try to validate a form
         if ($form->validate()) {
             echo '<h1>Hello, ' . htmlspecialchars($name->getValue()) . '!</h1>';
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
             exit();
         }
 
@@ -994,7 +1520,7 @@ document.getElementsByTagName("button")[0].addEventListener("click",    beep);
         <link rel="stylesheet" href="/framework/Zebra_Form/public/css/zebra_form.css">
         <script src="/framework/Zebra_Form/public/javascript/zebra_form.js"></script>
         <?php
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/framework/Zebra_Form/Zebra_Form.php');
+      
 
 
         // instantiate a Zebra_Form object

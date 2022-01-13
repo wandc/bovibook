@@ -1,5 +1,8 @@
 <?php 
-
+if (defined('STDIN')) { //when called from cli, command line define constant.
+    $_SERVER['DOCUMENT_ROOT']=dirname(__DIR__).'/';
+    include_once( $_SERVER['DOCUMENT_ROOT'].'global.php');
+}
 /**
  * test code Feb 2016 to see if we can read the weight from scale.
  * 
@@ -290,8 +293,6 @@ function send_feedlines_to_indicator_scale($socket, $feedline, $dataFieldFormatS
 
 function create_socket_connection() {
 
-
-    error_reporting(E_ALL);
 
     echo "<h2>TCP/IP Connection</h2>\n";
 

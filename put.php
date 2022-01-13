@@ -6,7 +6,14 @@
   /** code to put BLE tag data in DB */
 include_once($_SERVER['DOCUMENT_ROOT'] .'/'. 'global.php');
 
-
+//only allow local LAN addresses to connect. Not really that secure, but gets rid of 98%.
+$ip=$_SERVER['REMOTE_ADDR'];
+if ((new Misc)->isPublicAddress($ip) != true)
+{
+    header('HTTP/1.1 403 Forbidden');
+    exit;
+}
+    
 
 $json = file_get_contents('php://input');
 $objArr = json_decode($json, true);
@@ -24,7 +31,9 @@ foreach ($objArr as $val) {
     } elseif ($val['packet'] == 'tmr_mixer') {
         processTMRMixer($val);    
     } elseif ($val['packet'] == 'tmr_mixer_recipe_item_feed_log') {
-        processTMRMixerReceipeItemFeedLog($val);        
+        processTMRMixerReceipeItemFeedLog($val);       
+    } elseif ($val['packet'] == 'access_control_log') {
+        processAccessControlLog($val);            
     } else {
         //unknown packet do nothing.
     }
@@ -93,5 +102,21 @@ SQL;
 
     $res = $GLOBALS['pdo']->exec($sql);
 }
+
+function processAccessControlLog($val) {
+    
+    //need to look up device id from mac.
+    
+    /*
+      $sql= <<<SQL
+      INSERT INTO bas.access_control_log(start_mass,end_mass,userid,nrc_recipe_item_id) VALUES ({$val['start_mass']},{$val['end_mass']},'{$val['userid']}',{$val['nrc_recipe_item_id']}) 
+      ON CONFLICT (nrc_recipe_item_id) 
+      DO UPDATE SET (start_mass,end_mass,userid,nrc_recipe_item_id) = ({$val['start_mass']},{$val['end_mass']},'{$val['userid']}',{$val['nrc_recipe_item_id']}) 
+SQL;
+     
+     */
+}
+
+
 
 ?>

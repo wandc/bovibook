@@ -4,12 +4,41 @@ class BulkTankPickup extends BasePage {
 
     public function defaultDisplay() {
 
-        $a = new QF2_BulkTankPickup((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'])), 'group');
-        print($a->renderBox('qf2_BulkTankPickup', 'Record Milk Pickup'));
+          print(new BootStrap)->infoCallout(( "NOTE: Record the last day milk was harvested and put in the specific tank. The collection date is the day the truck came."));
+           print("<br/>");
+             print("<br/>");
+         print(new BootStrap)->infoCallout(( "NOTE2: So that means enter Tank A as the day before the pickup (usually) and Tank B on the day of the pickup (usually)."));
+           print("<br/>");
+            print("<br/>");
+           print(new BootStrap)->infoCallout(( "NOTE3: Enter Tank A first."));
+             print("<br/>");
+            print("<br/>");
+          
+         print("<div class='row'>");
+        
+          print("<div class='col-sm-4 '>");
+        
+        $a = new QF2_BulkTankPickup((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'individual', (object) array('tankNum' => 'A'));
+        print($a->renderBox('qf2_BulkTankPickup_a', 'Record Milk Pickup Tank A'));
+            print("</div>");
+        
+             print("<div class='col-sm-4 '>");
+            
+        
+        $b = new QF2_BulkTankPickup((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'individual', (object) array('tankNum' => 'B'));
+        print($b->renderBox('qf2_BulkTankPickup_b', 'Record Milk Pickup Tank B'));
 
+         print("</div>");
+         
+          print($this->checkPickupNotEnteredForLongTime());
+         
+         print("</div>");
+         
+       
+        
         $this->displayListOfBulkTankPickups();
         
-        $this->plotBulkTankPickups();
+       // $this->plotBulkTankPickups();
     }
 
     public function summaryDisplay() {
@@ -17,13 +46,26 @@ class BulkTankPickup extends BasePage {
         //$this->displaySemenInventory('summary');
     }
 
+    /* the goal of this is to see if a milk pickup wasn't entered */
+    function checkPickupNotEnteredForLongTime()
+    {
+       $query = "SELECT current_date-max(collection_date) as difference FROM batch.milk_pickup_event";
+        $res = $GLOBALS['pdo']->query($query);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        if ($row['difference'] >=4) {
+        return  print(new BootStrap)->dangerAlertBasic("Missing Milk Pickup.");
+        }
+        else {return '';}
+    }
+    
+    
     function deleteQuickForm($milk_pickup_eventID) {
 
         $form = new HTML_QuickForm("addBulkTankPickupDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'milk_pickup_event_id', $milk_pickup_eventID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
 
 
@@ -39,7 +81,7 @@ class BulkTankPickup extends BasePage {
             $res = $GLOBALS['pdo']->query("DELETE FROM batch.milk_pickup_event where id='$milk_pickup_event_id'");
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table
@@ -52,19 +94,29 @@ class BulkTankPickup extends BasePage {
         $dt = new JQueryDataTable();
         $columnsStr = <<<EX
             {
-                 data: "event_time_raw",
+                 data: "harvest_date_raw",
                  "visible": false,
                 "searchable": false
             },
+                
+            {
+                data: "harvest_date",
+                title: "Milk Harvest Date"
+            },
+                 {
+                data: "collection_date",
+                title: "Truck Pickup Date"
+            },
+            {
+                data: "tank_num",
+                title: "Tank #"
+            },
+                
                  {
                 data: "milk_amount_sold",
                 title: "Milk Picked-up"
             },  
         
-            {
-                data: "event_time",
-                title: "Event Time"
-            },
             {
                 data: "userid",
                 title: "Employee"
@@ -72,20 +124,24 @@ class BulkTankPickup extends BasePage {
             {
                 data: "action",
                 title: "Action"
+            },
+                 {
+                data: "action2",
+                title: "Action 2"
             } 
 EX;
         print("<h3>Bulk Tank Pickup List</h3>");
-        print($dt->start(22, 'listOfBulkTankPickups', null, $columnsStr, null, ' paging: false'));
+        print($dt->start('Title CHANGE ME', 22, 'listOfBulkTankPickups', null, $columnsStr, null, ' paging: false'));
     }
 
     function listOfBulkTankPickups() {
 
 
         $sql = <<<SQL
-SELECT id,event_time,milk_amount_sold  ,userid 
+SELECT id,harvest_date,collection_date,milk_amount_sold ,tank_num ,userid 
 FROM batch.milk_pickup_event  
-WHERE event_time >= (current_date - interval '2 year')
-ORDER BY event_time DESC
+WHERE harvest_date >= (current_date - interval '2 year')
+ORDER BY harvest_date DESC
 SQL;
 
 
@@ -95,10 +151,12 @@ SQL;
 
         //change presentation
         foreach ($results as &$row) {
-            $row['event_time_raw'] = strtotime($row['event_time']);
-            $row['event_time'] = date("l, M d Y", strtotime($row['event_time']));  //has to be at end.  
+            $row['harvest_date_raw'] = strtotime($row['harvest_date']);
+            $row['harvest_date'] = date("l, M d Y", strtotime($row['harvest_date']));  //has to be at end.  
             $row['action'] = null;
             $row['action'] = $this->printActionButtons($row['id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['action2']= (new JQueryDataTable())->actionDeleteButton($row['id'], 'batch.milk_pickup_event', 'id',null,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+    
         }
         //output
         $output['data'] = $results;
@@ -111,12 +169,12 @@ SQL;
 
         //find the last entry for the current user and use that as a basais to display the delete button or not.
         //We only want the delete button shown once for the latest entry.
-        $res = $GLOBALS['pdo']->query("SELECT id FROM batch.milk_pickup_event ORDER BY event_time DESC LIMIT 1");
+        $res = $GLOBALS['pdo']->query("SELECT id FROM batch.milk_pickup_event ORDER BY harvest_date DESC LIMIT 1");
 
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $deleteButtonAsString = null;
         if ($milk_pickup_event_id == $row['id']) {
-            $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $milk_pickup_event_id, 'schemaTable' => 'batch.milk_pickup_event'));
+            $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $milk_pickup_event_id, 'schemaTable' => 'batch.milk_pickup_event'));
             $deleteButtonAsString = '' . ($a->renderDelete($milk_pickup_event_id));
         }
 
@@ -125,7 +183,7 @@ SQL;
 
     function printFormattedTime($params) {
         extract($params);
-        return date("l, M d Y", strtotime($record['event_time']));
+        return date("l, M d Y", strtotime($record['harvest_date']));
     }
 
     /////////////////////////////////////////////////////////////////////
@@ -244,18 +302,18 @@ SELECT avg(butterfat) as butterfat,avg(protein) as protein,avg(lactose) as lacto
 
 
         //select the latest laction...
-        $query = "SELECT id,event_time::date,milk_amount_sold,milk_amount_disbursed,userid FROM batch.milk_pickup_event WHERE event_time >= (current_Date - interval '2 years') ORDER BY event_time ASC";
+        $query = "SELECT id,harvest_date::date,milk_amount_sold,userid FROM batch.milk_pickup_event WHERE harvest_date >= (current_Date - interval '2 years') ORDER BY harvest_date ASC";
         $res = $GLOBALS['pdo']->query($query);
 
 
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $event_time = strtotime($row['event_time']);
-            $xArray[$event_time] = $event_time;
-            $yArray[$event_time] = $row['milk_amount_sold'];
-            $milkSoldArray[$event_time] = $row['milk_amount_sold'];
-            $bfArray[$event_time] = self::convertLitresMilkToButterFatKg($row['event_time'], $row['milk_amount_sold']);
-            $protArray[$event_time] = self::convertLitresMilkToProteinKg($row['event_time'], $row['milk_amount_sold']);
-            $lactArray[$event_time] = self::convertLitresMilkToLactoseKg($row['event_time'], $row['milk_amount_sold']);
+            $harvest_date = strtotime($row['harvest_date']);
+            $xArray[$harvest_date] = $harvest_date;
+            $yArray[$harvest_date] = $row['milk_amount_sold'];
+            $milkSoldArray[$harvest_date] = $row['milk_amount_sold'];
+            $bfArray[$harvest_date] = self::convertLitresMilkToButterFatKg($row['harvest_date'], $row['milk_amount_sold']);
+            $protArray[$harvest_date] = self::convertLitresMilkToProteinKg($row['harvest_date'], $row['milk_amount_sold']);
+            $lactArray[$harvest_date] = self::convertLitresMilkToLactoseKg($row['harvest_date'], $row['milk_amount_sold']);
         }
 
 
@@ -346,15 +404,16 @@ SELECT avg(butterfat) as butterfat,avg(protein) as protein,avg(lactose) as lacto
         print("<h3>Average DIM</h3>");
         $this->dimGoogleVisLineChart($averageDIM);
 
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             print("<h3>Fat / Protein / Lactose Per Cow</h3>");
             $this->butterfatProteinLactoseGoogleVisLineChart($bfPerCowArray, $protPerCowArray, $lactPerCowArray);
-            print("<h3>Revenue Feed Costs Per Cow</h3>");
+            print("<h3>Revenue over Feed Costs per Cow</h3>");
             //find total feed_costs
-            $dateStart = min(array_keys($milkSoldArray));
-            $dateFinish = max(array_keys($milkSoldArray));
-            $feedCostPerCowArray = self::calculateLactatingFeedCosts($dateStart, $dateFinish);
+            
+            $feedCostPerCowArray = self::calculateLactatingFeedCosts();
             $this->revenueAndFeedCostGoogleVisLineChart($revenuePerCowArray, $feedCostPerCowArray);
+            
+            
             //calculate income over feed cost
             foreach ($revenuePerCowArray as $key => $value) {
 
@@ -382,24 +441,25 @@ SELECT avg(butterfat) as butterfat,avg(protein) as protein,avg(lactose) as lacto
 
     /** calculates the cost of feed for each group in a range of days and gives a total feed cost for that day */
 //FIXME
-    function calculateLactatingFeedCosts($dateStart = null, $dateFinish) {
+    function calculateLactatingFeedCosts() {
+ 
 
         //this query gets all the mix costs on the date teh mix was created, then uses a series of dates to find mix cost for all dates in range. 
         //note: the plus interval 1 month and minus 1 month are so we don't get nulls at the start. it is still possible to get a null if the receipe did not change. This is to speed up query.
         $sql = "
-      WITH temp_high as (
-SELECT date::date,nutrition.mix_cost(id) FROM nutrition.mix WHERE location_id=40 AND date::date>=('2011-11-1'::date  - interval '1 month' ) AND date::date<(current_date   )  ORDER BY date desc
+         WITH temp_high as (
+SELECT create_time::date,corrected_kg_day_cost FROM nutrition.nrc_archive_sums WHERE location_id::int=40 AND create_time::date>=(current_date  - interval '2 years' ) AND create_time::date<(current_date   )  ORDER BY create_time desc
 ), temp_low as (
-SELECT date::date,nutrition.mix_cost(id) FROM nutrition.mix WHERE location_id=41 AND date::date>=('2011-11-1'::date  - interval '1 month' ) AND date::date<(current_date  )  ORDER BY date desc
+SELECT create_time::date,corrected_kg_day_cost FROM nutrition.nrc_archive_sums WHERE location_id::int=41 AND create_time::date>=(current_date  - interval '2 years' ) AND create_time::date<(current_date   )  ORDER BY create_time desc
 ), temp_heifer as (
-SELECT date::date,nutrition.mix_cost(id) FROM nutrition.mix WHERE location_id=42 AND date::date>=('2011-11-1'::date  - interval '1 month' ) AND date::date<(current_date  )   ORDER BY date desc
+SELECT create_time::date,corrected_kg_day_cost FROM nutrition.nrc_archive_sums WHERE location_id::int=42 AND create_time::date>=(current_date  - interval '2 years' ) AND create_time::date<(current_date   )  ORDER BY create_time desc
 )
 , temp_date as(
-SELECT misc.generate_dates('2011-11-1',current_date,1) as dates
+SELECT misc.generate_dates((current_date - interval '2 years')::date,current_date,1) as dates
 ), temp3 as (
-SELECT dates as date,(SELECT mix_cost FROM temp_high WHERE date::date<=temp_date.dates ORDER BY date DESC limit 1) as cost_high
-,(SELECT mix_cost FROM temp_low WHERE date::date<=temp_date.dates ORDER BY date DESC limit 1) as cost_low
-,(SELECT mix_cost FROM temp_heifer WHERE date::date<=temp_date.dates ORDER BY date DESC limit 1) as cost_heifer
+SELECT dates as date,(SELECT corrected_kg_day_cost FROM temp_high WHERE create_time::date<=temp_date.dates ORDER BY create_time DESC limit 1) as cost_high
+,(SELECT corrected_kg_day_cost FROM temp_low WHERE create_time::date<=temp_date.dates ORDER BY create_time DESC limit 1) as cost_low
+,(SELECT corrected_kg_day_cost FROM temp_heifer WHERE create_time::date<=temp_date.dates ORDER BY create_time DESC limit 1) as cost_heifer
  FROM temp_date
 )
 SELECT temp3.*,cost_high+cost_low+cost_heifer as cost_total,total_milking_high,total_milking_low,total_milking_heifer
@@ -408,18 +468,19 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         ";
         $res = $GLOBALS['pdo']->query($sql);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $event_time = strtotime($row['date']);
+            $harvest_date = strtotime($row['date']);
 
             //create weighted feed costs by number in group.          
             $total_milking = $row['total_milking_high'] + $row['total_milking_low'] + $row['total_milking_heifer'];
             if ($total_milking == 0) {
-                $totalFeedCostArr[$event_time] = 0;
+                $totalFeedCostArr[$harvest_date] = 0;
             } else {
 
-                $totalFeedCostArr[$event_time] = (($row['total_milking_high'] / $total_milking) * $row['cost_high']) + (($row['total_milking_low'] / $total_milking) * $row['cost_low']) + (($row['total_milking_heifer'] / $total_milking) * $row['cost_heifer']);
+                $totalFeedCostArr[$harvest_date] = (($row['total_milking_high'] / $total_milking) * $row['cost_high']) + (($row['total_milking_low'] / $total_milking) * $row['cost_low']) + (($row['total_milking_heifer'] / $total_milking) * $row['cost_heifer']);
             }
         }
-
+        
+      
         return $totalFeedCostArr;
     }
 
@@ -429,7 +490,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Income / Feed Cost ($/$ ratio)'] = 'number';
         $opt = '';
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $revenueOverFeedCostPerCowArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $revenueOverFeedCostPerCowArray);
         print($x->toString());
     }
 
@@ -451,7 +512,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $revenuePerCowArray, $feedCostPerCowArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $revenuePerCowArray, $feedCostPerCowArray);
         print($x->toString());
     }
 
@@ -467,7 +528,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
 
 
         $opt = '';
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $bfPerCowArray, $protPerCowArray, $lactPerCowArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $bfPerCowArray, $protPerCowArray, $lactPerCowArray);
         print($x->toString());
     }
 
@@ -490,7 +551,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $bfPerCowArray, $bfArray, $bfQuotaArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $bfPerCowArray, $bfArray, $bfQuotaArray);
         print($x->toString());
     }
 
@@ -508,7 +569,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
                         legend: {position: 'in'}";
 
 
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $milkSoldArray, $milkSoldPerCowArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $milkSoldArray, $milkSoldPerCowArray);
         print($x->toString());
     }
 
@@ -518,7 +579,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         $headerStrArr['xAxis'] = 'date'; //BACKWARDS
         $headerStrArr['Avg DIM'] = 'number';
         $opt = '';
-        $x = new GoogleVisualizationLine($opt, $headerStrArr, $dimArray);
+        $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $dimArray);
         print($x->toString());
     }
 
@@ -526,7 +587,7 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
         $error = array();
 
         //if milk pickup event has not been entered for 51 hours, throw an error.
-        $res = $GLOBALS['pdo']->query("SELECT max(event_time) as max FROM batch.milk_pickup_event");
+        $res = $GLOBALS['pdo']->query("SELECT max(harvest_date) as max FROM batch.milk_pickup_event");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ((strtotime($row['max']) + 51 * 3600) <= strtotime("now")) {
             $error[] = new notifyObj(get_class($this), $row['max'], 1, 'Last milk pickup entry is overdue.');
@@ -538,41 +599,83 @@ LEFT JOIN batch.daily_number_cows_milking ON temp3.date=daily_number_cows_milkin
 
 //end class
 
-Class QF2_BulkTankPickup extends Quickform2Helper {
+Class QF2_BulkTankPickup extends QF2_Base {
 
     function definition($form) {
 
-        //get last date +2 days from db
-        $pickupDate = self::getNextMilkPickupDate();
-        $pickupDateStr = date('l, M d Y', $pickupDate);
+        
+      
+        
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
 
+        $form->addElement('hidden', 'tankNum')->setValue($this->param->tankNum); //client could change this, we leave it here for debugging, but we don't actually use it. 
+
+       
+
+
+        //get last date from db
+        $lastPickupDate = $this->getLastPickupDate();
+        $dateArray = $this->nextFewPickupDates($lastPickupDate);
+      
+
+        $form->addElement('static', 'text1')->setValue('<h3> Tank '.$this->param->tankNum.'</h3>');
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        $form->addElement('hidden', 'event_time')->setValue($pickupDate);
-        $form->addElement('text', 'pickup_amount', null, array('label' => 'Litres of Bulk Tank Pickup'))->addRule("required", "Please specify your pickup amount.");
-        $form->addElement('static', 'event_time2')->setValue($pickupDateStr);
+        $form->addElement('hidden', 'tank_num')->setValue($this->param->tankNum);
+        
+       
+       $form->addElement('text', 'pickup_amount', null, array('label' => 'Pickup Litres of Tank'))->addRule("required", "Please specify your pickup amount.");      
+       $form->addElement('select', 'harvest_date', null, array('options' => $dateArray, 'label' => 'Day Milk Put in Tank'))->addRule("required", "Please specify your day milk was put in the tank.");
+       $form->addElement('select', 'collection_date', null, array('options' => $dateArray, 'label' => 'Day Truck Collected Tank'))->addRule("required", "Please specify your day milk was picked up by the milk truck.");
+ 
 
+       if ($this->param->tankNum=='A') {
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array( 'collection_date' => array_key_last($dateArray)))); //when tank A set collection date to one day past harvest date to make easier. 
+       }
+       
+       
         return $form; //required       
     }
 
+
     function process($value) {
-        $value['event_time'] = date('Y-m-d 9:00:00', $value['event_time']);
+        
+          if (empty($this->param->tankNum)){
+            throw new Exception("Error: param->tankNum not provided!");
+        }
+        
+        
+        $value['harvest_date'] = date('Y-m-d', $value['harvest_date']);
+        $value['collection_date'] = date('Y-m-d', $value['collection_date']);
 
         //don't put id value, uses next one in DB.
-        $query = "INSERT INTO batch.milk_pickup_event (event_time,milk_amount_sold,milk_amount_disbursed,userid) VALUES ('{$value['event_time']}',{$value['pickup_amount']},0,'{$GLOBALS['auth']->getUsername()}')";
+        $query = "INSERT INTO batch.milk_pickup_event (harvest_date,collection_date,milk_amount_sold,tank_num,userid) VALUES ('{$value['harvest_date']}','{$value['collection_date']}',{$value['pickup_amount']},'{$value['tank_num']}','{$GLOBALS['auth']->getUsername()}')";
 
         $res = $GLOBALS['pdo']->exec($query);
     }
 
-    //looks up latest pickup date and adds 2 days to it
-    function getNextMilkPickupDate() {
+    //looks up latest pickup date 
+    function getLastPickupDate() {
         //grab a list of sires.
-        $res = $GLOBALS['pdo']->query("SELECT max(event_time + interval '48 hour') as nextpickup FROM batch.milk_pickup_event");
+        $res = $GLOBALS['pdo']->query("SELECT max(harvest_date) as lastpickup FROM batch.milk_pickup_event");
 
         $row = $res->fetch(PDO::FETCH_ASSOC);
 
-        return strtotime($row['nextpickup']); //return unix timestamp
+        return strtotime($row['lastpickup']); //return unix timestamp
     }
 
+    function nextFewPickupDates($lastPickupDate) {
+
+        $dateArray = array();
+        $dateStart = ( new DateTime("@$lastPickupDate"));
+        
+        for ($j = 1; $j <= 2; $j++) {
+            $dateStart->add(DateInterval::createFromDateString("+1 days"));
+            $dateArray[$dateStart->format("U")] = $dateStart->format("l (M d)");
+        }
+
+        return $dateArray;
+    }
+    
 }
 
 //end class

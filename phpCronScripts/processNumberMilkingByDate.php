@@ -48,7 +48,7 @@ $sinceEpoch=strtotime("$timeToUseStr + 1 day");
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
 print('<h1>Finished processing number of cows milking per day.</h1>\n');

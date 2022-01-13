@@ -186,7 +186,7 @@ public function syncBovineDriedOff() {
  
  try {
  $cowsToMarkDriedOffArray=$this->findCowsToMarkDriedOff(); //looks at alpro and int db.
- $ret=$this->setCowDriedOff(null,$cowsToMarkDriedOffArray);
+ $ret=$this->setCowLatestDriedOff(null,$cowsToMarkDriedOffArray);
  $alproIsoLink=null;
  $alproIsoLink=new AlproIsoLink($ret); //runs the commands on init
  $logResult=$alproIsoLink->logArray; //get the results from the WRITE!
@@ -202,9 +202,67 @@ public function syncBovineDriedOff() {
  
     //finally write results to table in db that says if we are synced or not.
   $inResult="";
-  $alproIsoLink::writeSync('bovinemanagement','lactation',$state,$alproIsoLink->inArray,$alproIsoLink->outArray,$alproIsoLink->logArray,$this->lrDB);
+  $alproIsoLink::writeSync('bovinemanagement','dried off',$state,$alproIsoLink->inArray,$alproIsoLink->outArray,$alproIsoLink->logArray,$this->lrDB);
 }
 
+/**
+* Marks calving date in Alpro
+* Syncs locations in internal db to alpro.
+*/ 
+public function syncBovineCalving() {
+ 
+ $state='true';//assume state will work.
+ 
+ try {
+ $findCowsLatestCalvingDate=$this->findCowsLatestCalvingDate(); //looks at alpro and int db.
+ $ret=$this->setCowLatestCalvingDate(null,$findCowsLatestCalvingDate);
+ $alproIsoLink=null;
+ $alproIsoLink=new AlproIsoLink($ret); //runs the commands on init
+ $logResult=$alproIsoLink->logArray; //get the results from the WRITE!
+ $outResult=$alproIsoLink->outArray;
+ $inResult=$alproIsoLink->inArray;
+ //catch exception
+ }
+ catch(Exception $e)
+  {
+  echo 'syncBovineCalving Message: ' .$e->getMessage();
+  $state='false'; //says sync was unsucessful
+  }
+ 
+    //finally write results to table in db that says if we are synced or not.
+  $inResult="";
+  $alproIsoLink::writeSync('bovinemanagement','calving',$state,$alproIsoLink->inArray,$alproIsoLink->outArray,$alproIsoLink->logArray,$this->lrDB);
+}
+
+
+/**
+* Marks calving date in Alpro
+* Syncs locations in internal db to alpro.
+*/ 
+public function syncBovineInsemination() {
+ 
+ $state='true';//assume state will work.
+ 
+ try {
+ $findCowsLatestInseminations=$this->findCowsInseminations(); //looks at alpro and int db.
+ $ret=$this->setCowInseminations(null,$findCowsLatestInseminations);
+ $alproIsoLink=null;
+ $alproIsoLink=new AlproIsoLink($ret); //runs the commands on init
+ $logResult=$alproIsoLink->logArray; //get the results from the WRITE!
+ $outResult=$alproIsoLink->outArray;
+ $inResult=$alproIsoLink->inArray;
+ //catch exception
+ }
+ catch(Exception $e)
+  {
+  echo 'syncBovineInseminations Message: ' .$e->getMessage();
+  $state='false'; //says sync was unsucessful
+  }
+ 
+    //finally write results to table in db that says if we are synced or not.
+  $inResult="";
+  $alproIsoLink::writeSync('bovinemanagement','inseminations',$state,$alproIsoLink->inArray,$alproIsoLink->outArray,$alproIsoLink->logArray,$this->lrDB);
+}
 
 //****************
 // END OF SYNC FUNCTIONS
@@ -274,6 +332,60 @@ $ret=$ret."VN390002{$cowNumX}{$groupNumX}"."\r\n";
 return $ret;
 }
 
+/**
+* Adds cows who have entered the herd to alpro (births usually).
+* Syncs animals in internal db to alpro.
+*/ 
+public function syncAlproProcessorDateTime() {
+ 
+ $state='true';//asume state will work.
+ 
+ try {
+ $ret=$this->readAlproProcessDateTime();
+ $alproIsoLink=null;
+ $alproIsoLink=new AlproIsoLink($ret); //runs the commands on init
+ $logResult=$alproIsoLink->logArray; //get the results from the WRITE!
+ $outResult=$alproIsoLink->outArray;
+ $inResult=$alproIsoLink->inArray;
+
+ //catch exception
+ }
+ catch(Exception $e)
+  {
+  echo 'readAlproProcessorDateTime Message: ' .$e->getMessage();
+  $state='false'; //says sync was unsucessful
+  } 
+  
+  //process output
+  foreach ($alproIsoLink->outArray as $key => $value) {
+   $dateTimeStr=$value[0] .' '.$value[1].':'.$value[2];   //convert date to one date string. 
+   $retArray['dateTimeStr']=  date('c',strtotime($dateTimeStr));    
+   
+   //now compare with PHP time...then store in DB error? then show?
+   
+  }
+    
+ return $retArray;
+  
+  
+}
+
+/* finds the alpro system controller time and date and returns it */
+private function readAlproProcessDateTime() {
+//get processor date time from ALPRO system
+//     308503  yymmddd 08 bytes 0 deci
+//     308504  min     02 bytes 0 deci
+//     308505  hour    02 bytes 0 deci
+
+  $ret="";
+  $ret=$ret.'CN Get alpro processor time and date:'."\r\n";  
+  $ret=$ret.'CN      |date   |   hour|  min  '."\r\n";  
+  $commandStr='RN 390050  00308503 080   00308504 020 00308505 020'."\r\n"; //V6.6 //command plus lemgth and deci from dictionary file   . 
+  $ret=$ret.preg_replace('/\h+/', '', $commandStr); //replaces spaces and tabs, not line feeds, makes easier to read.
+
+   return $ret;
+  
+}
 /**
  * Returns an array of cows to add to alpro who have been born or added to the herd.
  */
@@ -379,7 +491,7 @@ private function findCowsToSetDumpMilk() {
     //look for any cows with a milk with holding due to treatment and set it to that number of days.
     //even if it is 5 minutes before the milk is good set it to one day. assume the code is run often so that this is not a problem.
     //ALSO set fresh cows to withhold milk 3 days from calving because of CQM.
-    $sql2="SELECT local_number,(SELECT milk_withholding FROM bovinemanagement.milk_and_beef_withholding(bovinecurr.id)) as milk_withholding,bovinecurr.fresh_date FROM bovinemanagement.bovinecurr"; 
+    $sql2="SELECT local_number,(SELECT milk_withholding FROM bovinemanagement.milk_and_beef_withholding(bovinecurr.id) where milk_withholding > current_timestamp) as milk_withholding,bovinecurr.fresh_date FROM bovinemanagement.bovinecurr"; 
     $res2 = $this->lrDB->query($sql2);
     
     while($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
@@ -571,10 +683,162 @@ return $ret;
 }
 
 
+
+/**
+* 
+* Alpro has problems, so we only sync cows who are currently in lactation with calving event.
+*/
+function setCowLatestCalvingDate($ret='',$cowNumberArray) {
+foreach ($cowNumberArray as $cowNum => $val) {
+$cowNum=$val['local_number'];
+
+$calvingDateX=date('Ymd',strtotime($val['calving_date'])); //always outputs 8 chars, so no trim needed.
+//spacing is absolutely critical with this protocol. 
+$cowNumX=str_pad(trim($cowNum), 6, ' ', STR_PAD_LEFT);
+
+$calvingDateX=str_pad(trim($calvingDateX), 8, ' ', STR_PAD_LEFT);
+$ret=$ret."CN Cows latest calving date for cow number $cowNum"."\r\n";
+$ret=$ret.'CN      |cow #|calving date '."\r\n";
+$commandStr='DN 390006  00900070 060 00300035 080  '."\r\n";  //change breeding items state
+$ret=$ret.preg_replace('/\h+/', '', $commandStr); //replaces spaces and tabs, not line feeds, makes easier to read.
+$ret=$ret."VN390006{$cowNumX}{$calvingDateX}"."\r\n";
+}
+return $ret;
+}
+
+private function findCowsLatestCalvingDate() {
+
+
+    //looks for any cows that are currenty in a dry off state in Little river system. We have to do it this way, because otherwise problems occur with alpro makring cows do not milk.
+    $sql2 = <<<SQL
+        
+    SELECT local_number,fresh_date FROM bovinemanagement.bovinecurr WHERE fresh_date is not null
+
+SQL;
+    
+    $res2 = $this->lrDB->query($sql2);
+    
+    while($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
+    
+    $dataArrayInternal[$row2['local_number']]['local_number']=$row2['local_number'];
+    $dataArrayInternal[$row2['local_number']]['calving_date']=$row2['fresh_date'];
+       
+    }
+    
+    print("\r\nCows who are currently in lacatation with calving date)"."\r\n");
+    print_r($dataArrayInternal);   
+    
+    return $dataArrayInternal;
+}
+
+
+
+/**
+* 
+* Alpro has a convoluted way to add inseminations. We really only want to add 1 new insemination.
+ * So we just take the latest inseminations and see if they are added and if not then add it. 
+ * We then have to change the date of the insemination we just added to the date it actually happened. 
+*/
+function setCowInseminations($ret='',$cowNumberArray) {
+foreach ($cowNumberArray as $cowNum => $val) {
+$cowNum=$val['local_number'];
+$sireNameX=$val['service_sire_short_name'];
+$insemDateX=date('Ymd',strtotime($val['event_time'])); //always outputs 8 chars, so no trim needed.
+
+//spacing is absolutely critical with this protocol. 
+$cowNumX=str_pad(trim($cowNum), 6, ' ', STR_PAD_LEFT);
+$sireNameX=str_pad(trim($sireNameX), 15, ' ', STR_PAD_LEFT);
+$insemDateX=str_pad(trim($insemDateX), 8, ' ', STR_PAD_LEFT);
+$insemNumberX=str_pad(trim($val['insem_num']), 2, ' ', STR_PAD_LEFT);
+
+$ret=$ret."CN Cows latest insemination date for cow number $cowNum"."\r\n";
+$ret=$ret.'CN      |cow # '.$cowNumX.'|today|sirename|insem date '."\r\n";
+$commandStr='DN 390006  00900070 060  00304054 010 00300374 150 00300037 020'."\r\n";  //mark insemination today,
+$ret=$ret.preg_replace('/\h+/', '', $commandStr); //replaces spaces and tabs, not line feeds, makes easier to read.
+$ret=$ret."VN390006{$cowNumX}1{$sireNameX}{$insemNumberX}"."\r\n";
+$commandStr2='DN 390006  00900070 060  00300357 080  '."\r\n";  // then change date to when it actually happened. 
+$ret=$ret.preg_replace('/\h+/', '', $commandStr2); //replaces spaces and tabs, not line feeds, makes easier to read.
+$ret=$ret."VN390006{$cowNumX}{$insemDateX}"."\r\n";
+}
+print($ret); 
+return $ret;
+}
+
+public function findCowsInseminations() {
+
+   //get from INTERNAL system
+    //gets the latest completed breeding or embryo for every cow.
+    //NOTE: calculate_number_of_breeding_since_fresh only supports breedings, this should be ok, since no more embryo transfers in 2020.
+    $sql2 = <<<SQL
+        
+SELECT recipient_local_number as local_number,service_sire_short_name,event_time,bovinemanagement.calculate_number_of_breeding_since_fresh(table_id)
+from (
+   SELECT a.*, row_number() over (partition by a.recipient_bovine_id ORDER BY event_time desc) r 
+   FROM bovinemanagement.combined_breeding_embryo_view a WHERE event_time is not null AND recipient_bovine_id IN (SELECT id FROM bovinemanagement.bovinecurr) 
+) as foo
+WHERE r=1 limit 2
+
+
+SQL;
+    
+    $res2 = $this->lrDB->query($sql2);
+    
+    while($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
+    
+    $dataArrayInternal[$row2['local_number']]['local_number']=$row2['local_number'];
+    $dataArrayInternal[$row2['local_number']]['service_sire_short_name']=$row2['service_sire_short_name'];
+    $dataArrayInternal[$row2['local_number']]['event_time']=$row2['event_time'];
+    $dataArrayInternal[$row2['local_number']]['num_insem']=$row2['calculate_number_of_breeding_since_fresh'];
+       
+    }
+    
+ //   print("\r\nCows latest insemination date.)"."\r\n");
+ //   print_r($dataArrayInternal);   
+    
+  //  return $dataArrayInternal;
+   /**
+    * NOW GET COMPARISION LIST FROM ALPRO TO SEE WHAT IS ALREADY IN IT.
+    * 
+    */ 
+    
+    //get from ALPRO system
+  $ret="";
+  $ret=$ret.'CN Get cow last insemination info:'."\r\n";  
+  $ret=$ret.'CN            |cow           |insem date     |sire name     |num of insem'."\r\n";  
+  $commandStr='RN 390006  00900070 060    00300357 080    00300374 150   00300037 020'."\r\n"; 
+  $ret=$ret.preg_replace('/\h+/', '', $commandStr); //replaces spaces and tabs, not line feeds, makes easier to read.
+  $alproIsoLink=new AlproIsoLink($ret); //runs the commands on init
+ 
+  foreach ($alproIsoLink->outArray as $key => $value) {
+   $cowNo=$value[0];
+   $date=$value[1];
+   $sireName=$value[2]; 
+   $numInsem=$value[3]; //use these for more accurate match in future if necessary
+  
+   $dataArrayAlpro[$cowNo]['local_number']=$cowNo;
+   $dataArrayAlpro[$cowNo]['service_sire_short_name']=$sireName;
+   $dataArrayAlpro[$cowNo]['event_time']=$date;
+   $dataArrayAlpro[$cowNo]['num_insem']=$numInsem;
+}
+  print_r($dataArrayAlpro); //DEBUG
+  print_r($dataArrayInternal); //DEBUG
+     
+ //multi dimesional array compare.
+ $cowsToMoveInAlproArray = array_map('unserialize',array_diff(array_map('serialize', $dataArrayInternal), array_map('serialize', $dataArrayAlpro)));
+ 
+   print("\r\nCows that need new insemintation inputted to Alpro"."\r\n");
+   print_r($cowsToMoveInAlproArray);
+
+   return $cowsToMoveInAlproArray;
+    
+    
+}
+
 /**
 *Marks a cow dried off.
+* Alpro has problems, so we only sync cows who are currently dried off.
 */
-function setCowDriedOff($ret='',$cowNumberArray) {
+function setCowLatestDriedOff($ret='',$cowNumberArray) {
 foreach ($cowNumberArray as $cowNum => $val) {
 $cowNum=$val['local_number'];
 $breedState=4; //set to 4, dry off to be confirmed
@@ -586,17 +850,24 @@ $breedStateX=str_pad(trim($breedState), 2, ' ', STR_PAD_LEFT);
 $driedOffBoolX=str_pad(trim($driedOffBool), 1, ' ', STR_PAD_LEFT);
 $dryDateX=str_pad(trim($dryDateX), 8, ' ', STR_PAD_LEFT);
 $ret=$ret."CN Cows is marked as dried off for cow number $cowNum"."\r\n";
-$ret=$ret.'CN      |cow #|stat|bool |date '."\r\n";
-$ret=$ret.'DN39000690007030032304061'."\r\n";
-$ret=$ret."VN390006{$cowNumX}{$breedStateX}{$driedOffBoolX}"."\r\n";
+$ret=$ret.'CN      |cow #|dry date '."\r\n";
+$commandStr='DN 390006  00900070 060 00300194 080  '."\r\n";  //change breeding items state
+$ret=$ret.preg_replace('/\h+/', '', $commandStr); //replaces spaces and tabs, not line feeds, makes easier to read.
+$ret=$ret."VN390006{$cowNumX}{$dryDateX}"."\r\n";
 }
 return $ret;
 }
 
 private function findCowsToMarkDriedOff() {
 
-    //looks for any cows that are currenty in a dry off state in Little river system.
-    $sql2="SELECT * FROM bovinemanagement.drycurr"; 
+
+    //looks for any cows that are currenty in a dry off state in Little river system. We have to do it this way, because otherwise problems occur with alpro makring cows do not milk.
+    $sql2 = <<<SQL
+        
+    SELECT * FROM bovinemanagement.drycurr 
+
+SQL;
+    
     $res2 = $this->lrDB->query($sql2);
     
     while($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
@@ -617,7 +888,7 @@ private function findCowsToMarkDriedOff() {
 
 
 /*
-//comands to run for the class from another script.
+//comands to run for the class from another script, alproSync.
 $xx=new AlproCommands();
 //
 $xx->syncBovineAlive();

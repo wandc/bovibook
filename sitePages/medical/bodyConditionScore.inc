@@ -1,12 +1,8 @@
-<?php 
+<?php
 
-
-
-
-
-
-include_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
-
+/**
+ * 
+ */
 class BodyConditionScore extends BasePage {
 
     
@@ -57,7 +53,7 @@ HTML;
 
     function displayBodyCondQuickForm($bovine_id=null) {
         //only do this for milking cows.
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
 
         $conditionScores = array();
         //condition scores at 0.1 intervals
@@ -121,13 +117,13 @@ HTML;
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id={$this->bovine_id}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id={$this->bovine_id}");
             exit();
         } //end validation
 
@@ -173,7 +169,7 @@ SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY locat
         $dataArr = $resultsOut;
          //var_dump($dataArr);
          $out[]=("<h3>Need to be BC Scored</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'order: false')); 
          return implode($out); 
         
     }
@@ -215,7 +211,7 @@ SELECT *,temp.id as bovine_id FROM temp WHERE current_BCS is null ORDER BY locat
         $dataArr = $resultsOut;
          //var_dump($dataArr);
          $out[]=("<h3>Body Condition Score Log</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'order: false')); 
          return implode($out); 
         
     }
@@ -244,7 +240,7 @@ $returnButtonsAsString='';
         $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
         $form->addElement('hidden', 'tableid', $tableid);
         $form->addElement('hidden', 'tablename', $tablename);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
         // FIXME:HUGE SECURITY HOLE HERE BECAUSE TABLE NAME CAN BE MODIFIED BY
         // USER.
@@ -268,7 +264,7 @@ $returnButtonsAsString='';
              $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
             header($callBackURL);

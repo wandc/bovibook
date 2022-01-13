@@ -1,10 +1,13 @@
 /* holds css code for header file only */
 
+.sidebar .nav-link p {
+    font-size:0.9em;
+}
 
 /* just used as a place holder so page doesn't skip down wheile ajax is loading*/
 #headerReplace {
     height: 40px;
-    background:#605ca8;
+    background:#007bff;
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 10px;   
 }
@@ -14,7 +17,7 @@
     height: 40px;
     margin: 0px;
     padding: 0px;
-    background:#605ca8;
+    background:#007bff;
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 10px;   
     overflow:hidden; /* key to having the inline div's not flow down the page, they instead flow within this container, which they should not??? */
@@ -152,12 +155,15 @@ h2.loginNameBox {
     cursor:pointer; 
     background:url(/images/iconCowHead_hover.svg) no-repeat;  
     padding-right:48px;
-
+    color: black; /* for firefox */
+    text-indent: -40px;
 }
 #bovineSelect:hover
 { 
     background:url(/images/iconCowHead_hover.svg) no-repeat; 
-    background-color: #555299;
+    
+    filter: brightness(0.8);
+      color: black; /* for firefox */
 }
 
 
@@ -189,11 +195,14 @@ select#bovineSelect
     cursor:pointer;
     padding-right:48px;
     background:url(/images/iconCorn_hover.svg) no-repeat;  
+    color: black; /* for firefox */
+    text-indent: -40px;
 }
 #fieldSelect:hover
 { 
     background:url(/images/iconCorn_hover.svg) no-repeat; 
-    background-color: #555299;
+    filter: brightness(0.8);
+    
 }
 
 #fieldSelect:focus {
@@ -222,11 +231,13 @@ select#fieldSelect
     background:url(/images/iconTractor_hover.svg) no-repeat;  
     padding-right:48px;
     margin-left:-6px;
+    color: black; /* for firefox */
+    text-indent: -40px;
 }
 #machineSelect:hover
 { 
     background:url(/images/iconTractor_hover.svg) no-repeat; 
-    background-color: #555299;
+    filter: brightness(0.8);
 }
 
 #machineSelect:focus {

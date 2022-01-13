@@ -9,9 +9,7 @@ error_reporting(-1);
 require_once($_SERVER['DOCUMENT_ROOT'] . 'global.php'); //loads db code.
 //include google api files
 set_include_path($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/' . PATH_SEPARATOR . get_include_path());
-require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Client.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Auth/OAuth2.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . 'framework/google-api-php-client/src/Google/Service/Oauth2.php');
+
 
 
 
@@ -24,7 +22,7 @@ class Oauth2Security {
 
     private static $google_client_id = '830648150001.apps.googleusercontent.com';
     private static $google_client_secret = 'Pekn5Z-vXW4Zr0zgQyTNuqNJ';
-    private static $google_redirect_url = 'https://int.littleriver.ca/';
+    private static $google_redirect_url = $GLOBALS['config']['HTTP']['URL_SHORT'];
     private static $google_developer_key = '830648150001@developer.gserviceaccount.com';
     private static $google_scopes = array('https://www.googleapis.com/auth/userinfo.email','https://www.googleapis.com/auth/userinfo.profile','https://mail.google.com/');
 
@@ -41,7 +39,7 @@ class Oauth2Security {
 
 
         $this->gClient = new Google_Client();
-        $this->gClient->setApplicationName('Login to int.littleriver.ca');
+        $this->gClient->setApplicationName('Login to '.$GLOBALS['config']['HTTP']['URL_DNS']);
         $this->gClient->setClientId(self::$google_client_id);
         $this->gClient->setClientSecret(self::$google_client_secret);
         $this->gClient->setRedirectUri(self::$google_redirect_url);
@@ -285,7 +283,70 @@ error_reporting(-1);
         }
     }
     
+         /* used to see if a user is part of the owner group and can access higher level functions. Different then admin mode which has to be switched too.*/
+    public static function getOwnerAccess() {
+         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) { 
+             return 1;
+         }
+             return 0;
+    }
     
+    
+  
+    
+        /* used to see if a user who is part of the admin group has switched to admin mode. */
+    public static function getAdminMode() {
+        if (isset($GLOBALS['Oauth2']['userArr']['adminMode'])) {
+            if (($GLOBALS['Oauth2']['userArr']['adminMode']) == 1) {          
+                return 1;
+            }
+        }
+        return 0;//0 false.
+    }
+
+     /* used to visually indicate an area has admin secure items you cant access */
+    public static function showAdminSecureAreaLockedOut($name) {
+     return  ("<p><span class='glyphicon glyphicon-lock'>$name</span></p>");               
+    }
+    
+    //change user in admin group to admin mode. 
+    //all cases fail to no access.
+    //used when user presses admin on/off button
+    public static function setAdminMode($onOff) {
+     
+        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) { //only works if user is in admin group
+            if ($onOff == 1) {
+              
+                $GLOBALS['Oauth2']['userArr']['adminMode'] = 1; //kind of useless to set because of page refresh and html stateless.
+                if (!empty($_SESSION['access_token'])) {
+                    $tok=json_decode($_SESSION['access_token']);        
+                    $sql="UPDATE wcauthentication.oauth_access_tokens SET scope='admin' where access_token='{$tok->access_token}'";
+                    $res = $GLOBALS ['pdo']->exec($sql);
+
+                    return 1;
+                }     
+            } else {
+             
+                $GLOBALS['Oauth2']['userArr']['adminMode'] = 0;
+                    if (!empty($_SESSION['access_token'])) {
+                    $tok=json_decode($_SESSION['access_token']);    
+                    $sql="UPDATE wcauthentication.oauth_access_tokens SET scope='null' where access_token='{$tok->access_token}'";          
+                    $res = $GLOBALS ['pdo']->exec($sql);
+                    }
+                    return 0;
+            }
+           $GLOBALS['Oauth2']['userArr']['adminMode'] = 0;
+                    if (!empty($_SESSION['access_token'])) {
+                    $tok=json_decode($_SESSION['access_token']); 
+                    $sql="UPDATE wcauthentication.oauth_access_tokens SET scope='null' where access_token='{$tok->access_token}'";
+                     $res = $GLOBALS ['pdo']->exec($sql);
+                    }
+                    return 0;  
+          
+    }
+    return 0;  
+    }
+
     public static function getAuthData($array) {
         if ($array ='groups')
         {   
@@ -368,7 +429,7 @@ error_reporting(-1);
         
         //used to load CSS files.
         include_once($_SERVER['DOCUMENT_ROOT'].'template/basePage.php');
-        BasePage::pageCSS();
+        print(BasePage::pageCSS());
     }
 
     

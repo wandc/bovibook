@@ -9,7 +9,7 @@
     width: 384px;
     height: auto;
     min-height: 300px;
-    border-color: #605ca8;
+    border-color: #007bff;
     border-style: solid;
     border-width: 1px;
     border-radius: 1em;
@@ -28,7 +28,7 @@
 
     padding:0px;
     margin:0px;
-    background: #605ca8;
+    background: #007bff;
     padding-left:.25em; 
     margin-bottom:.25em;
     color: #fff;
@@ -79,4 +79,60 @@
 .flora {
     position: relative;
     margin-top:10px;
+}
+
+.label-custom-seedingscheduled , .label-custom-hormone {
+    background-color:#3c8dbc  !important;
+}
+
+.label-custom-bagyield {
+    background-color: #f39c12   !important;
+}
+
+.label-custom-spraying {
+    background-color: #f56954  !important;
+}
+
+.label-custom-yield {
+    background-color: #f39c12  !important;
+}
+
+.label-custom-seeding {
+    background-color: #D81B60  !important;
+}
+
+.label-custom-seedingscheduled {
+    background-color:   !important;
+}
+
+.label-custom-fertilized {
+    background-color: #39CCCC  !important;
+}
+
+.label-custom-harvested {
+    background-color:  #d2d6de !important;
+}
+
+.label-custom-generalcomment {
+    background-color:  #007bff !important;
+}
+
+.label-custom-forageanalysis {
+    background-color: #3c8dbc   !important;
+}
+
+.label-custom-lime {
+    background-color:   !important;
+}
+
+.label-custom-manure {
+    background-color:  #d2d6de !important;
+}
+
+.label-custom-soiltest {
+    background-color: #ff851b  !important;
+}
+
+.label-custom-tillage {
+    background-color: #111111 !important;
 }

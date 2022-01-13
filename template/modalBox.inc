@@ -9,13 +9,13 @@ class ModalBox {
         $this->uniqueid = $uniqueid;
     }
 
-    public function button() {
+    public function button($icon='fas fa-chart-bar') {
         $html = <<<HTML
         <!-- view modal -->
 <button class="btn  btn-modal"
-        data-toggle="modal"
+        data-widget="modal"
         data-target="#fsModal-{$this->uniqueid}">
- <i class="ion ion-stats-bars"></i>
+ <i class="$icon"></i>
 </button>
 <!-- view modal -->
 HTML;
@@ -48,7 +48,7 @@ HTML;
       <!-- header -->
       
       <!-- body -->
-      <div class="modal-body">
+      <div class="modal-body modal-modify-background">
        $content
       </div>
       <!-- body -->

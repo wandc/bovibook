@@ -4,10 +4,9 @@
  *
  */
 if (defined('STDIN')) { //when called from cli, command line
-    //$_SERVER['DOCUMENT_ROOT']='/var/www/int/';
-    require_once('../global.php');
+    include_once('../global.php');
 } else { //when called any other way
-    include_once($_SERVER['DOCUMENT_ROOT'] . 'global.php');
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/global.php');
 }
 
 /*

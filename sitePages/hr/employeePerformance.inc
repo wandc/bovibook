@@ -20,7 +20,7 @@ FROM temp
 ORDER BY employee,milking_number,date DESC";
     
     print ("<h3>Miking Parlor Stats</h3>");
-        print( (new JQueryDataTable)->startBasicSql($sql)); 
+        print( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql)); 
         
        
     }

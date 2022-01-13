@@ -4,7 +4,6 @@
 
 require_once("global.php"); 
 
-error_reporting(E_ALL ^ E_DEPRECATED ^ E_WARNING ^ E_NOTICE);
 
 
 
@@ -38,8 +37,6 @@ Class Index {
     public $app;
 
     public function __construct() {
-
-
 
         $xxx = $this;
 
@@ -121,4 +118,3 @@ HTML;
 }//end class
 
 new Index(); //the start of it all!!!
-?>

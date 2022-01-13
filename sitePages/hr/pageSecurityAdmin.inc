@@ -22,7 +22,7 @@ SELECT page.pageid,page.title, (SELECT array(SELECT trim(page_security.group) FR
 FROM intwebsite.page order by page.pageid ;
 SQL;
 
-        print((new JQueryDataTable)->startBasicSql($sql));   
+        print((new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql));   
        
     }
 

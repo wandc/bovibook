@@ -32,36 +32,16 @@ class MedicalCase extends TabPage {
         $this->renderTabs($tabArray);
     }
 
-    function showMedicalAccordion() {
-
-        $accordionArray[1]['name'] = 'General Treatment';
-        $accordionArray[2]['name'] = 'Mastitis Treatment';
-        $accordionArray[3]['name'] = 'Temperature';
-        $accordionArray[4]['name'] = 'Ketone';
-        $accordionArray[5]['name'] = 'Magnet';
-        $accordionArray[6]['name'] = 'Comment';
-        $accordionArray[7]['name'] = 'Vet Check';
-        $accordionArray[8]['name'] = 'Schedule Action';
-        $accordionArray[9]['name'] = 'Diagnosis';
-        $accordionArray[10]['name'] = 'Open/Close';
-
-        $accordion = new AccordionImplementationMedicalQuickforms();
-        $accordion->setCSS('accordionNarrow');
-        $accordion->render($accordionArray);
-    }
-
-    function pageJavascript() {
-        
-    }
+   
 
 // end custom javascript
 
     protected function tab1() {
-        $this->currentCases();
+        print($this->currentCases());
     }
 
     protected function tab2() {
-        $this->displayMedicalCases('default', false);
+       print($this->displayMedicalCases('historical', false));
     }
 
     protected function tab3() {
@@ -80,18 +60,31 @@ class MedicalCase extends TabPage {
     /**
      * everything in current cases tab
      */
-    private function currentCases() {
-        print($this->errorNoMedicalCaseOpenAndShouldBe());
-         print("<div class='row'>");
+    public function currentCases() {
+    
+$sickBox=(new BootStrap)->plainCard('99 Fresh/Sick Group', (new SickGroup)->sickCowBoxes());
        
-        print("<div class='col-sm-4 col-sm-push-8'>");      
-	  $this->showMedicalAccordion();
-        print("</div>");
-         print("<div class='col-sm-8 col-sm-pull-4'>");
-         print($this->displayNext8HoursScheduledMedicines());
-         $this->displayMedicalCases('default', true);
-        print("</div>");
-        print("</div>");
+        
+        
+    $cls=(new bovineQueryMedicalAccordian);
+    $MedicineScheduled=(new MedicineScheduled)->displayNext8HoursScheduledMedicines();
+
+$left = <<<HTML
+        $sickBox
+        {$this->displayMedicalCases('current_sick', true)}
+          {$this->displayMedicalCases('current_rest', true)}
+        HTML; 
+           
+        $right = <<<HTML
+                {$this->errorNoMedicalCaseOpenAndShouldBe()}
+                  {$this->displayHalocurError()}
+            {$MedicineScheduled}
+           {$cls->showMedicalCaseAccordion()}
+        HTML; 
+               
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);
+
 
     }
 
@@ -112,7 +105,7 @@ SELECT bovine_id,local_number,full_name,count from temp where count >2
 SQL;
           $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-            $str=$str.BootStrap::warningNotify("Medical Case should be opened for: #{$row['local_number']}, {$row['count']} events in the last two weeks!");
+            $str=$str.(new BootStrap)->warningNotify("Medical Case should be opened for: #{$row['local_number']}, {$row['count']} events in the last two weeks!");
         }
      return $str;
         
@@ -123,6 +116,47 @@ SQL;
         // nothing
     }
 
+    
+    /* used for Halocur given more than once per day */
+    public function halocurError() {
+        $sql=<<<SQL
+               with temp as (
+SELECT distinct bovine_id,local_number,full_name,count(medicine_index) 
+FROM bovinemanagement.medicine_administered 
+LEFT JOIN bovinemanagement.bovine ON bovine_id=bovine.id
+WHERE medicine_index=85 AND event_time 
+BETWEEN now() - (interval '2 days') AND now() GROUP BY bovine_id,local_number,full_name,medicine_index
+) SELECT * FROM temp WHERE count >=3
+SQL;
+       $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);         
+       
+        $x=array();
+//change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Animal']= (new JQueryDataTable())->formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+               
+                $x[]['home_page'] =   $rowOut['Animal'] .' exceeds the max dosage of once per day. '. $row['count'] .' treatements in the last 2 days.' ;
+          
+        }
+        
+           //output
+        $output['data'] = $x;
+        return ($output);
+    }
+    
+    function displayHalocurError() {
+
+        $ajaxUrl = $GLOBALS['config']['HTTP']['JSON_API'].'/64/halocurError';
+        $out[] = ((new BootStrap)->bootstrapSmallBoxAjax('HaloCur', $ajaxUrl, 53, null, 'fas fa-skull-crossbones'));
+
+        return implode($out);
+    }
+    
+    
     /**
      * shows grpahs of how many cases a year and when they happened.
      * 
@@ -243,107 +277,20 @@ ORDER BY month
      * ********************************
      */
     function displayListOfMedecines($mode = 'default') {
+       $sql=<<<SQL
+               SELECT trade_name as "Trade Name",local_instructions as "Local Instructions",medicine_class as "Medicine Class" FROM bovinemanagement.medicine ORDER by trade_name
+               SQL;
 
-        $sql = "SELECT trade_name,local_instructions,medicine_class FROM bovinemanagement.medicine ORDER by trade_name";
-        print( (new JQueryDataTable)->startBasicSql($sql)); 
+        print( (new JQueryDataTable)->startBasicSql('Types of Medicine', $sql)); 
        
     }
 
     
     
-    function displayNext8HoursScheduledMedicines() {
-        $dt = new JQueryDataTable();
-        $columnsStr = <<<EX
-            {
-                 data: "event_time_raw",
-                 "visible": false,
-                "searchable": false
-            },                
-            {
-                data: "local_number",
-                title: "Animal",
-                type: "num-html"
-            },
-            {
-                data: "paticularTreatmentInfo",
-                title: "Particular Treatment Info"
-            },
-        
-            {
-                data: "action2",
-                title: "Action 2"
-            }
-EX;
-        print($dt->start(64, 'next8HoursScheduledMedicines', $mode, $columnsStr));
-        
-
-        //    print($dt->startLocal($this->AllHeats7Days(''),$columnsStr,null,' "paging": false'));     
-    }
     
     
-    function next8HoursScheduledMedicines() {
-         $sql = "
-SELECT medical_summary.id,local_number,type,event_time,text,userid,full_name,bovine_id FROM bovinemanagement.medical_summary 
-LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
-		WHERE type=ANY(ARRAY['Scheduled Meds','Scheduled Action']) AND event_time <= (current_timestamp + interval '8 hours')	AND event_time >= (current_timestamp - interval '8 hours')	
-		ORDER BY medical_summary.event_time ASC
-   "; 
-         
-          $statement = $GLOBALS['pdo']->prepare($sql);
-        $statement->execute();
-        //get data
-        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        //change presentation
-        foreach ($results as &$row) {
-            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
-            $row['event_time_raw'] = strtotime($row['event_time']);
-            $row['paticularTreatmentInfo'] =  $this->printparticularTreatmentInfoJQ($row);
-        $row['action2'] = (new MedicineScheduled())->printActionButtonMedicalScheduledComplete($row['id'],null,$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
-        }
-
-        //output
-        $output['data'] = $results;
-        return ($output);
-    }
     
-    
-    /**
-     * display list of medicines scheduled in the next 8 hours.
-     */
-    function displayNext8HoursScheduledMedicinesOld() {
-
-  
-         $sql = <<<SQL
-SELECT medical_summary.id,local_number,type,event_time,text,userid,full_name,bovine_id FROM bovinemanagement.medical_summary 
-LEFT JOIN bovinemanagement.bovineall ON bovineall.id = medical_summary.bovine_id
-		WHERE type='Scheduled Meds' AND event_time <= (current_timestamp + interval '8 hours')	
-		ORDER BY medical_summary.event_time ASC
-SQL;
-
-
-        $statement = $GLOBALS['pdo']->prepare($sql);
-        $statement->execute();
-        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
-        //change presentation
-        foreach ($results as &$row) {
-
-            $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
-            $rowOut['Scheduled Meds'] = $this->printparticularTreatmentInfo($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
-
-
-            $resultsOut[] = $rowOut;
-        }
-
-        //output
-        $dataArr = $resultsOut;
-        //var_dump($dataArr);
-        $out[] = ("<h3> displayNext8HoursScheduledMedicinesOld</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
-        return implode($out);
-    }
-
     /**
      * ********************************
      */
@@ -356,8 +303,29 @@ SQL;
      */
     function medicalCases($request) {
        $current = Sanit::reqVal('item', false, 'INT');
-
-         $sql = "SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim FROM bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id WHERE close_date is NULL ORDER BY local_number,open_date";
+      
+       
+if ($current==1) {       
+$sql = <<<SQL
+SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim,
+(SELECT diagnosis FROM bovinemanagement.medical_diagnosis LEFT JOIN  bovinemanagement.medical_diagnosis_type ON diagnosis_type_id = medical_diagnosis_type.id WHERE medical_case_id=medical_case.id ORDER BY event_time DESC limit 1) as diagnosis
+FROM bovinemanagement.medical_case 
+LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id 
+WHERE close_date is NULL 
+ORDER BY local_number,open_date
+SQL;
+}
+else {
+$sql = <<<SQL
+SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim,
+(SELECT diagnosis FROM bovinemanagement.medical_diagnosis LEFT JOIN  bovinemanagement.medical_diagnosis_type ON diagnosis_type_id = medical_diagnosis_type.id WHERE medical_case_id=medical_case.id ORDER BY event_time DESC limit 1) as diagnosis
+FROM bovinemanagement.medical_case 
+LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id 
+WHERE open_date >= (current_date - interval ' 2 years')
+ORDER BY local_number,open_date
+SQL;
+}
+                 
          
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
@@ -369,9 +337,10 @@ SQL;
            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
            $row['event_time_raw'] = strtotime($row['open_date']);
            $row['info'] = $this->printBovineMedicalCaseInfo($row);
+            //$row['diagnosis'] = 'hh';
            //$row['treatments'] =$this->printMedecineAdministeredForAPaticularMedicalCase($row);
-           $row['treatments'] = json_encode($this->dOne($row));
-            $row['treatments2'] = ($this->dTwo($row));
+           $row['treatments'] = ($this->schedMedsOnBovine($row));
+            $row['treatments2'] = ($this->treatmentHistorySubTableBovine($row));
        //     $row['action'] = $this->printActionButtons2($row['bovine_id'], $row['event_time'],$row['estrus_id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
         //    $row['event_time'] = date("l M d H:00", strtotime($row['event_time']));  //has to be at end.
           
@@ -381,93 +350,176 @@ SQL;
 
         
           //output
-        $output['data'] = $results;
-        return ($output);
+    //    $output['data'] = $results;
+      //  return ($output);
     }
+    
+    
+    
+    /*
+     * 2020 icons display
+     * 
+     */
     function displayMedicalCases($mode = 'default', $current = true) {
-        $dt = new JQueryDataTable();
-        $columnsStr = <<<EX
-                {
-                data: "id",
-                title: "Case #"
-        },         
-            {
-                data: "local_number",
-                title: "Animal",
-                type: "num-html"
-            },
-           
+       /*combined open and all sick group */
+        /**
+         SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim, 
+(SELECT diagnosis FROM bovinemanagement.medical_diagnosis LEFT JOIN  bovinemanagement.medical_diagnosis_type ON diagnosis_type_id = medical_diagnosis_type.id WHERE medical_case_id=medical_case.id ORDER BY event_time DESC limit 1) as diagnosis
+FROM bovinemanagement.medical_case 
+LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id 
+WHERE close_date is NULL AND location_id=39
+UNION
+
+SELECT null as id,bovinecurrall.id as bovine_id,null as open_date, null as close_date, null as close_userid, full_name,local_number,location_name,date_trunc('day',current_date-bovinecurrall.fresh_date) as dim,null as diagnosis
+FROM bovinemanagement.bovinecurrall
+LEFT JOIN bovinemanagement.medical_case ON bovinecurrall.id=medical_case.bovine_id 
+WHERE open_date  is null AND location_id=39 
+ORDER BY local_number,open_date 
+         */
+        
+        switch ($mode) {
+            case 'current_sick':
+                $numberPerPage = 1000;
+                $title = 'Open Cases - 99 Fresh/Sick Group';
+                $sql = <<<SQL
+SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim, 
+(SELECT diagnosis FROM bovinemanagement.medical_diagnosis LEFT JOIN  bovinemanagement.medical_diagnosis_type ON diagnosis_type_id = medical_diagnosis_type.id WHERE medical_case_id=medical_case.id ORDER BY event_time DESC limit 1) as diagnosis
+FROM bovinemanagement.medical_case 
+LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id 
+WHERE close_date is NULL AND location_id=39
+ORDER BY local_number,open_date 
+SQL;
+                break;
+            case 'current_rest':
+                $numberPerPage = 1000;
+                $title = 'Open Cases - Other Groups';
+                $sql = <<<SQL
+SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim, 
+(SELECT diagnosis FROM bovinemanagement.medical_diagnosis LEFT JOIN  bovinemanagement.medical_diagnosis_type ON diagnosis_type_id = medical_diagnosis_type.id WHERE medical_case_id=medical_case.id ORDER BY event_time DESC limit 1) as diagnosis
+FROM bovinemanagement.medical_case 
+LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id 
+WHERE close_date is NULL AND location_id!=39
+ORDER BY local_number,open_date 
+SQL;
+                break;
+            case 'historical':
+                $numberPerPage = 10;
+                $title = 'Historical Cases';
+                $sql = "SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovine.full_name, bovine.local_number FROM bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovine ON bovine.id=medical_case.bovine_id WHERE close_date >= (current_date - interval '12 months') ORDER BY open_date DESC";
+                break;
             
-            {
-                data: "open_date",
-                title: "Case Open",
-                type: "date"
-            },
-            {
-                data: "dim",
-                title: "DIM"
-            },
-            {
-                data: "info",
-                title: "Info"
-            },
-            {
-                data: "treatments",
-                title: "Treatments"
-            },{
-                data: "treatments2",
-                title: "Treatments2"
+            default:
+                throw new Exception('Error: pick a valid medical case type.');
+                break;
+        }
+
+
+         $statement = $GLOBALS['pdo']->prepare($sql);
+         $statement->execute();
+       
+         if (($statement->rowCount() == 0) && ($current == true)) {
+             return ('<h3>No Current Medical Cases</h3>');
+        }
+        
+        
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+    
+        //change presentation
+        foreach ($results as &$row) {
+          
+            //name
+            $animalName=JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name'], 'display-3');
+            
+            //parlour data
+            $milkProd = '';
+            $milkProdData = (new BovineQuery)->getLatestMilkingSimple($row['bovine_id'], 3,true);
+            $milkProd = (new BootStrap)->plainCard('Parlour', $milkProdData);
+            
+            //
+            $sickParam=(new SickGroup)->sickGroupParams($row['bovine_id']);
+            $schedMeds=($this->schedMedsOnBovine($row));
+            
+            //stats
+            $diagnosis=(empty($row['diagnosis']))?:(new BootStrap)->plainCardPrimarySolidAll('Diagnosis', $row['diagnosis']);
+            $caseOpen=(new BootStrap)->plainCardPrimarySolidAll('Open Date', JQueryDataTable::formattedDate($row['open_date']));
+            $location=(new BootStrap)->plainCardPrimarySolidAll('Location', ($row['location_name']));
+            $dim=(new BootStrap)->plainCardPrimarySolidAll('DIM', $row['dim']);
+            $maxTreatmentsMastitis=  $this->maximumTreatmentsMastitis($row['id']);
+            
+            //treatement past present future
+            $treatments=($this->treatmentHistorySubTableBovine2($row));
+            
+            
+          
+
+            
+            //choose output mode
+             if ($mode == 'current_sick') {
+                 
+                 $left=<<<LEFT
+                         $animalName
+                         $diagnosis
+                         $caseOpen
+                         $location
+                         $dim
+                         $milkProd
+                 LEFT;
+                 
+                  $right=<<<RIGHT
+                        $treatments
+                        $maxTreatmentsMastitis
+                 RIGHT;
+                 
+                 $a=(new BootStrap)->twoThirdsOneThird($left,$right);
+                 
+                 
+                 $resultsOut[]=(new BootStrap)->plainCardPrimarySolid($row['local_number'], ($a));  
+             }
+            else {
+                  $rowOut['Animal'] = $animalName;
+                  $rowOut[' '] = $schedMeds;
+                  $rowOut['Stats'] = $diagnosis. $caseOpen;
+                  $rowOut['Treatments'] = ($this->treatmentHistorySubTableBovine2($row));
+                  $resultsOut[]=$rowOut;  
             }
-                
-           
-EX;
-        print("<h3>Medical Cases</h3>");
-        print($dt->start(64, 'medicalCases', $current, $columnsStr));
-        
-        
-        
-    
-    
-    
-      //   print( (new JQueryDataTable)->startBasic($output,'searching: false,ordering: false,info: false'));
+          
          
-
-        // Current cases
-        if ($current == true) {
-            $numberPerPage = 1000;
-            $sql = "SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovinecurrall.full_name, bovinecurrall.local_number, bovinecurrall.location_name, date_trunc('day',current_date-bovinecurrall.fresh_date) as dim FROM bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.id=medical_case.bovine_id WHERE close_date is NULL ORDER BY local_number,open_date";
-        } else {
-            $numberPerPage = 10;
-            // historical cases
-            $sql = "SELECT medical_case.id,bovine_id,open_date,close_date,close_userid,bovine.full_name, bovine.local_number FROM bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovine ON bovine.id=medical_case.bovine_id ORDER BY open_date DESC,local_number";
-        }
-        $res = $GLOBALS['pdo']->query($sql);
-        if (($res->rowCount() == 0) && ($current == true)) {
-            print ('<h3>No Current Medical Cases</h3>');
         }
 
-   //     $dg = new DataGridLR($sql, $numberPerPage);
-     //   $dg->datagrid->addColumn(new Structures_DataGrid_Column('Animal', null, '', array('' => ''), null, array('DataGridHelper', 'printFormattedBovineNameAndNumberLarge()')));
+       //output
+        $dataArr = $resultsOut;
+      
+        
+           if ($mode == 'current_sick') {
+                 $out[]=implode($dataArr);  
+           }else {
+                     $out[]=( (new JQueryDataTable(false))->startBasicArrayOpt($title, $dataArr,'searching: true,paging: false,ordering: false,info: false'));    
+           }
+           
 
-        if ($current == false) {
-     //       $dg->datagrid->addColumn(new Structures_DataGrid_Column('Case #', 'id', '', array('' => ''), null, null));
-        }
-        if ($current == true) {
-          //  $dg->datagrid->addColumn(new Structures_DataGrid_Column('Info', null, '', array('' => ''), null, array('MedicalCase', 'printBovineMedicalCaseInfo()')));
-        }
-      // $dg->datagrid->addColumn(new Structures_DataGrid_Column('Open Date', null, '', array('' => ''), null, array('MedicalCase', 'printOpenDate()')));
-       // $dg->datagrid->addColumn(new Structures_DataGrid_Column('Treatments', null, '', array('' => ''), null, array('MedicalCase', 'printMedecineAdministeredForAPaticularMedicalCase()')));
-
-        if ($current == false) {
-       //     $dg->datagrid->addColumn(new Structures_DataGrid_Column('Close Date', null, '', array('' => ''), null, array('MedicalCase', 'printCloseDate()')));
-        }
-
-    //    print($dg->render('datagrid datagridParent'));
-
-        if ($mode == 'default') {
-
-      //      $dg->pager();
-        }
+         
+        
+         
+         /*
+          * change the card based on what we are displaying.
+          */
+         switch($mode) {
+             case 'current_sick':
+             return  (new BootStrap)->plainCardWarningSolidAll($title, implode($out));
+                 break;
+              case 'current_rest':     
+                  return  (new BootStrap)->plainCardSecondarySolidAll($title, implode($out));
+              break;
+            case 'historical':
+                   return  (new BootStrap)->plainCardPrimarySolid($title, implode($out));
+                break;
+              default:
+                throw new Exception('Error: pick a valid medical case type 2.');
+                break;   
+                
+         }
+         
+         
     }
 
     /**
@@ -490,20 +542,32 @@ EX;
         $record ['location_name'];
 
         $str = '';
-        $str = $str . '' . $record ['location_name'] . '<br/>';
-        if ($record ['dim'] != '') {
-            $str = $str . 'dim: ' . $record ['dim'] . '<br/>';
-        }
+        $str = $str . '<p>Case #: ' . $record ['id'] . '</p>';
+        $str = $str . '<p>Location: ' . $record ['location_name'] . '</p>';
+        
         // only show milk withholding if it is in the future, else it doesn't
         // apply
+          $str = $str .'<p>';
         if (strtotime($row ['milk_withholding']) > strtotime("now")) {
-            $str = $str . '<span id=\'colourBack\'>milk withhold until: ' . date('D M j/Y ga', strtotime($row ['milk_withholding'])) . '</span><br/>';
+            $str = $str . (new BootStrap)->dangerCallout('Milk Withhold until: '.date('D M j/Y ga', strtotime($row ['milk_withholding'])));
         }
+        else {
+               $str = $str . (new BootStrap)->sucessCallout('Milk Clear');
+        }
+        
+         $str = $str .'</p>';
+          $str = $str .'<p>';
+        
         // only show beef withholding if it is in the future, else it doesn't
         // apply
         if (strtotime($row ['beef_withholding']) > strtotime("now")) {
-            $str = $str . 'beef withhold until: ' . date('D M j/Y ga', strtotime($row ['beef_withholding'])) . '<br/>';
+             $str = $str . (new BootStrap)->warningCallout('Beef Withhold until: '.date('D M j/Y ga', strtotime($row ['beef_withholding'])));
         }
+        else
+        {
+              $str = $str . (new BootStrap)->sucessCallout('Beef Clear');
+        }
+         $str = $str .'</p>';
 
         // show too many treatments warning
         $str = $str . self::maximumTreatmentsMastitis($record['id']);
@@ -527,14 +591,15 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
 
             if ($row['count'] >= 4) {
-                $str = $str . "<span id='#colourBackYellow'>Max Treatment Reached: {$row['trade_name']} at {$row['location']}. Take milk Sample.</span><br/>";
+             $title=(new BootStrap)->dangerSpan('Max Treatment Reached');
+                 $str = $str .    (new BootStrap)->dangerCallout("$title: {$row['trade_name']} at {$row['location']}. Take milk Sample.<br/>");
             }
         }
         return $str;
     }
 
     
-    function dOne($record){
+    function schedMedsOnBovine($record){
           $sql1 = "
       SELECT id,event_time,type,text,userid,bovine_id 
          FROM temp_medical_summary 
@@ -549,44 +614,120 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        //change presentation
+         $results2=array();
         foreach ($results as &$row) {
-    //  $row['short_nameX']=  '<a href="'.$GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number'])."\">{$row['short_name']}</a>";
-     // $row['sexed_semen']= ( $row['sexed_semen']=='t' ? 'true' : '');
-      // $row['reserved']= ( $row['reserved']=='t' ? 'true' : '');
-           
+        $row2['date']=date('D jS H:00',strtotime($row['event_time']));
+        $row2['text']=$row['text'];
+        $results2[]=$row2;
         }
+        
+        
+        if (empty($results2)) {
+            return null;
+        }else {
+            return $this->build_table($results2);
+        }
+
+         
+        
+        
+         // $out[]='</ul>';
         //output
-        $output['data']=$results;
-        return $output['data'];
+       
+        //return implode($out);
     }
     
-    function dTwo($record) {
-               $sql = "
-    (SELECT id,event_time,type,text,userid,bovine_id,false as colour FROM temp_medical_summary WHERE temp_medical_summary.medical_case_id={$record['id']})
+    /*
+     * shows treatment list like bovinequery page
+     * 
+     */
+    function treatmentHistorySubTableBovine2($record) {
+        
+        
+          $sql = "
+    (SELECT id,tablename,event_time,type,text,userid,raw_value,bovine_id,false as colour,wcauthentication.initials(userid) AS initials,'bovinemanagement' as schema FROM temp_medical_summary WHERE temp_medical_summary.medical_case_id={$record['id']})
       UNION
-    (SELECT id,event_time,type,text,userid,bovine_id,true as colour FROM temp_medical_summary WHERE temp_medical_summary.bovine_id={$record['bovine_id']} AND (type='Scheduled Meds' OR type='Scheduled Action')
+    (SELECT id,tablename,event_time,type,text,userid,raw_value,bovine_id,true as colour,wcauthentication.initials(userid) AS initials,'bovinemanagement' as schema FROM temp_medical_summary WHERE temp_medical_summary.bovine_id={$record['bovine_id']} AND (type='Scheduled Meds' OR type='Scheduled Action')
      AND event_time <= (current_timestamp + interval '8 hours')) ORDER BY event_time DESC ,type ASC 
    ";
     
          $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $results2=array();
+        //change presentation
+        $outArrayOld=array();
+        $outArrayCurrent=array();
+        $outArrayFuture=array();
+        foreach ($results as &$row) {
+           
+            //markup text for things like temp out of range and ketones, other text flows through.
+            $text=(new BovineQueryMedicalLog)->medEventsMarkup($row['tablename'],$row['text'],$row['raw_value']);
+            $deleteButton=(new BovineQueryMedicalLog)->medicalEventsDeleteButton($row['type'],$row['id'],$row['tablename'],$row['schema'],$record['bovine_id']);
+            //$deleteButton=null;
+            
+            
+            //old stuff
+            if (strtotime($row['event_time']) <= strtotime("-3 day")) {                
+             $outArrayOld= $GLOBALS['MiscObj']->makeTimeString($outArrayOld, strtotime($row['event_time']),  (new BovineQueryMedicalLog)->medEventListItem($row['type'],$row['event_time'],$text,$row['initials'],$deleteButton));
+            }
+            //far future
+            elseif (strtotime($row['event_time']) >= strtotime("+1 day")) {       
+            $outArrayFuture= $GLOBALS['MiscObj']->makeTimeString($outArrayFuture, strtotime($row['event_time']),  (new BovineQueryMedicalLog)->medEventListItem($row['type'],$row['event_time'],$text,$row['initials'],$deleteButton));
+            }
+            //current stuff
+            else {
+               $outArrayCurrent= $GLOBALS['MiscObj']->makeTimeString($outArrayCurrent, strtotime($row['event_time']),  (new BovineQueryMedicalLog)->medEventListItem($row['type'],$row['event_time'],$text,$row['initials'],$deleteButton));
+            }
+                
+       
+        }
+         
+        //now only show them if data exists in them.
+        $out[]=!empty($outArrayFuture) ?(new BootStrap)->plainCardCollapsed('Future',implode($outArrayFuture)) :'';
+        $out[]=!empty($outArrayCurrent) ?(new BootStrap)->plainCard('Current',implode($outArrayCurrent)) :'';
+        $out[]=!empty($outArrayOld) ? (new BootStrap)->plainCardCollapsed('Past',implode($outArrayOld)) :'';
+        
+        return  implode($out);
+        
+    }
+    
+    
+    
+    
+    
+    function treatmentHistorySubTableBovine($record) {
+               $sql = "
+    (SELECT id,tablename,event_time,type,text,userid,raw_value,bovine_id,false as colour FROM temp_medical_summary WHERE temp_medical_summary.medical_case_id={$record['id']})
+      UNION
+    (SELECT id,tablename,event_time,type,text,userid,raw_value,bovine_id,true as colour FROM temp_medical_summary WHERE temp_medical_summary.bovine_id={$record['bovine_id']} AND (type='Scheduled Meds' OR type='Scheduled Action')
+     AND event_time <= (current_timestamp + interval '8 hours')) ORDER BY event_time DESC ,type ASC 
+   ";
+    
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $results2=array();
         //change presentation
         foreach ($results as &$row) {
-            //	event_time	type	text	userid
+            
+        //markup text for things like temp out of range and ketones, other text flows through.
+        $text=(new BovineQueryMedicalLog)->medEventsMarkup($row['tablename'],$row['text'],$row['raw_value']);
+    
         $row2['event_time']= date('M d, Y H:00', strtotime($row['event_time'])); 
         $row2['type']=  $row['type'];
-        $row2['text']=  $row['text'];
+        $row2['text']=  $text;
         $row2['userid']=  $row['userid']; 
-        
-        
-        
+   
         $results2[]=$row2;
         }
 
-         return $this->build_table($results2);
+          if (empty($results2)) {
+            return 'N/A';
+        }else {
+            return $this->build_table($results2);
+        }
+
         
     }
     
@@ -614,7 +755,7 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
     foreach( $array as $key=>$value){
         $html .= '<tr>';
         foreach($value as $key2=>$value2){
-            $html .= '<td>' . htmlspecialchars($value2) . '</td>';
+            $html .= '<td>' . ($value2) . '</td>';
         }
         $html .= '</tr>';
     }
@@ -639,7 +780,7 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
       
          
          
- //$out[]=((new JQueryDataTable)->startBasicSql($sql1));   
+ //$out[]=((new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql1));   
  
  
  
@@ -692,7 +833,7 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
      AND event_time <= (current_timestamp + interval '8 hours')) ORDER BY event_time DESC ,type ASC 
    ";
     
-   //  $out[]=((new JQueryDataTable)->startBasicSql($sql));   
+   //  $out[]=((new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql));   
      
      //   $stmt2 = $GLOBALS['pdo']->query($sql);
       //  $arrayDG = $stmt2->fetchAll(PDO::FETCH_ASSOC);
@@ -710,39 +851,52 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         return implode($out);
     }
 
-    //jquery version of old datagrid function, keep this one in future
-    function printparticularTreatmentInfoJQ($record) {
- 
-        //colour temperature values who are out of the ordinary
-        if ($record ['type'] == 'Temperature') {
-
-            //38.05 C to 39.16 is considered normal, not cited because the experts do not agree.
-            if (($record ['text'] >= 38.05) && ($record ['text'] <= 39.16)) {
+    
+    public function colourKetoneOrNot($value,$suffix=false) {
+        
+        //whether or not to print degree symbol
+        if ($suffix ==true) {
+            $suffix=' mM/ℓ';
+        }else {
+            $suffix='';
+        }
+        
+       //38.05 C to 39.16 is considered normal, not cited because the experts do not agree.
+            if (($value <= 1.2))  {
                 //colour green
-                $record ['text'] = '<b id="boldGreen">' . $record ['text'] . '</b>';
+                $value = '<span class="text-success">' . $value .$suffix. '</span>';
+            }    
+            elseif (($value <= 2.4))  {
+                //colour green
+                $value = '<span class="text-warning">' . $value .$suffix. '</span>'; 
             } else {  //abnormal
-                $record ['text'] = '<b id="boldRed">' . $record ['text'] . '</b>';
+                $value = '<span class="text-danger">' . $value .$suffix. '</span>';
             }
-        }
-
-
-        $event_time = date('D M j/Y ga', strtotime($record ['event_time']));
-        $str = '<div class=\'smallish\'>' . $event_time . '&nbsp;&nbsp;&nbsp;&nbsp;' . 'by ' . $record ['userid'] . '</div> ' . '<b>' . $record ['type'] . ':</b> ' . $record ['text'];
-
-        $x = (strtotime($record ['event_time']) - strtotime('now'));
-
-        // special case to draw attention to events less than 8 hours away OR
-        // events that have passed that are scheduled meds. ANNOYING.
-        if ((($x < 28800) and ( $x > 0)) or ( ($x < 0) and( ( $record ['type'] == 'Scheduled Meds') OR ( $record ['type'] == 'Scheduled Meds')) )) {
-            $str = '<b id="boldBlue"><b id="boldBlink">' . $str . '</b></b>';
-        }
-        //if it is more than 8 hours in the future.
-        elseif (($x >= 28800) AND (($record ['type'] == 'Scheduled Meds') OR ( $record ['type'] == 'Scheduled Meds'))) {
-            $str = '<b id="boldLightBlue">' . $str . '</b>';
-        }
-
-        return $str;
+        
+        return $value;
     }
+    
+    public function colourTempNormalOrNot($value,$degrees=false) {
+        
+        //whether or not to print degree symbol
+        if ($degrees ==true) {
+            $suffix='℃';
+        }else {
+            $suffix='';
+        }
+        
+       //38.05 C to 39.16 is considered normal, not cited because the experts do not agree.
+            if (($value >= 38.05) && ($value <= 39.16)) {
+                //colour green
+                $value = '<span class="text-success">' . $value .$suffix. '</span>';
+            } else {  //abnormal
+                $value = '<span class="text-danger">' . $value .$suffix. '</span>';
+            }
+        
+        return $value;
+    }
+    
+   
     
     //DELETE me when datagrid gone
     function printparticularTreatmentInfo($params) {
@@ -751,13 +905,7 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         //colour temperature values who are out of the ordinary
         if ($record ['type'] == 'Temperature') {
 
-            //38.05 C to 39.16 is considered normal, not cited because the experts do not agree.
-            if (($record ['text'] >= 38.05) && ($record ['text'] <= 39.16)) {
-                //colour green
-                $record ['text'] = '<b id="boldGreen">' . $record ['text'] . '</b>';
-            } else {  //abnormal
-                $record ['text'] = '<b id="boldRed">' . $record ['text'] . '</b>';
-            }
+              $record ['text']=$this->colourTempNormalOrNot($record ['text']);
         }
 
 
@@ -779,117 +927,45 @@ WHERE medical_case_id=$medical_case_id AND for_mastitis=true
         return $str;
     }
 
-    function printOpenDate($params) {
-        extract($params);
-        return date('M j, Y', strtotime($record ['open_date']));
+    
+
+    
+    public static function lookupOpenMedicalCaseForAnimal($bovine_id, $event_time) {
+
+        if (empty($bovine_id) OR (!is_numeric($bovine_id))) { throw new Exception('Bovine ID not valid.'); }
+        if (empty($event_time)) { throw new Exception('Event Time not valid.'); }
+
+        
+        // lookup bovine id and see if there is an open medical case during the
+        // requested event_time
+        $sql = "SELECT id as medical_case_id FROM bovinemanagement.medical_case WHERE bovine_id=$bovine_id AND open_date<='$event_time' AND close_date is NULL";
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+
+        if ((!empty($row)) AND (is_numeric($row['medical_case_id'])) == true) {
+            $medical_case_id = $row ['medical_case_id'];
+        } else {
+            $medical_case_id = null;
+        }
+        return $medical_case_id;
     }
 
-    /**
-     * ********************************
-     */
-    /**
-     * Open a new Medical Case
-     */
 
-    /**
-     * ********************************
-     */
-    public static function openNewMedicalCaseQuickForm() {
-
-        // grab a list of cows who don't have a medical case already open..
+   public static function lookupAnimalsWhoDontHaveOpenMedicalCase() {
+         
+         // grab a list of cows who don't have a medical case already open...
         $res = $GLOBALS['pdo']->query("SELECT bovinecurrall.id,full_name,local_number FROM bovinemanagement.bovinecurrall EXCEPT (SELECT bovine_id,full_name,local_number from bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovine ON bovine.id=medical_case.bovine_id WHERE medical_case.close_date is NULL) ORDER BY local_number");
-        {
-          
-        } // Always check that
-        // result is not an error
+       
         $aniNumber [null] = "Please Select one..."; // dummy value
         while (($row = $res->fetch())) {
             // parse for last word of name and then make an array for the select
             // list.
             $aniNumber [$row [0]] = $row [2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
         }
-
-        // create diagnonis array
-        $diagnosisArray = self::createDiagnosisArray();
-
-
-        $form = new HTML_QuickForm("openNewMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-        
-
-        $form->addElement('header', 'hdrQuickform', 'Open New Medical Case');
-        $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-        $form->addElement('select', 'diagnosis', 'Diagnosis', $diagnosisArray);
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        $form->setDefaults(array('animalNumber' => 0)); // set default to no
-        // variety.
-        // rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-        $form->addRule('diagnosis', 'Diagnosis is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $event_time = date('Y-m-d H:i:sO', strtotime("now"));
-            $pageid = $form->exportValue('pageid');
-            $diagnosis_type_id = $form->exportValue('diagnosis');
-
-            // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
-
-            // don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_case (bovine_id,open_date,open_userid) VALUES ($bovine_id,'$event_time','{$GLOBALS['auth']->getUsername()}')";
-
-            $res = $GLOBALS['pdo']->exec($query);
-            $medical_case_id = $GLOBALS['pdo']->lastInsertId('bovinemanagement.medical_generic_id_seq');
-
-            // insert diagnosis for the just created medical case.
-            $query = "INSERT INTO bovinemanagement.medical_diagnosis (medical_case_id,bovine_id,event_time,diagnosis_type_id,userid) VALUES ($medical_case_id,$bovine_id,'$event_time',$diagnosis_type_id,'{$GLOBALS['auth']->getUsername()}')";
-            $res = $GLOBALS['pdo']->exec($query);
-
-            //go through all medicines administerd in last few weeks and update them to add the case, excluding dry treatments hormones 
-            $query2 = "
-
-UPDATE bovinemanagement.medicine_administered SET medical_case_id=$medical_case_id
-FROM
-(
-SELECT medicine_administered.id
-FROM bovinemanagement.medicine_administered 
-  LEFT JOIN bovinemanagement.medicine ON medicine_administered.medicine_index=medicine.id 
-WHERE bovine_id = $bovine_id AND  medicine_class NOT IN ('hormone','vaccine')  AND for_dry_treatment is false  AND event_time >= ( current_date - interval '14 days')  AND medical_case_id IS NULL
-) AS subquery
-WHERE subquery.id = medicine_administered.id;                
-";
-            $res = $GLOBALS['pdo']->exec($query2);
-            
-            
-            
-            // determine if the commit or rollback
-               $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            }
-            
-            // Close the transaction
-            // $_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo $renderer->toHtml();
-    }
-
-    public static function grabListCowsWithOpenMedicalCase() {
+         return $aniNumber;
+     }
+   
+        public static function grabListCowsWithOpenMedicalCase() {
 
         // grab a list of cows with open medical cases.
         $res = $GLOBALS['pdo']->query("SELECT bovine.id,bovine.full_name,bovine.local_number,medical_case.open_date from bovinemanagement.medical_case LEFT JOIN bovinemanagement.bovine ON medical_case.bovine_id=bovine.id WHERE close_date is null ORDER BY local_number");
@@ -904,550 +980,7 @@ WHERE subquery.id = medicine_administered.id;
             $aniNumber [$row [0]] = $row [2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]) . ' - ' . $row [3];
         }
         return $aniNumber;
-    }
-
-    /**
-     * ********************************
-     */
-    /**
-     * Close an open medical case
-     */
-
-    /**
-     * ********************************
-     */
-    public static function closeMedicalCaseQuickForm() {
-
-        // grab a list of cows with open medical cases.
-        $aniNumber = self::grabListCowsWithOpenMedicalCase();
-
-        $form = new HTML_QuickForm("closeMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-       
-
-        $form->addElement('header', 'hdrQuickform', 'Close Medical Case');
-        $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        $form->setDefaults(array('animalNumber' => 0)); // set default to no
-        // variety.
-        // rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $pageid = $form->exportValue('pageid');
-            $event_time = date('r', strtotime("now"));
-
-            // lookup bovine id and see if there is an open medical case during
-            // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-            // don't put id value, uses next one in DB.
-
-            $query = "UPDATE bovinemanagement.medical_case SET close_date='$event_time',close_userid='{$GLOBALS['auth']->getUsername()}' WHERE id=$medical_case_id";
-
-
-            $res = $GLOBALS['pdo']->exec($query);
-
-            // $_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-    }
-
-    function printCloseDate($params) {
-        extract($params);
-        if ($record ['close_date'] != null) {
-            return date('M d, Y', strtotime($record ['close_date'])) . " by " . $record ['close_userid'];
-        }
-    }
-
-    /**     * ******************************* */
-    /** Medical Case Ketone           */
-
-    /**     * ******************************* */
-    public static function newKetoneForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
-
-
-
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
-        unset($timeArray[null]); //remove null value.
-        //create array of celcius temps.
-        $ketoneArray = array(null => 'Please Select One');
-        for ($counter = 0; $counter <= 20.1; $counter += 0.10) {
-            $value = round($counter, 1); //mmol/liter
-            $ketoneArray["$value"] = $value;
-        }
-
-
-        $form = new HTML_QuickForm("newKetoneForMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-        $form->addElement('header', 'hdrQuickform', 'Ketone');
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-
-        //depending on if we are called from animal query page or not.
-        if ($mode == 'group') {
-            $aniNumber = MedicalCase::grabListCowsWithOpenMedicalCase();     //grab a list of cows with open medical cases.
-            $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-            $form->setDefaults(array('animalNumber' => 0)); //set default to no variety.
-        } elseif ($mode == 'individual') {
-            $form->addElement('hidden', 'animalNumber', $bovine_id);
-        } else {
-            throw new Exception("Group or Individual Mode must be selected for ketone test.");
-        }
-
-
-        $form->addElement('select', 'dateEvent', 'Time of Check', $timeArray);
-        $form->addElement('select', 'ketone', 'Ketone (mmol/liter)', $ketoneArray);
-
-        //submit buttons
-        $submitGroup[] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup[] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-
-
-        //rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-        $form->addRule('ketone', 'Ketone is required', 'required');
-        $form->addRule('dateEvent', 'Event Time is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $tempArray = $form->getElementValue('dateEvent');
-            $event_time = date('Y-m-d H:i:sO', $tempArray[0]);
-            $pageid = $form->exportValue('pageid');
-            $ketone = $form->exportValue('ketone');
-
-            //lookup bovine id and see if there is an open medical case during the requested event_time
-            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_ketone (medical_case_id,bovine_id,event_time,ketone,userid) VALUES ($medical_case_id,$bovine_id,'$event_time','$ketone','{$GLOBALS['auth']->getUsername()}')";
-
-
-            $res = $GLOBALS['pdo']->exec($query);
-
-            //$_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
-            exit();
-        } //end validation
-
-        $form->accept($renderer);
-        echo $renderer->toHtml();
-    }
-
-    /**     * ******************************* */
-    /** Medical Case Magnet           */
-
-    /**     * ******************************* */
-    public static function newMagnetForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
-
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
-        unset($timeArray[null]); //remove null value.
-
-
-        $form = new HTML_QuickForm("newMagnetForMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-        $form->addElement('header', 'hdrQuickform', 'Magnet');
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-
-        //depending on if we are called from aninmal query page or not.
-        if ($mode == 'group') {
-            $aniNumber = MedicalCase::grabListCowsWithOpenMedicalCase();     //grab a list of cows with open medical cases.
-            $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-            $form->setDefaults(array('animalNumber' => 0)); //set default to no variety.
-        } elseif ($mode == 'individual') {
-            $form->addElement('hidden', 'animalNumber', $bovine_id);
-        } else {
-            throw new Exception("Group or Individual Mode must be selected for magnet test.");
-        }
-
-
-        $form->addElement('select', 'dateEvent', 'Time of Check', $timeArray);
-        $form->addElement('hidden', 'magnet', 'true');
-
-        //submit buttons
-        $submitGroup[] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup[] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-
-
-        //rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-        $form->addRule('magnet', 'Magnet is required', 'required');
-        $form->addRule('dateEvent', 'Event Time is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $tempArray = $form->getElementValue('dateEvent');
-            $event_time = date('Y-m-d H:i:sO', $tempArray[0]);
-            $pageid = $form->exportValue('pageid');
-            $magnet = $form->exportValue('magnet');
-
-            //lookup bovine id and see if there is an open medical case during the requested event_time
-            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_magnet (medical_case_id,bovine_id,event_time,magnet,userid) VALUES ($medical_case_id,$bovine_id,'$event_time','$magnet','{$GLOBALS['auth']->getUsername()}')";
-
-
-            $res = $GLOBALS['pdo']->exec($query);
-
-            //$_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&bovine_id={$_REQUEST['bovine_id']}");
-            exit();
-        } //end validation
-
-        $form->accept($renderer);
-        echo $renderer->toHtml();
-    }
-
-    /**
-     * ********************************
-     */
-    /**
-     * Medical Case Comment
-     */
-
-    /**
-     * ********************************
-     */
-    public static function newCommentForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
-
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
-        unset($timeArray [null]); // remove null value.
-        // list of pre-canned comments
-        $treatmentComment = array(null => 'Please Select one...', 'Clear, not treated.' => 'Clear, not treated.', 'Observed to not be eating.' => 'Observed to not be eating.', 'Broken Needle.' => 'Broken Needle.');
-
-        $form = new HTML_QuickForm("newCommentForMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-       
-
-        $form->addElement('header', 'hdrQuickform', 'Medical Comment');
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-        $form->addElement('hidden', 'bovine_id', $bovine_id);
-
-        // depending on if we are called from aninmal query page or not.
-        if ($mode == 'group') {
-            $aniNumber = self::grabListCowsWithOpenMedicalCase(); // grab a list of
-            // cows with open medical
-            // cases.
-            $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-        } else {
-            $form->addElement('hidden', 'animalNumber', $bovine_id);
-        }
-
-        $form->addElement('select', 'dateEvent', 'Time of Check', $timeArray);
-
-        $form->addElement('select', 'comment1', 'Canned Comment', $treatmentComment);
-        $form->addElement('textarea', 'comment2', 'OR Custom Comment', array('cols' => 40, 'rows' => 6));
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        if ($mode == 'group') {
-            $form->setDefaults(array('animalNumber' => 0)); // set default to no
-            // variety.
-        }
-
-        // rules
-        if ($mode == 'group') {
-            $form->addRule('animalNumber', 'Animal number is required', 'required');
-        }
-
-        $form->addRule('dateEvent', 'Event Time is required', 'required');
-        // custom rule for teats (at least one needs to be selected)
-        $form->registerRule('commentRequiredRule', 'function', 'commentRequired', 'MedicalCase');
-        $form->addRule(array('animalNumber', 'comment1', 'comment2'), 'A canned or custom comment is required.', 'commentRequiredRule', array('animalNumber', 'comment1', 'comment2'));
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $tempArray = $form->getElementValue('dateEvent');
-            $event_time = date('Y-m-d H:i:sO', $tempArray [0]);
-            $pageid = $form->exportValue('pageid');
-            $comment1 = trim($form->exportValue('comment1'));
-            $comment2 = trim($form->exportValue('comment2'));
-
-            /*
-             * print("bovine_id:$bovine_id<br>");
-             * print("comment1:$comment1<br>"); print("comment2:$comment2<br>");
-             * print("pageid:$pageid<br>");
-             */
-
-            // concatenate comments if they are both entered.
-            if (strlen($comment1) == 0) {
-                $comment = $comment2;
-            } else {
-                $comment = $comment1 . ' ' . $comment2;
-            }
-
-            // do postgres escape.
-            $comment_esc = pg_escape_string($comment);
-
-            // lookup bovine id and see if there is an open medical case during
-            // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-            // don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_comment (medical_case_id,bovine_id,event_time,comment,userid) VALUES ($medical_case_id,$bovine_id,'$event_time','$comment_esc','{$GLOBALS['auth']->getUsername()}')";
-
-
-            $res = $GLOBALS['pdo']->exec($query);
-
-            // forward to same page, ob_start() is key to making this work!
-            $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-    }
-
-    // check at least one comment was filled in.
-    function commentRequired($valueArr, $elementNameArr) {
-        // generic loop to convert $form elements we want into a usuable array
-        // I really hope this isn't how quickforms was designed.
-        $count = 0;
-        foreach ($elementNameArr as $elementName) {
-            $formData [$elementName] = $valueArr [$count];
-            $count++;
-        }
-
-        // only return false when no comment was entered or selected.
-        if ((strlen(trim($formData ['comment1'])) != 0) || (strlen(trim($formData ['comment2'])) != 0)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public static function lookupOpenMedicalCaseForAnimal($bovine_id, $event_time) {
-
-        // lookup bovine id and see if there is an open medical case during the
-        // requested event_time
-        $sql = "SELECT id as medical_case_id FROM bovinemanagement.medical_case WHERE bovine_id=$bovine_id AND open_date<='$event_time' AND close_date is NULL";
-        $res = $GLOBALS['pdo']->query($sql);
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-
-        if (is_numeric($row ['medical_case_id']) == true) {
-            $medical_case_id = $row ['medical_case_id'];
-        } else {
-            $medical_case_id = 'null';
-        }
-        return $medical_case_id;
-    }
-
-    /**
-     * ********************************
-     */
-    /**
-     * Medical Case Temperature
-     */
-
-    /**
-     * ********************************
-     */
-    public static function newTemperatureForMedicalCaseQuickForm($mode = 'group', $bovine_id = null) {
-
-
-        // grab a list of cows with open medical cases.
-        if ($mode == 'group') {
-            $aniNumber = self::grabListCowsWithOpenMedicalCase();
-        }
-
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
-        unset($timeArray [null]); // remove null value.
-        // create array of celcius temps.
-        $temperatureArray = array(null => 'Please Select One');
-        for ($counter = 36.5; $counter <= 42.1; $counter += 0.10) {
-            $farenheight = round(((9 / 5) * ($counter) + 32), 1);
-            $celcius = round($counter, 1);
-            $temperatureArray ["$celcius"] = "$celcius &#8451; &nbsp; / &nbsp; $farenheight &deg;F";
-        }
-
-        $form = new HTML_QuickForm("newTemperatureForMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-        
-
-        $form->addElement('header', 'hdrQuickform', 'Temperature');
-
-        if ($mode == 'group') {
-            $form->addElement('select', 'animalNumber', 'Animal', $aniNumber);
-        } else {
-            $form->addElement('hidden', 'animalNumber', $bovine_id);
-        }
-
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-        $form->addElement('select', 'dateEvent', 'Time of Check', $timeArray);
-        $form->addElement('select', 'temperature', 'Temperature', $temperatureArray);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        if ($mode == 'group') {
-            $form->setDefaults(array('animalNumber' => 0)); // set default to no variety.
-        }
-
-        // rules
-        if ($mode == 'group') {
-            $form->addRule('animalNumber', 'Animal number is required', 'required');
-        }
-        $form->addRule('temperature', 'Temperature is required', 'required');
-        $form->addRule('dateEvent', 'Event Time is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $tempArray = $form->getElementValue('dateEvent');
-            $event_time = date('Y-m-d H:i:sO', $tempArray [0]);
-            $pageid = $form->exportValue('pageid');
-            $temperature = $form->exportValue('temperature');
-
-            // lookup bovine id and see if there is an open medical case during
-            // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-try {
-            // don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_temperature (medical_case_id,bovine_id,event_time,temperature,userid) VALUES ($medical_case_id,$bovine_id,'$event_time','$temperature','{$GLOBALS['auth']->getUsername()}')";
- $res = $GLOBALS['pdo']->exec($query);
-}
-catch (\PDOException $e) {
-    if ($e->errorInfo[1] == 23505) {
-print("Warning: Already in db.");
-    }
-}
-
-           
-
-
-            // forward to same page, ob_start() is key to making this work!
-            $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-    }
-
-    private function createDiagnosisArray() {
-        // create diagnonis array
-        $sql = "SELECT id,diagnosis FROM bovinemanagement.medical_diagnosis_type ORDER BY diagnosis";
-        $res = $GLOBALS['pdo']->query($sql);
-        $diagnosisArray = array(null => 'Please Select One');
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $diagnosisArray [$row ['id']] = $row ['diagnosis'];
-        }
-
-        return $diagnosisArray;
-    }
-
-    /**
-     * ********************************
-     */
-    /**
-     * Medical Case Diagnosis
-     */
-
-    /**
-     * ********************************
-     */
-    public static function newDiagnosisForMedicalCaseQuickForm() {
-
-        // grab a list of cows with open medical cases.
-        $aniNumber = self::grabListCowsWithOpenMedicalCase();
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
-
-        unset($timeArray [null]); // remove null value.
-        // create diagnonis array
-        $diagnosisArray = self::createDiagnosisArray();
-
-        $form = new HTML_QuickForm("newDiagnosisForMedicalCaseQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-       
-
-        $form->addElement('header', 'hdrQuickform', 'Diagnosis');
-        $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-        $form->addElement('select', 'dateEvent', 'Time of Check', $timeArray);
-        $form->addElement('select', 'diagnosis', 'Diagnosis', $diagnosisArray);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        $form->setDefaults(array('animalNumber' => 0)); // set default to no
-        // variety.
-        // rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-        $form->addRule('diagnosis', 'Diagnosis is required', 'required');
-        $form->addRule('dateEvent', 'Event Time is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $tempArray = $form->getElementValue('dateEvent');
-            $event_time = date('Y-m-d H:i:sO', $tempArray [0]);
-            $pageid = $form->exportValue('pageid');
-            $diagnosis_type_id = $form->exportValue('diagnosis');
-
-            // lookup bovine id and see if there is an open medical case during
-            // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-
-            // don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.medical_diagnosis (medical_case_id,bovine_id,event_time,diagnosis_type_id,userid) VALUES ($medical_case_id,$bovine_id,'$event_time',$diagnosis_type_id,'{$GLOBALS['auth']->getUsername()}')";
-
-
-            $res = $GLOBALS['pdo']->exec($query);
-
-            // $_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-    }
-
-    
-    
-
-    
+    } 
 
     /**
      * ***********************************
@@ -1462,144 +995,50 @@ print("Warning: Already in db.");
     /**
      * ********************************
      */
-    public static function javascriptForMedDefaults($dosageArray, $defaultDosageArray, $defaultBodyLocationArray) {
+    public static function javascriptForMedDefaults($uuid,$dosageArray, $defaultDosageArray, $defaultBodyLocationArray) {
 
         // create javascript to change dosage to default dosage based on a
         // select statement.
-        print ('<script type="text/javascript">
+        $out[]='';
+        $out[]= ('<script type="text/javascript">
 			var aryContent = new Array();
 			var aryContent2 = new Array();
 			var aryContent3 = new Array();');
 
         foreach ($dosageArray as $key => $value) {
-            print ("aryContent['$key'] = '($value)';");
+            $out[]=  ("aryContent['$key'] = '($value)';");
         }
         foreach ($defaultDosageArray as $key => $value) {
-            print ("aryContent2['$key'] = '$value';");
+            $out[]=  ("aryContent2['$key'] = '$value';");
         }
         foreach ($defaultBodyLocationArray as $key => $value) {
-            print ("aryContent3['$key'] = '$value';");
+            $out[]=  ("aryContent3['$key'] = '$value';");
         }
-
-        print ("\n\r" . '
-			function updateContent(obj){
+        
+$out[]=<<<JS
+                
+           function updateContent{$uuid}(obj){
 
 /* change doage units in label */
-$("label[for=\'dosage-0\']").contents().first()[0].textContent ="Dosage "+aryContent[ obj[obj.selectedIndex].value ];
+$("label[for='dosage-0']").contents().first()[0].textContent ="Dosage "+aryContent[ obj[obj.selectedIndex].value ];
 
 /* change dosage input default value */
-$(\'#dosage-0\').val(aryContent2[ obj[obj.selectedIndex].value ]);
+$('#dosage-0').val(aryContent2[ obj[obj.selectedIndex].value ]);
 
 /* change body location input to default value */
-$(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);		
+$('#bodyLocation-0').val(aryContent3[ obj[obj.selectedIndex].value ]);		
 			}
                  
-  </script>
-' . "\n\r");
+  </script>     
+                
+JS;        
+        
+        
+        
+        return implode($out);
     }
 
-    //schedule a medical action.
-    public static function medicalActionScheduleQuickForm($mode = 'group', $bovine_id = null) {
-
-        // grab a list of cows with open medical cases.
-        if ($mode == 'group') {
-            $aniNumber = self::grabListCowsWithOpenMedicalCase();
-        }
-
-        // grab a list of action types'.
-        $actionArr [null] = "Please Select one..."; // dummy value
-        $dosageArray [null] = ""; // dummy value
-        $res = $GLOBALS['pdo']->query("SELECT id,action from bovinemanagement.medical_action_type ORDER BY action");
-        {
-          
-        } // Always check that
-        // result is not an error
-
-        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-            $actionArr[$row['id']] = $row['action'];
-        }
-
-
-        $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForNextSevenDays();
-        unset($timeArray [null]); // remove null value.
-
-        $form = new HTML_QuickForm("medicalActionScheduleQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
     
-
-        $form->addElement('header', 'medicalActionScheduleQuickForm', "Schedule Action");
-        //
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-        $form->addElement('hidden', 'bovine_id', $bovine_id);
-
-        if ($mode == 'group') {
-            $form->addElement('select', 'animalNumber', 'Animal', $aniNumber);
-        } else {
-            $form->addElement('hidden', 'animalNumber', $bovine_id);
-        }
-
-        $form->addElement('select', 'action', 'Action', $actionArr);
-
-        $form->addElement('select', 'event_time', 'Event Time', $timeArray);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // rules
-        if ($mode == 'group') {
-            $form->addRule('animalNumber', 'Animal number is required', 'required');
-        }
-        $form->addRule('action', 'Action is required', 'required');
-
-        $form->addRule('event_time', 'Event Time is required', 'required');
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $bovine_id = $form->exportValue('animalNumber');
-            $medicine_id = $form->exportValue('action');
-
-            //
-            $tempArray = $form->getElementValue('event_time');
-            $event_time = date('Y-m-d H:i:sO', $tempArray [0]);
-
-            $pageid = $form->exportValue('pageid');
-
-            // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
-
-            // lookup bovine id and see if there is an open medical case during
-            // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
-    
-
-
-            // record actiona schedule
-            $query = "INSERT INTO bovinemanagement.medical_action (bovine_id,medical_Action_type_index,scheduled_event_time,medical_case_id,scheduled_userid)
-	  VALUES ($bovine_id,$medicine_id,'$event_time',$medical_case_id,'{$GLOBALS['auth']->getUsername()}')";
-            $res = $GLOBALS['pdo']->exec($query);
-
-            // determine if the commit or rollback
-
-               $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            
-            }
-            // Close the transaction
-            // forward to same page, ob_start() is key to making this work!
-            $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-    }
 
    
     /**
@@ -1620,83 +1059,14 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
   LEFT JOIN bovinemanagement.bovinecurrall ON medicine_administered.bovine_id = bovinecurrall.id
   LEFT JOIN bovinemanagement.medical_case ON medicine_administered.medical_case_id = medical_case.id
   ORDER BY medicine_administered.event_time DESC";
-          $out[]=("<h3>List Of Medecine Administered</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicSql($sql,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicSql('List Of Medecine Administered', $sql,'order: false')); 
          return implode($out); 
         
     }
 
-    function printActionButtons($record,$callBackURL) {
+   
 
-        $currentUserid = $GLOBALS ['auth']->getUsername();
-
-        // find the last entry for the current user and use that as a basais to
-        // display the delete button or not.
-        // We only want the delete button shown once for the latest entry.
-        // print latest delete button (one) for current user
-        // the id is unique for this view, because of the counter we used.
-        // don't show for scheduled meds, because the delete involves google
-        // calendar.
-        //this seems to be the fastest way, caching doesn't help.
-        $res = $GLOBALS['pdo']->query("SELECT id,tablename FROM temp_medical_summary WHERE userid='$currentUserid' AND type!='Scheduled Meds' ORDER BY update_time DESC LIMIT 1");
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $returnButtonsAsString ='';
-        if (isset($record['close_date'])) {
-        if (($record ['id'] == $row['id']) && ($record ['close_date'] == null)) {
-            $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['tablename']); // show
-            //delete button, with _____ table id as index for delete.
-        }}
-
-
-        // print button
-        return $returnButtonsAsString;
-    }
-
-    static function deleteQuickForm($tableid, $tablename,$callBackURL) {
-
-        $form = new HTML_QuickForm("genericEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-       
-
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-        $form->addElement('hidden', 'tableid', $tableid);
-        $form->addElement('hidden', 'tablename', $tablename);
-        $form->addElement('submit', 'btnDelete', 'Delete');
-
-        // FIXME:HUGE SECURITY HOLE HERE BECAUSE TABLE NAME CAN BE MODIFIED BY
-        // USER.
-        // DB hack works though, views need to support deletes before this can
-        // be fixed.
-        // Try to validate a form
-        if ($form->validate()) {
-
-            // get values
-            $pageid = $form->exportValue('pageid');
-            $tableid = $form->getElementValue('tableid');
-            $tablename = $form->getElementValue('tablename');
-
-            // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
-
-            // delete the dryoff_event
-            $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.$tablename where id='$tableid'");
-
-            // determine if the commit or rollback
-
-               $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            }
-           
-
-            header($callBackURL);
-            exit();
-        }
-        $form->accept($renderer);
-        return ($renderer->toHtml()); // pass on as html string to display later in the
-        // table
-    }
-
+    
     /**
      * small method to return body locations, use true for quickform select
      * lists.
@@ -1725,13 +1095,16 @@ $(\'#bodyLocation-0\').val(aryContent3[ obj[obj.selectedIndex].value ]);
 }//end class
 
 /*
- * dewrom
+ * 
  * 
  */
-Class QF2_GeneralTreatment extends Quickform2Helper {
+Class QF2_GeneralTreatment extends QF2_Base {
 
     function definition($form) {
-
+        
+     
+        $uuid=uniqid();
+        
         $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
       
         $location = $this->listActiveLocationsAndCounts();
@@ -1740,44 +1113,25 @@ Class QF2_GeneralTreatment extends Quickform2Helper {
         $bodyLocationArray = MedicalCase::medicalBodyLocations(true);
 
         
-         // grab a list of Medicines'.
-        $medArray [null] = "Please Select one..."; // dummy value
-        $dosageArray [null] = ""; // dummy value
-        $res = $GLOBALS['pdo']->query("SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE for_mastitis!=true ORDER BY trade_name");
-        while (($row = $res->fetch())) {
-            $medArray [$row [0]] = $row [1];
-            $dosageArray [$row [0]] = $row [3];
-            $defaultDosageArray [$row [0]] = $row [2];
-            $defaultBodyLocationArray [$row [0]] = $row [4];
-        }
-        
-          // prints out javascript to change dosage defaults when mediciane changes.
-        MedicalCase::javascriptForMedDefaults($dosageArray, $defaultDosageArray, $defaultBodyLocationArray);
-        
-        
+        // prints out javascript to change dosage defaults when mediciane changes.
+         $medList= (!empty($this->param->medicineListCustom)) ? self::listOfMedicines($this->param->medicineListCustom) : self::listOfMedicines();
+
+        $js=MedicalCase::javascriptForMedDefaults($uuid,$medList['dosageArray'], $medList['defaultDosageArray'], $medList['defaultBodyLocationArray']);
+        $form->addElement('static', 'script_medicalDefault')->setValue($js);
         
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        if ($this->mode == 'group') {
-            
-            //allow over riding the list of cows. 
-        if (!empty($this->param->aniNumber)) {
-            $combinedArr=$this->param->aniNumber;
-        }
-        else {
-        $combinedArr=parent::currentAniamlsAndGroups();  
-        }
-            
-            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($combinedArr);
-        } else {         
-                $form->addElement('hidden', 'animalSelected')->setValue( $this->param->bovine_id);
-        }
-      
-    
-        $form->addElement('select', 'medicine', array('onChange' => "updateContent(this);"), array('options' => $medArray, 'label' => 'Medicine'))->addRule("required", "Please specify your medicine.");
-         $form->addElement('text', 'dosage', null, array( 'label' => 'Dosage (??)'))->addRule("required", "Please specify your dosage.");
-          $form->addElement('select', 'bodyLocation', null, array('options' => $bodyLocationArray, 'label' => 'Body Location'))->addRule("required", "Please specify your body location.");
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+        
+        $medicine=$form->addElement('select', 'medicine', array('onChange' => "updateContent{$uuid}(this);"), array('options' => $medList['medArray'], 'label' => 'Medicine'));    
+        $medicine->addRule("required", "Please specify your medicine.");
+        
+        $form->addRule('callback', 'ERROR: This same medicine is already scheduled for this animal.', array('callback' => array($this, 'checkMedicineAlreadyScheduled'), 'arguments' => array('animalNumber','medicine','dateEvent')));
+        
+        $form->addElement('text', 'dosage', null, array( 'label' => 'Dosage (??)'))->addRule("required", "Please specify your dosage.");
+        $form->addElement('select', 'bodyLocation', null, array('options' => $bodyLocationArray, 'label' => 'Body Location'))->addRule("required", "Please specify your body location.");
         $form->addElement('select', 'dateEvent', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your event time.");
         
+      
         
         //defaults
          $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array(
@@ -1789,19 +1143,66 @@ Class QF2_GeneralTreatment extends Quickform2Helper {
   return $form; //required   
     }
 
-    //select2 javascript needed for form
-    function formJS() {
-$jscript = <<<JSCRIPT
- <script>           
-var s2 = $("#selectEvents").select2({
-    placeholder: "Choose Animals",
-    tags: false
-});   
-      </script>      
-JSCRIPT;
+      //if a medicine was already scheduled for this time period, then prevent entry. 
+      function checkMedicineAlreadyScheduled($value) {
+          DEBUG ?: var_dump($value);
 
-            return $jscript;
+          if (is_array($value['animalSelected'])) {
+        foreach ($value['animalSelected'] as $key => $bovineID) {
+        $ans[]=$this->alreadyScheduledRaw($value,$bovineID);
+            
+        }//end foreach
+        
+        }
+        else {
+        $ans[]=$this->alreadyScheduledRaw($value,$value['animalSelected']);  
+        }
+        
+        //when array is all true, return true. 
+        return  ($ans===TRUE) ?  false : true;
     }
+
+    private function alreadyScheduledRaw($value,$bovineID) {
+        
+         $dateEvent = date('c', $value['dateEvent']);
+            $sql = <<<SQL
+        SELECT id FROM bovinemanagement.medicine_administered WHERE bovine_id={$bovineID} AND medicine_index={$value['medicine']} AND event_time is NULL AND scheduled_event_time BETWEEN ('$dateEvent'::timestamp - interval '4 hours') AND ('$dateEvent'::timestamp + interval '4 hours') LIMIT 1
+        SQL;
+            $res = $GLOBALS['pdo']->query($sql);
+            $x = count($res->fetchAll(PDO::FETCH_ASSOC));
+            DEBUG ?: var_dump($sql);
+            DEBUG ?: var_dump($res->fetchAll(PDO::FETCH_ASSOC));
+            if (empty($x)) {
+                return true;
+            } else {
+                return false;
+            }     
+    }
+    
+    function alreadyScheduledError() {
+        
+        
+                $blah = <<<HTML
+        <div class="toast">
+  <div class="toast-header">
+    Toast Header
+  </div>
+  <div class="toast-body">
+    Some text inside the toast body
+  </div>
+</div>
+HTML;
+                $blah2 = <<<HTML
+                <script>
+$(document).ready(function(){
+  $('.toast').toast('show');
+});
+</script>
+HTML;
+
+                print($blah . $blah2);
+    }
+    
     
     
     function process($value) {
@@ -1812,9 +1213,14 @@ JSCRIPT;
 
            
             $value['event_time'] = date('Y-m-d H:i:sO', $value['dateEvent']);
+            
+            $res = $GLOBALS['pdo']->query("SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE id={$value['medicine']} limit 1");
+            $row = $res->fetch();
+            $value['default_dosage_unit']=$row['default_dosage_unit'];
+            
 
            /* get lists of cows, could be one or many */
-           $bovineIdArr=parent::processAnimalsGroupIndividiual($value['animalSelected']);
+           $bovineIdArr=(new Quickform2_GroupSelect)->processAnimalsGroupIndividiual($value['animalSelected']);
            //transaction id needed for more then 1 cow.
            if (count($bovineIdArr) > 1)
            {
@@ -1831,6 +1237,7 @@ JSCRIPT;
                 // lookup bovine id and see if there is an open medical case during
                                // the requested event_time
                                $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($bovineId, $value['event_time']);
+                               $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
                             
                                  $query = "/*GROUP: FIXME TRASNSATION ID*/ INSERT INTO bovinemanagement.medicine_administered (bovine_id,medicine_index,event_time,dosage,dosage_unit,location,note,medical_case_id,userid) VALUES ($bovineId,{$value['medicine']},'{$value['event_time']}','{$value['dosage']}','{$value['default_dosage_unit']}','{$value['bodyLocation']}',null,$medical_case_id,'{$GLOBALS['auth']->getUsername()}')";
                                  $res = $GLOBALS['pdo']->exec($query);
@@ -1842,8 +1249,47 @@ JSCRIPT;
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
+    }
+
+    /*
+     * used by this form and others to get list of medicines. 
+     */
+    public static function listOfMedicines($type=null) {
+        /* defaults to all medicines */
+        switch ($type) {
+            case 'vaccine':
+                $sql="SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE for_mastitis!=true AND medicine_class='vaccine' ORDER BY trade_name";
+                break;
+            case 'endectocide':
+                $sql="SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE for_mastitis!=true AND medicine_class='endectocide' ORDER BY trade_name";
+                break;
+            default:
+              $sql="SELECT id,trade_name,default_dosage,default_dosage_unit,default_body_location from bovinemanagement.medicine WHERE for_mastitis!=true ORDER BY trade_name";
+                break;
+        }
+        
+        
+        
+        
+        // grab a list of Medicines'.
+        $medArray [null] = "Please Select one..."; // dummy value
+        $dosageArray [null] = ""; // dummy value
+        $res = $GLOBALS['pdo']->query($sql);
+        while (($row = $res->fetch())) {
+            $medArray [$row [0]] = $row [1];
+            $dosageArray [$row [0]] = $row [3];
+            $defaultDosageArray [$row [0]] = $row [2];
+            $defaultBodyLocationArray [$row [0]] = $row [4];
+        }
+
+        $out['medArray'] = $medArray;
+        $out['dosageArray'] = $dosageArray;
+        $out['defaultDosageArray'] = $defaultDosageArray;
+        $out['defaultBodyLocationArray'] = $defaultBodyLocationArray;
+
+        return $out;
     }
 
     //used for animals movements
@@ -1870,101 +1316,12 @@ return $activeLocations;
 }//end class   
 
 
-
-
-/* supports both individual and group */
-class AccordionImplementationMedicalQuickforms extends AccordionSub {
-
-    public static $bovineID;
-    public static $mode;
-
-    /* in case of individual cow treatments, we use bovine_id. */
-
-    public function __construct($bovineID = null) {
-
-       // parent::__construct(); ddoes not work?
-
-        if ($bovineID != null) {
-            self::$bovineID = $bovineID;
-            self::$mode = 'individual';
-        } else {
-            self::$bovineID = null;
-            self::$mode = 'group';
-        }
-    }
-
-    function tab1() {
-       
-    //cover both group and individual case. 
-           $param= new stdClass();
-           $param->aniNumber= medicalCase::grabListCowsWithOpenMedicalCase(); //pass along list of animals to show for group. this case open medical cases
-           $param->bovine_id= self::$bovineID ;
-           $a=new QF2_GeneralTreatment((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>self::$bovineID)),self::$mode,$param); //group
-        print($a->renderBox('qf2_GeneralTreatment','Select Animal to Treat'));  
-        print($a->formJS());
-        
-       
-         //MedicalCase::genericTreatmentQuickForm(self::$mode, self::$bovineID);
-        
-    }
-
-    function tab2() {
-         //group only 
-         $a=new QF2_MastitisQuickTreat((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_mastitisEvent','Mastitis Event'));    
-    }
-
-    function tab3() {
-        MedicalCase::newTemperatureForMedicalCaseQuickForm(self::$mode, self::$bovineID);
-    }
-
-    function tab4() {
-        MedicalCase::newKetoneForMedicalCaseQuickForm(self::$mode, self::$bovineID);
-    }
-
-    function tab5() {
-        MedicalCase::newMagnetForMedicalCaseQuickForm(self::$mode, self::$bovineID);
-    }
-
-    function tab6() {
-        MedicalCase::newCommentForMedicalCaseQuickForm(self::$mode, self::$bovineID);
-    }
-
-    function tab7() {
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/medical/vetToCheck.inc');
-        VetToCheck::newVetToCheckForMedicalCaseQuickForm(self::$mode, self::$bovineID);
-    }
-
-    //probably change this to medicalActionCompletedQuickForm
-    function tab8() {
-         if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-        MedicalCase::medicalActionScheduleQuickForm(self::$mode, self::$bovineID);
-         }
-    }
-
-    function tab9() {
-        //group only 
-        MedicalCase::newDiagnosisForMedicalCaseQuickForm();
-    }
-
-    function tab10() {
-        //group only 
-        MedicalCase::openNewMedicalCaseQuickForm();
-        print ('<br/>' . "\n\r");
-        MedicalCase::closeMedicalCaseQuickForm();
-    }
-
-}
-
-//end class
-
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_MastitisQuickTreat extends Quickform2Helper {
+    
+Class QF2_MastitisQuickTreat extends QF2_Base {
 
     function definition($form) {
 
 
-        $mode = 'group';
         
         // grab a list of cows with open medical cases.
         $aniNumber = MedicalCase::grabListCowsWithOpenMedicalCase();
@@ -1979,23 +1336,8 @@ Class QF2_MastitisQuickTreat extends Quickform2Helper {
         $timeArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday();
         unset($timeArray [null]); // remove null value.
         
-        // custom rule for teats (at least one needs to be selected)
-      //  $form->registerRule('checkTeatSelectedRule', 'function', 'checkTeatSelected', 'MedicalCase');
-      //  $form->addRule(array('animalNumber', 'udderTop', 'udderBottom'), 'At leat one teat must be selected.', 'checkTeatSelectedRule', array('animalNumber', 'udderTop', 'udderBottom'));
-        //////////////////
-        
-        
-
-        ////
-     /*   $fieldset = $form->addFieldset('header')->setLabel('Mastitis Treatment'); */
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        
-        if ($mode == 'group') {
-            $form->addElement('select', 'bovine_id', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");
-            
-        } else {
-            $form->addElement('hidden', 'bovine_id')->setValue($bovine_id);
-        }
+       $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
         
         
           $form->addElement('select', 'medicine', null, array('options' => $medArray, 'label' => 'Teat Drug'))->addRule("required", "Please specify your animal #.");     
@@ -2023,7 +1365,9 @@ $group2->addElement('checkbox', 'rr', array('id' => 'boxId', 'value' => '1'))->s
     function process($value) {
         
             //
+             $value['bovine_id']=$value['animalSelected'];
              $event_time = date('Y-m-d H:i:sO',$value['event_time']);
+             
             //
             $quarterArray ['front left'] = (!empty($value['udderFront']['lf'])) ? 1 : 0;
             $quarterArray ['front right'] = (!empty($value['udderFront']['rf'])) ? 1 : 0;
@@ -2039,6 +1383,7 @@ $group2->addElement('checkbox', 'rr', array('id' => 'boxId', 'value' => '1'))->s
             // lookup bovine id and see if there is an open medical case during
             // the requested event_time
             $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $event_time);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
 
             // administer drug
             self::administerMastisisDrug($value['bovine_id'],  $value['medicine'], $medical_case_id, $event_time, $quarterArray);
@@ -2048,7 +1393,7 @@ $group2->addElement('checkbox', 'rr', array('id' => 'boxId', 'value' => '1'))->s
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             
             }
             // Close the transaction
@@ -2102,8 +1447,8 @@ class checkTeatSelectedRule extends HTML_QuickForm2_Rule
     
 }
 //end class
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_MedicalTemperature extends Quickform2Helper {
+     
+Class QF2_MedicalTemperature extends QF2_Base {
 
     function definition($form) {
        
@@ -2124,29 +1469,25 @@ Class QF2_MedicalTemperature extends Quickform2Helper {
              'temperature' => 0
         )));
 
-        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
         
-        if ($this->mode == 'group') {
-            $aniNumberArr = MedicalCase::grabListCowsWithOpenMedicalCase();
-            $form->addElement('select', 'bovine_id', null, array('options' => $aniNumberArr, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");
-            
-        } else {
-            $form->addElement('hidden', 'bovine_id')->setValue($bovine_id);
-        }
-        $form->addElement('select', 'event_time', null, array('options' => $timeArray, 'label' => 'Time of Check'))->addRule("required", "Event Time is required.");
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+     $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+        
         $form->addElement('select', 'temperature', null, array('options' => $temperatureArray, 'label' => 'Temperature'))->addRule("required", "Temperature is required.");
+        $form->addElement('select', 'event_time', null, array('options' => $timeArray, 'label' => 'Time of Check'))->addRule("required", "Event Time is required.");
         
 
         return $form; //required       
     }
 
     function process($value) {
+        $value['bovine_id']=$value['animalSelected'];
         $value['event_time'] = date('Y-m-d H:i:sO', $value['event_time']);
-        $value['event_time'] = $value['medical_case_id'];
-        
+
          // lookup bovine id and see if there is an open medical case during
             // the requested event_time
-            $medical_case_id = self::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+             $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+             $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
             
         try {
             // don't put id value, uses next one in DB.
@@ -2155,7 +1496,7 @@ Class QF2_MedicalTemperature extends Quickform2Helper {
 }
 catch (\PDOException $e) {
     if ($e->errorInfo[1] == 23505) {
-print("Warning: Already in db.");
+print("Warning: Already entered in database.");
     }
 }
       
@@ -2163,4 +1504,410 @@ print("Warning: Already in db.");
     }
 
 }//end class
-?>
+
+//$a=new QF2_Magnet((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
+//{$a->renderBox('QF2_Magnet','Record Magnet Bolus')}   
+Class QF2_Magnet extends QF2_Base {
+
+    function definition($form) {
+
+
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+
+        $form->addElement('checkbox', 'MagnetText', array(), array('label'=> 'Magenet Given'));
+        $checkbox=$form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Magnet is required.");
+
+        
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('MagnetText' => true))); //set defaults
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+        
+        $magnet='true';
+        var_dump($value);
+         //lookup bovine id and see if there is an open medical case during the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+
+            //don't put id value, uses next one in DB.
+            $query = "INSERT INTO bovinemanagement.medical_magnet (medical_case_id,bovine_id,event_time,magnet,userid) VALUES ($medical_case_id,{$value['bovine_id']},'{$value['event_time']}','$magnet','{$GLOBALS['auth']->getUsername()}')";
+    
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+
+}//end class
+
+ 
+Class QF2_Ketone extends QF2_Base {
+
+    function definition($form) {
+
+        $ketoneArray = array(null => 'Please Select One');
+        for ($counter = 0; $counter <= 20.1; $counter += 0.10) {
+            $value = round($counter, 1); //mmol/liter
+            $ketoneArray["$value"] = $value;
+        }
+
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+        $form->addElement('select', 'ketone', null, array('options' => $ketoneArray, 'label' => 'Ketone Value'))->addRule("required", "Ketone is required.");
+        $form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time");
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+            
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+
+        
+         //lookup bovine id and see if there is an open medical case during the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+            
+            $query = "INSERT INTO bovinemanagement.medical_ketone (medical_case_id,bovine_id,event_time,ketone,userid) VALUES ($medical_case_id,{$value['bovine_id']},'{$value['event_time']}','{$value['ketone']}','{$GLOBALS['auth']->getUsername()}')";
+
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+
+}//end class
+
+Class QF2_CMT extends QF2_Base {
+
+    function definition($form) {
+
+       
+        
+         $cmtArray=array('N'=>'N','T'=>'T','1'=>'1','2'=>'2','3'=>'3');
+        
+    
+
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form = (new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form, $this->param->aniNumber, $this->mode);
+
+        $fieldset = $form->addFieldset('udderAll')->setLabel('');
+        $group = $fieldset->addGroup('udderFront')->setSeparator('&nbsp;&nbsp;&nbsp;&nbsp;')->setLabel('Front (lf/rf)&nbsp;&nbsp;');
+        $group->addElement('select', 'cmt_lf', null, array('options' => $cmtArray, 'label' => 'CMT Value'))->setLabel('LF');
+        $group->addElement('select', 'cmt_rf', null, array('options' => $cmtArray, 'label' => 'CMT Value'))->addRule("required", "CMT is required.");
+
+        $group2 = $fieldset->addGroup('udderRear')->setSeparator('&nbsp;&nbsp;&nbsp;&nbsp;')->setLabel('Rear (lr/rr)&nbsp;&nbsp;');
+        $group2->addElement('select', 'cmt_lr', null, array('options' => $cmtArray, 'label' => 'CMT Value'))->addRule("required", "CMT is required.");
+        $group2->addElement('select', 'cmt_rr', null, array('options' => $cmtArray, 'label' => 'CMT Value'))->addRule("required", "CMT is required.");
+
+        $form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time");
+
+        //defaults
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('udderFront' => array('cmt_lf' => '0','cmt_rf' => '0'),'udderRear' => array('cmt_lr' => '0','cmt_rr' => '0'))));
+        
+   
+        
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+            
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+
+   
+        
+        
+         //lookup bovine id and see if there is an open medical case during the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+            
+            $query = "INSERT INTO bovinemanagement.medical_cmt (medical_case_id,bovine_id,event_time,cmt_lf,cmt_rf,cmt_lr,cmt_rr,userid) VALUES ($medical_case_id,{$value['bovine_id']},'{$value['event_time']}','{$value['udderFront']['cmt_lf']}','{$value['udderFront']['cmt_rf']}','{$value['udderRear']['cmt_lr']}','{$value['udderRear']['cmt_rr']}','{$GLOBALS['auth']->getUsername()}')";
+
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+
+}//end class
+
+
+
+    /**
+     * ********************************
+     */
+    /**
+     * Medical Case Diagnosis
+     */
+Class QF2_MedicalDiagnosis extends QF2_Base {
+
+    function definition($form) {
+
+      
+        $diagArr=self::createDiagnosisArray();
+        
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForOnlyToday(); //hourly array, with unix timestamp as index.
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+        $form->addElement('select', 'diagnosis', null, array('options' => $diagArr, 'label' => 'Diagnosis'))->addRule("required", "Diagnosis is required.");
+        $form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time");
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+            
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+
+        
+         //lookup bovine id and see if there is an open medical case during the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+            
+            $query = "INSERT INTO bovinemanagement.medical_diagnosis (medical_case_id,bovine_id,event_time,diagnosis_type_id,userid) VALUES ($medical_case_id,{$value['bovine_id']},'{$value['event_time']}','{$value['diagnosis']}','{$GLOBALS['auth']->getUsername()}')";
+           
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+
+    
+     public static function createDiagnosisArray() {
+        // create diagnonis array
+        $sql = "SELECT id,diagnosis FROM bovinemanagement.medical_diagnosis_type ORDER BY diagnosis";
+        $res = $GLOBALS['pdo']->query($sql);
+        $diagnosisArray = array(null => 'Please Select One');
+        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $diagnosisArray [$row ['id']] = $row ['diagnosis'];
+        }
+
+        return $diagnosisArray;
+    }
+    
+}//end class
+
+
+
+/*
+ * FIXME: this can probably be a table overlay and combined with other comments. 
+ * 
+ */
+Class QF2_MedicalComment extends QF2_Base {
+
+    function definition($form) {
+
+         $cannedComment = array(null => 'Please Select one...', 'Clear, not treated.' => 'Clear, not treated.', 'not cured - not treated' => 'not cured - not treated', 'Observed to not be eating.' => 'Observed to not be eating.', 'Broken Needle.' => 'Broken Needle.');
+
+
+        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
+
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+        $form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time");
+        
+        
+        if (empty($cannedComment) == false) {
+            $comment1=$form->addElement('select', 'comment1', null, array('options' => $cannedComment, 'label' => 'Canned Comment'));
+        } else {
+            $comment1=$form->addElement('hidden', 'comment1', '')->setLabel("Generic Comment");
+        }
+        $comment2=$form->addElement('textarea', 'comment2', array('rows' => 6, 'col' => 40))->setLabel("Custom Comment");
+        
+      
+        $comment2->addRule('nonempty','Canned or Custom Comment is Required.')->or_($comment1->createRule('nonempty')); //one or the other needs something enetered. 
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+        $value['bovine_id']=$value['animalSelected'];
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+
+        
+              //concatenate comments if they are both entered.
+                if (strlen($value['comment1']) == 0) {
+                    $comment = $value['comment2'];
+                } else {
+                    $comment = $value['comment1'] . ' ' . $value['comment2'];
+                }
+
+                 $comment_esc = pg_escape_string($comment);
+        
+        
+         //lookup bovine id and see if there is an open medical case during the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($value['bovine_id'], $value['event_time']);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+
+            $query = "INSERT INTO bovinemanagement.medical_comment (medical_case_id,bovine_id,event_time,comment,userid) VALUES ($medical_case_id,{$value['bovine_id']},'{$value['event_time']}','$comment_esc','{$GLOBALS['auth']->getUsername()}')";
+
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+
+     // check at least one comment was filled in.
+    function commentRequired($valueArr, $elementNameArr) {
+        // generic loop to convert $form elements we want into a usuable array
+        // I really hope this isn't how quickforms was designed.
+        $count = 0;
+        foreach ($elementNameArr as $elementName) {
+            $formData [$elementName] = $valueArr [$count];
+            $count++;
+        }
+
+        // only return false when no comment was entered or selected.
+        if ((strlen(trim($formData ['comment1'])) != 0) || (strlen(trim($formData ['comment2'])) != 0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    
+}//end class
+
+Class QF2_OpenMedicalCase extends QF2_Base {
+
+    function definition($form) {
+        
+        //$aniNumber=MedicalCase::lookupAnimalsWhoDontHaveOpenMedicalCase(); 
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+        
+        
+        
+
+        // create diagnonis array
+        $diagnosisArray = QF2_MedicalDiagnosis::createDiagnosisArray();
+
+        
+        // $form->addElement('select', 'animalNumber', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Animal is required.");
+         $form->addElement('select', 'diagnosis', null, array('options' => $diagnosisArray, 'label' => 'Diagnosis'))->addRule("required", "Diagnosis is required.");
+          
+       
+        return $form; //required       
+    }
+
+    function process($value) {
+            
+       $bovine_id=$value['animalSelected'];
+       $diagnosis_type_id=$value['diagnosis'];
+       $event_time = date('Y-m-d H:i:sO', strtotime("now"));
+           
+            
+        
+        
+        // Open a transaction
+            try {$res = $GLOBALS['pdo']->beginTransaction();
+
+            // don't put id value, uses next one in DB.
+            $query = "INSERT INTO bovinemanagement.medical_case (bovine_id,open_date,open_userid) VALUES ($bovine_id,'$event_time','{$GLOBALS['auth']->getUsername()}')";
+
+            $res = $GLOBALS['pdo']->exec($query);
+            $medical_case_id = $GLOBALS['pdo']->lastInsertId('bovinemanagement.medical_generic_id_seq');
+
+            // insert diagnosis for the just created medical case.
+            $query = "INSERT INTO bovinemanagement.medical_diagnosis (medical_case_id,bovine_id,event_time,diagnosis_type_id,userid) VALUES ($medical_case_id,$bovine_id,'$event_time',$diagnosis_type_id,'{$GLOBALS['auth']->getUsername()}')";
+            $res = $GLOBALS['pdo']->exec($query);
+
+            //go through all medicines administerd in last few weeks and update them to add the case, excluding dry treatments hormones 
+            $query2 = "
+
+UPDATE bovinemanagement.medicine_administered SET medical_case_id=$medical_case_id
+FROM
+(
+SELECT medicine_administered.id
+FROM bovinemanagement.medicine_administered 
+  LEFT JOIN bovinemanagement.medicine ON medicine_administered.medicine_index=medicine.id 
+WHERE bovine_id = $bovine_id AND  medicine_class NOT IN ('hormone','vaccine')  AND for_dry_treatment is false  AND event_time >= ( current_date - interval '14 days')  AND medical_case_id IS NULL
+) AS subquery
+WHERE subquery.id = medicine_administered.id;                
+";
+            $res = $GLOBALS['pdo']->exec($query2);
+            
+            
+            
+            // determine if the commit or rollback
+               $GLOBALS['pdo']->commit();
+            } catch (Exception $e) {
+                $GLOBALS['pdo']->rollBack();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
+            }
+        
+        
+       
+    }
+
+    
+    
+}//end class
+
+
+Class QF2_CloseMedicalCase extends QF2_Base {
+
+    function definition($form) {
+        
+        
+         // grab a list of cows with open medical cases.
+        $aniNumber = MedicalCase::grabListCowsWithOpenMedicalCase();
+
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
+       
+       
+        return $form; //required       
+    }
+
+    function process($value) {
+            
+       $bovine_id=$value['animalSelected'];
+      
+       $event_time = date('Y-m-d H:i:sO', strtotime("now"));
+           
+            
+        
+        
+        // Open a transaction
+            try {$res = $GLOBALS['pdo']->beginTransaction();
+            
+            
+ // lookup bovine id and see if there is an open medical case during
+            // the requested event_time
+            $medical_case_id = MedicalCase::lookupOpenMedicalCaseForAnimal($bovine_id, $event_time);
+            $medical_case_id=empty($medical_case_id) ? 'null' : $medical_case_id;
+
+            // don't put id value, uses next one in DB.
+
+            $query = "UPDATE bovinemanagement.medical_case SET close_date='$event_time',close_userid='{$GLOBALS['auth']->getUsername()}' WHERE id=$medical_case_id";
+
+
+      
+            $res = $GLOBALS['pdo']->exec($query);
+            
+            
+            
+            // determine if the commit or rollback
+               $GLOBALS['pdo']->commit();
+            } catch (Exception $e) {
+                $GLOBALS['pdo']->rollBack();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
+            }
+        
+        
+       
+    }
+    
+}//end class

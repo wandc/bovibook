@@ -1,11 +1,7 @@
 <?php 
 require_once('../global.php');
 
-/*
-//show errors
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-*/
+
 //run various classes. 
 include_once('processNumberMilkingByDate.php');
 include_once('processValactaAvgComponentsForGroups.php');

@@ -4,9 +4,14 @@
  * 
  */
 require_once("global.php");
-error_reporting(-1000);
-//FIXME: need security check!!!!!!! EMERGENCY !!!!!!!!!!!!!!!!!!!!!!!!!!
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+/*
+//very basic seuctiry check.
+if (empty($GLOBALS['auth']->getUsername())) {
+     header('400 Bad Request');
+     exit;
+} 
+*/
 
 /* make sure we have a valid resource or exit */
 if (!isset($_GET['sseid'])) {

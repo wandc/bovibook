@@ -1,28 +1,19 @@
 <?php
-
-
-
-
-
-include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/holsteinCanadaERAReg.inc');
-;
-
 class CalfRegistration extends BasePage {
 
     public function defaultDisplay() {
+        //db updates
         $this->forceAggregateUopdate(); //can be slooooow.
         $this->updateCowNameAndSireFromAggregate();
         $this->checkAggregateVsBovineTable();
         $this->checkForAnimalsOver120DaysWithNoName();
-
-
-        //
         $this->doUpdateOfDBtoMatchAggreagate();
-        print("<h2>To Register List</h2>");
-        $this->displayCalvesNeedingRegisterdOrRecentlyRegistered();
-        print("<br /><br /><br />");
-        print("<h2>Log</h2>");
-        $this->displayRegistrationLog();
+        
+       $right=$this->displayCalvesNeedingRegisterdOrRecentlyRegistered();
+       $left= $this->displayRegistrationLog();
+      
+        
+       print( ($right. $left));
     }
 
     //check for errors between aggregate and bovine table and prints them out.
@@ -225,17 +216,23 @@ LEFT JOIN batch.aggregate_view_curr ON bovine.full_reg_number = aggregate_view_c
             {
                 data: "action",
                 title: "Action"
-            }
+            },
+            {
+                data: "icons",
+                title: ""
+            }    
 EX;
-        print($dt->start(120, 'calvesNeedingRegisterdOrRecentlyRegistered', null, $columnsStr, 'highlight_important'));
+        return ($dt->start('To Register List', 120, 'calvesNeedingRegisterdOrRecentlyRegistered', null, $columnsStr, 'highlight_important'));
     }
 
     function calvesNeedingRegisterdOrRecentlyRegistered() {
 
         $sql = "SELECT xx.birth_date,local_reg_status,parentage_verified,calf_potential_name.id,potential_name,local_number,xx.id as bovine_id,xx.full_name,authentic,
             short_uuid,event_time_reg_sent,date_trunc('days',now()-xx.birth_date) as since_birthday,
-            (SELECT dnatest_type FROM bovinemanagement.dnatest_event WHERE bovine_id=xx.id AND event_time=(SELECT max(event_time) FROM bovinemanagement.dnatest_event WHERE bovine_id=xx.id)) as dna_pending,reg_date,	reg_status,geno_test 
+            (SELECT dnatest_type FROM bovinemanagement.dnatest_event WHERE bovine_id=xx.id AND event_time=(SELECT max(event_time) FROM bovinemanagement.dnatest_event WHERE bovine_id=xx.id)) as dna_pending,reg_date,	
+            reg_status,geno_test, calf_breed, calf_chimeric 
            FROM bovinemanagement.bovine xx
+LEFT JOIN bovinemanagement.calving_event ON xx.id=calving_event.calf_bovine_id 
                  LEFT JOIN batch.holstein_canada_registered ON xx.id=bovine_id 
                  LEFT JOIN bovinemanagement.calf_potential_name ON xx.id=calf_potential_name.bovine_id 
                  LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = xx.full_reg_number
@@ -248,13 +245,17 @@ EX;
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+       
+        
+        
         //change presentation
         foreach ($results as &$row) {
             $row['event_time_raw'] = strtotime($row['birth_date']);
             $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
             $row['event_time_reg_sent_new'] = date("r", strtotime($row['event_time_reg_sent']));
             $row['reg_status'] = $this->printRegStatus($row);
-            $row['action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['icons'] = $GLOBALS['MiscObj']->iconCalfChimeric($row['calf_chimeric']) . $GLOBALS['MiscObj']->iconNotHolstein($row['calf_breed']);         
+            $row['action'] = (empty($row['icons'])) ? $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}") :''; //only show button when icons are not present.
 
             if (empty($row['local_reg_status'])) {
                 $row['colour_row'] = 1;
@@ -283,7 +284,7 @@ EX;
             },
             {
                 data: "potential_name",
-                title: "Current Location"
+                title: "Potential Name"
             },
             {
                 data: "since_birthday",
@@ -297,9 +298,14 @@ EX;
                 data: "event_time_reg_sent_new",
                 title: "Registration Submitted Date",
                 type: "date"
+            },
+            {
+                data: "action",
+                title: "Action"
             }
+            
 EX;
-        print($dt->start(120, 'registrationLog', null, $columnsStr, 'highlight_important'));
+        return($dt->start('Log', 120, 'registrationLog', null, $columnsStr, 'highlight_important'));
     }
 
     function registrationLog() {
@@ -307,19 +313,26 @@ EX;
 FROM bovinemanagement.bovine 
                  LEFT JOIN batch.holstein_canada_registered ON bovine.id=bovine_id 
                  LEFT JOIN bovinemanagement.calf_potential_name ON bovine.id=calf_potential_name.bovine_id 
-                 WHERE short_uuid is not null ORDER BY event_time_reg_sent DESC,local_number";
+                 WHERE short_uuid is not null AND event_time_reg_sent >= (current_date - interval '2 years') ORDER BY event_time_reg_sent DESC,local_number";
 
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        $callBackURL=("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
         //change presentation
         foreach ($results as &$row) {
-
+    
             $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
             $row['event_time_raw'] = strtotime($row['event_time_reg_sent']);
             $row['event_time_reg_sent_new'] = date("r", strtotime($row['event_time_reg_sent']));
+              if ($GLOBALS['auth']->getAdminMode()==1) {
+            $row['action'] = (new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['short_uuid'],'deleteName'=>'short_uuid', 'schemaTable' => 'batch.holstein_canada_registered')))->renderDelete('HolsteinCanadaReg' . $row['short_uuid']); 
+              }
+              else {
+               $row['action'] = '';   
+              }
         }
 
         //output
@@ -446,8 +459,4 @@ FROM bovinemanagement.bovine
         return $error;
     }
 
-}
-
-//end class
-//
-?>
+}//end class

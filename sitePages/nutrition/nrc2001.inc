@@ -32,16 +32,16 @@ class NRC2001 extends BasePage {
     
     private function bootstrapBox($header,$content,$footer=null) {
       $html = <<<HTML
-   <div class="box box-default">
-            <div class="box-header with-border">
-              <h3 class="box-title">$header</h3>
+   <div class="card card-primary">
+            <div class="card-header with-border">
+              <h3 class="card-title">$header</h3>
          </div>
-            <!-- /.box-header -->
-        <div class="box-body">
+            <!-- /.card-header -->
+        <div class="card-body">
         $content
         </div>
         </div>
-            <!-- /.box-body -->
+            <!-- /.card-body -->
 HTML;
 
                 return ($html);        
@@ -53,7 +53,7 @@ HTML;
         ?>
         <script>
             $(function () {
-                $('[data-toggle="popover"]').popover(); /* Enable popover. performace hit so need to run per page */
+                $('[data-widget="popover"]').popover(); /* Enable popover. performace hit so need to run per page */
             })
         </script>
         <?php
@@ -65,9 +65,9 @@ HTML;
             $title = $row9['title'];
 
             //show EDIT screen
-              print("<h2>Model Results: <span class='label label-default'>$title (Recipe #{$this->editrecipeid})</span></h2><br/>");
+              print("<h2>Model Results: <span class='text-default'>$title (Recipe #{$this->editrecipeid})</span></h2><br/>");
                     print("<div class='row'>");
-
+                   
                     print("<div class='col-sm-4 col-sm-push-8' >");
                     $this->showNRC2001Accordion($this->editrecipeid, $title);
                     print("</div>");
@@ -76,11 +76,12 @@ HTML;
                     print("<div class='row'>");
                     print("<div class='col-sm-4 col-sm-push-8' >");
                     print($this->nrcButtons());
+                   
                     print("</div>");
                     print("<div class='col-sm-8 col-sm-pull-4' >");
                     
                     //check for linked feed error.
-                  print($this->checkReceipeForLinkedFeeds($this->editrecipeid));
+                    print($this->checkReceipeForLinkedFeeds($this->editrecipeid));
         
                     print($this->displayRecipeCost($this->editrecipeid));
                     print($this->displayActualCurrentMilkProductionByGroupStats($this->editrecipeid));
@@ -91,7 +92,9 @@ HTML;
                     print("</div>");
                     print("</div>");
 
-                    $this->processNRC2001Output($this->runStandardModel_UserAnimalInputs($recipe_id = $this->editrecipeid));
+                    $dataArr=$this->processNRC2001Output($this->runStandardModel_UserAnimalInputs($this->editrecipeid));
+                    print($this->render($dataArr));
+                    
                     print("</div>");
                     print("</div>");
                 } else {
@@ -118,6 +121,46 @@ HTML;
         }
     }
   
+     public function recipeLatestDryMattersTable($locationId,$days=7) {
+       
+      
+        $sql = <<<SQL
+SELECT nrc_recipe_id,title,recipe_create_time
+,recipe, 
+array(select location_id from nutrition.nrc_recipe_location where nrc_recipe=nrc_recipe_id) as location_arr, 
+array(select modifier from nutrition.nrc_recipe_location where nrc_recipe=nrc_recipe_id)    as modifier_arr            
+FROM nutrition.nrc_archive 
+LEFT JOIN nutrition.nrc_recipe_param ON nrc_recipe_param.nrc_recipe=nrc_archive.nrc_recipe_id 
+
+where recipe->0->>'location_id_arr' like '%$locationId%' AND recipe_create_time >= (current_date - interval '$days days') 
+ORDER BY recipe_create_time ASC
+SQL;
+        
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+       $recipeObj=json_decode($row['recipe']);
+          $rowOut['date']= (new JQueryDataTable)->formattedDate($row['recipe_create_time'], 'M d'); 
+          $rowOut['kg_dry']=$recipeObj[0]->kg_day_dry_sum;
+           //$rowOut['modified_mix_total_count']=$recipeObj[0]->modified_mix_total_count;
+          $rowOut['modifier_arr']=$row['modifier_arr'];
+          
+         
+          //$rowOut['mix_cost']=$recipeObj[0]->modified_mix_total_count * $recipeObj[0]->kg_day_cost_sum;
+   
+
+        $resultsOut[] = $rowOut; //output
+        }
+        
+       // $out[] = ( (new JQueryDataTable)->startBasicSql('Latest Dry Matter Δ', $sql));
+        $out[] =( (new JQueryDataTable)->startBasicArray('Latest Dry Matter Δ', $resultsOut));
+        return implode($out);
+    }
+    
+    
     private function bootstrapModal($title,$content) {
 $html = <<<HTML
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -145,9 +188,9 @@ HTML;
     
     private function nrcButtons() {
         $str='';
-         $str=$str.'<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">How To Balance A Ration</button>';
+         $str=$str.'<button type="button" class="btn btn-primary" data-widget="modal" data-target="#myModal">How To Balance A Ration</button>';
          $str=$str. $this->bootstrapModal('How To Balance A Ration',$this->howToBalanceARation());
-         //$str=$str.(' <button type="button" class="btn btn-default" data-container="body" data-toggle="popover" data-placement="right" data-html="true" data-content="' . ($this->howToBalanceARation()) . '" data-original-title="" title="" aria-describedby="popover77277">How To Balance A Ration</button>');
+         //$str=$str.(' <button type="button" class="btn btn-default" data-container="body" data-widget="popover" data-placement="right" data-html="true" data-content="' . ($this->howToBalanceARation()) . '" data-original-title="" title="" aria-describedby="popover77277">How To Balance A Ration</button>');
                      $str=$str.("<br/><br/>");
                      $str=$str.($this->activateButton($this->editrecipeid));
                      $str=$str.("<br/>");
@@ -159,7 +202,7 @@ HTML;
      * show actual parlor milking stats for each group
      */
 
-    private function displayActualCurrentMilkProductionByGroupStats($recipeID) {
+    public function displayActualCurrentMilkProductionByGroupStats($recipeID) {
         //look up what groups were are doing for this recipe.
         $sql = "SELECT location_id FROM nutrition.nrc_recipe_location WHERE nrc_recipe=$recipeID";
 
@@ -175,12 +218,13 @@ HTML;
      * 
      * show valcata stats for group
      */
-     private function displayValactaMilkProductionByGroupStats($recipeID) {
+     public function displayValactaMilkProductionByGroupStats($recipeID) {
         //look up what groups were are doing for this recipe.
         $sql = "SELECT location_id FROM nutrition.nrc_recipe_location WHERE nrc_recipe=$recipeID";
 
          $str='';
         $res = $GLOBALS ['pdo']->query($sql);
+         $str=$str.(new BootStrap)->infoNotify('NRC 2001 does not support palm fat, thus reduce model input group fat percentage by 0.2%.');
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $str=$str. MilkingStats::displayValactaStatsByGroup($row['location_id'], 'nutrition');
         }
@@ -210,7 +254,7 @@ SELECT (SELECT error_check from temp limit 1),(SELECT cost_sum  from temp limit 
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if (($row['error_check']) != 0) {
-            return BootStrap::errorNotify("Error: On Farm Feed Not Linked!");
+            return (new BootStrap)->errorNotify("Error: On Farm Feed Not Linked!");
         } else {
             //make return obj
             $retObj = new stdClass();
@@ -228,14 +272,15 @@ SELECT (SELECT error_check from temp limit 1),(SELECT cost_sum  from temp limit 
         $obj = $this->calculateRecipeCost($recipeID);
 $str='';
         if (empty($obj->total_cost_sum)) {
-            $str='' . '<span class="label label-danger">Not calculated as some items do not have cost entered. Link all recipe inputs to on farm feeds.</span>';
+            $str='' . '<span class="text-danger">Not calculated as some items do not have cost entered. Link all recipe inputs to on farm feeds.</span>';
         }
 
         $total_cost_sum = '<b>$' . $obj->total_cost_sum . '</b>';
         $cost_sum_concentrate = '$' . $obj->cost_sum_concentrate . '';
         $cost_sum_forage = '$' . $obj->cost_sum_forage . '';
+        $total_percent_forage = $obj->kg_day_dry_forage/($obj->kg_day_dry_concentrate +$obj->kg_day_dry_forage);
 
-        $str='' . '<ul><li>' . 'Total ' . $total_cost_sum . '</li><li>Concentrate ' . $cost_sum_concentrate . ' on ' . $obj->kg_day_dry_concentrate . 'kg ' . '</li><li>Forage ' . $cost_sum_forage . ' on ' . $obj->kg_day_dry_forage . 'kg ' . '</li></ul>';
+        $str='' . '<ul><li>' . 'Total ' . $total_cost_sum . '</li><li>Concentrate ' . $cost_sum_concentrate . ' on ' . $obj->kg_day_dry_concentrate . 'kg ' . '</li><li>Forage ' . $cost_sum_forage . ' on ' . $obj->kg_day_dry_forage . 'kg ' . '</li><li>Forage Percent ' . round($total_percent_forage*100,1) . '%' . '</li></ul>';
      
         return $this->bootStrapBox('Recipe Cost',$str);   
     }
@@ -284,7 +329,7 @@ $str='';
 
         $accordion = new AccordionImplementationNRC2001Quickforms($editrecipeid, $title);
         $accordion->setCSS('accordionNarrow');
-        $accordion->render($accordionArray);
+        print($accordion->render($accordionArray));
     }
 
     function recipeInfo($statusType = 'active') {
@@ -296,6 +341,7 @@ $str='';
         $query = "SELECT * FROM nutrition.nrc_recipe_param WHERE status='$statusType' ORDER BY update_time DESC";
         $res = $GLOBALS ['pdo']->query($query);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $right=array();
             if ($statusType == 'active') {
                 $str = $str . ("<div class='recipeBoxActive'>");
             } elseif ($statusType == 'staging') {
@@ -304,12 +350,13 @@ $str='';
 
             /* popover content is the recipe in a basic table format */
             //now load up some of the recipe items
-            $sql2 = " SELECT * FROM nutrition.nrc_recipe_active_staging WHERE nrc_recipe={$row['nrc_recipe']} ORDER BY kg_day_dry DESC";
+            $sql2 = " SELECT *,locations[1] as main_location_id FROM nutrition.nrc_recipe_active_staging WHERE nrc_recipe={$row['nrc_recipe']} ORDER BY kg_day_dry DESC";
             $res2 = $GLOBALS ['pdo']->query($sql2);
             $popoverContent = '<table >    <thead>      <tr>        <th>Feed</th>        <th>kg</th>           </tr>    </thead>    <tbody>';
             while ($row2 = $res2->fetch(PDO::FETCH_ASSOC)) {
                 $popoverContent = $popoverContent . (" <tr><td>{$row2['feed_library_name']}</td><td> {$row2['kg_day_dry']} </td></tr>");
                 $kg_day_dry_sum = $row2['kg_day_dry_sum'];
+                $main_location_id=$row2['main_location_id'];
             }
             $popoverContent = $popoverContent . ' </tbody>  </table>';
 
@@ -319,25 +366,36 @@ $str='';
 
             $str = $str . ('<h4>' . $row['title'] . '</h4>');
             $str = $str . ('<h6>' . ' Recipe #' . $row['nrc_recipe'] . ' ');
-            $str = $str . ' <button type="button" class="btn btn-default" data-container="body" data-toggle="popover" data-placement="right" data-html="true" data-content="' . $popoverContent . '" data-original-title="" title="" aria-describedby="popover77277">Info</button>';
-            $str = $str . ('</h6><hr>');
-            $str = $str . '<dl>';
 
-            $str = $str . ('<dt>Comment</dt><dd> ' . $row['comment'] . '</dd>');
-            $str = $str . ('<dt>Last Edit</dt><dd>' . date('Y-m-d H:m:s', strtotime($row['update_time'])) . ' by ' . $row['update_userid'] . '</dd>');
-            $str = $str . ('<dt>Created</dt><dd>' . date('Y-m-d H:m:s', strtotime($row['create_time'])) . '</dd>');
-            $str = $str . '<dt>DM</dt><dd>' . $kg_day_dry_sum . ' kg/cow/day</dd>';
-            $str = $str . '</dl>';
+       
+            $left=  $this->recipeLatestDryMattersTable($main_location_id,9);
+            $centre= (new BootStrap)->plainCard('Comment',$row['comment']);
+                
+                
+           // $str = $str . ' <button type="button" class="btn btn-default" data-container="body" data-widget="popover" data-placement="right" data-html="true" data-content="' .  . '" data-original-title="" title="" aria-describedby="popover77277">Info</button>';
+            $str = $str . ('</h6><hr>');
+            $right[]= '<dl>';
+
+      
+            $right[]= ('<dt>Last Edit</dt><dd>' . date('Y-m-d H:m:s', strtotime($row['update_time'])) . ' by ' . $row['update_userid'] . '</dd>');
+            $right[]= ('<dt>Created</dt><dd>' . date('Y-m-d H:m:s', strtotime($row['create_time'])) . '</dd>');
+           $right[]= '<dt>DM</dt><dd>' . $kg_day_dry_sum . ' kg/cow/day</dd>';
+           $right[]= '</dl>';
             //find locations
             $sql3 = "SELECT * FROM nutrition.nrc_recipe_location
 LEFT JOIN bovinemanagement.location on location.id=location_id
  WHERE nrc_recipe={$row['nrc_recipe']} ORDER BY modifier DESC";
             $res3 = $GLOBALS ['pdo']->query($sql3);
-            $str = $str . ('<h6>Locations</h6>');
+            $right[]= ('<h6>Locations</h6>');
             while ($row3 = $res3->fetch(PDO::FETCH_ASSOC)) {
-                $str = $str . ('<h5>' . $row3['name'] . ' ' . $row3['modifier'] * 100 . '%</h5>');
+                 $right[]= ('<h5>' . $row3['name'] . ' ' . $row3['modifier'] * 100 . '%</h5>');
             }
 
+            
+             $str = $str .   (new BootStrap)->fourthfourthfourthfourth((new BootStrap)->plainCard('Stats',implode($right)),$left,$centre,(new BootStrap)->plainCard('Recipe',($popoverContent)));
+            
+            
+            
             $str = $str . ' <hr>';
 
 
@@ -380,7 +438,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
             //run edit code HERE!
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid=114&editrecipeid=$recipeID");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=114&editrecipeid=$recipeID");
             exit();
         }
 
@@ -392,7 +450,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
         $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'recipeID', $recipeID);
-        $form->addElement('submit', 'btnDelete', 'Delete', array('id' => 'btnDelete', 'onclick' => "return confirm('Are you sure you want to delete recipe #$recipeID?')")); //call javascript to confirm submit.
+        $form->addElement('submit', 'btnDelete', 'Delete', array('class'=>'btn btn-warning','id' => 'btnDelete', 'onclick' => "return confirm('Are you sure you want to delete recipe #$recipeID?')")); //call javascript to confirm submit.
         // Try to validate a form
         if ($form->validate()) {
 
@@ -401,7 +459,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
             $recipeID = $form->getElementValue('recipeID');
 
             $res = $GLOBALS['pdo']->query("DELETE FROM nutrition.nrc_recipe_param where nrc_recipe='$recipeID'"); //does a cascade delete.
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -425,7 +483,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
             //run backToStaging code
             $this->moveRecipe($recipeID, 'staging'); //move back to staging
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -457,7 +515,7 @@ LEFT JOIN bovinemanagement.location on location.id=location_id
                 $this->moveRecipe($recipeID, 'archive'); //move old recipe to archive
             }
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -513,7 +571,7 @@ SQL;
             
 */
             }
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -543,7 +601,7 @@ SQL;
                 $this->moveRecipe($recipeID, 'staging'); //move to staging
             }
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -583,7 +641,7 @@ from (
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -608,7 +666,7 @@ from (
             //do duplicating to staging
             $this->duplicateRecipe($recipeID, 'staging');
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -677,7 +735,7 @@ from (
         $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'recipeID', $recipeID);
-        $form->addElement('submit', 'btnActivate', 'Activate');
+        $form->addElement('submit', 'btnActivate', 'Activate',array('class'=>'btn btn-success'));
 
 
         // Try to validate a form
@@ -689,7 +747,7 @@ from (
 
             $this->moveRecipe($recipeID, 'active');
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -711,6 +769,7 @@ from (
         $str = $str . $this->checkErrorsFunction("99 Heifer Group", 42);
         $str = $str . $this->checkErrorsFunction("Heifer Barn", 46);
         $str=  $str . $this->checkReceipeForLinkedFeeds($recipe_id);
+        $str=  $str . $this->checkReceipeItemsAllHaveCostEntered($recipe_id);
         return $str;
     }
 
@@ -723,9 +782,9 @@ LEFT JOIN nutrition.nrc_recipe_location  on nrc_recipe_param.nrc_recipe=nrc_reci
         $res = $GLOBALS['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row['count'] == 0) {
-            $str = $str . BootStrap::errorNotify("Error: Group $locationName does not have an active recipe.");
+            $str = $str . (new BootStrap)->errorNotify("Error: Group $locationName does not have an active recipe.");
         } elseif ($row['count'] > 1) {
-            $str = $str . BootStrap::errorNotify("Error: Group $locationName has more than one active recipe.");
+            $str = $str . (new BootStrap)->errorNotify("Error: Group $locationName has more than one active recipe.");
         }
 
         return $str;
@@ -742,11 +801,30 @@ LEFT JOIN nutrition.nrc_recipe_location  on nrc_recipe_param.nrc_recipe=nrc_reci
          while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
              //shows for individual recipe on recipe page and for all receipes on staging page.
              if ( (empty($recipe_id)) OR ($recipe_id==$row['nrc_recipe'])) {
-               $str = $str . BootStrap::errorNotify("Error: Missing Linked Feed for recipe {$row['title']}, ie did you change feed tanks or silage bags?");
+               $str = $str . (new BootStrap)->errorNotify("Error: Missing Linked Feed for recipe {$row['title']}, ie did you change feed tanks or silage bags?");
              }
          }
          return $str;
     }
+    
+    /*
+     * checks that all recipe items have a feed cost entered.
+     */
+    private function checkReceipeItemsAllHaveCostEntered($recipe_id=null) {
+        $str='';
+         $sql = "SELECT feed_type,location from nutrition.feedcurr where cost is null";
+        $res = $GLOBALS['pdo']->query($sql);
+         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
+             //shows for individual recipe on recipe page and for all receipes on staging page.
+             if ( (empty($recipe_id)) OR ($recipe_id==$row['nrc_recipe'])) {
+               $str = $str . (new BootStrap)->errorNotify("Error: Missing Cost for Feed {$row['feed_type']} - {$row['location']}, is cost per tonne entered?");
+             }
+         }
+         return $str;
+    }
+    
+    
+    
     
     /*
      * check recipe animal inputs match NRC inputs
@@ -774,7 +852,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
          while (($row2 = $res2->fetch(PDO::FETCH_ASSOC))) {
              //shows for individual recipe on recipe page and for all receipes on staging page.
             // if ( (empty($recipe_id)) OR ($recipe_id==$row['nrc_recipe'])) {
-               $str = $str . BootStrap::errorNotify("Error:  for recipe {$row['title']}, BLAH BLAH.");
+               $str = $str . (new BootStrap)->errorNotify("Error:  for recipe {$row['title']}, BLAH BLAH.");
             // }
          }
         }
@@ -864,7 +942,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         } //end validation
         else {
             $form->accept($renderer);
-            echo $renderer->toHtml();
+            return $renderer->toHtml();
         }
     }
 
@@ -932,7 +1010,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         // Close the transaction
         //////////////////////////////////////////
         //forward to same page, ob_start() is key to making this work!
-        header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$pageid}&editrecipeid=$recipe_id");
+        header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$pageid}&editrecipeid=$recipe_id");
         exit();
     }
 
@@ -991,7 +1069,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         //select the items. NRC FEEDS
         $sql = "SELECT feed_library_name,kg_day_dry,feedcurr_id FROM nutrition.nrc_recipe_item where nrc_recipe=$recipe_id ORDER BY kg_day_dry DESC";
         $res = $GLOBALS['pdo']->query($sql);
-        $currentlyUsedFeedsArray = "";
+        $currentlyUsedFeedsArray = array();
         // ON FARM FEEDS
         $feedCurrArr = self::getCurrentFeedsArray();
 
@@ -1003,6 +1081,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
             //create group of items and delete buttons.
             $item['id'] =  $form->createElement('hidden', 'id', "$id");
             //$item['location_id'] =  $form->createElement('static', $row['location_id'], 'Location', $row['name']);
+            $item['static'] =  $form->createElement('static', '');
             $item['feedcurr_id'] =  $form->createElement('select', 'feedcurr_id', 'on Farm Feeds', $feedCurrArr);
             $form->addGroup($item, "recipeitem_$id", "$displayText", '&nbsp;');
 
@@ -1027,7 +1106,7 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         } //end validation
         else {
             $form->accept($renderer);
-            echo $renderer->toHtml();
+            return $renderer->toHtml();
         }
     }
 
@@ -1070,14 +1149,14 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
 
 
         // Close the transaction
         //////////////////////////////////////////
         //forward to same page, ob_start() is key to making this work!
-        header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
+        header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
         exit();
     }
 
@@ -1294,7 +1373,34 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         return $retArray;
     }
 
-    function processNRC2001Output($retArray) {
+    
+    
+    /* we use this because sometimes we just want part of the model output and not 
+     * display it all, this is for when we do want to display it.
+     */
+    public function render($out) {
+        
+        $inArr[] =  $out['addicanBalanceParamaters'];
+      
+       
+        $inArr[] = ("<h3>Summary Report</h3>");
+        $inArr[] = '<div id="nrc_summaryReportPage1">';
+        $inArr[] =  $out['summaryReportPage1'];
+        $inArr[] =  $out['summaryReportPage2'];
+        $inArr[] = '</div>';
+  
+        $inArr[] = $out['ingrediantEnergyProteinSupply'];
+        $inArr[] = $out['aminoAcids'];
+        $inArr[] = $out['macroMineralDataTable'];
+        $inArr[] = $out['microMineralDataTable'];
+        $inArr[] = $out['vitaminMineralDataTable'];
+        
+         return implode($inArr);
+    }
+    
+    
+    /* main function that returns printable parts of the model to later render */
+    public function processNRC2001Output($retArray) {
 
         //get data broken out of main array
         $input = $retArray['Input'];
@@ -1303,23 +1409,17 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
         $feed = $retArray['Feed'];
         $feedInput = $retArray['FeedInput'];
 
-        //show summaryReport
-        $str = '';
+      
         
-        $str=$str.'<div id="nrc_summaryReportPage1">';
-        $str = $str . ("<h3>Summary Report</h3>");
-        $str = $str .  $this->summaryReportPage1($input, $output, $mineral) ;
-        $str = $str .  $this->summaryReportPage2($input, $output, $mineral) ;
- $str=$str.'</div>';
-        print($str);
-        print($this->ingrediantEnergyProteinSupply($feed, $output, $feedInput));
-
-
-        //print("<div id='nrc_aminoAcids'>");$this->aminoAcids($output); print("</div>");
-        print($this->aminoAcids($output));
-        print($this->macroMineralDataTable($mineral));
-        print($this->microMineralDataTable($mineral));
-        print($this->vitaminMineralDataTable($mineral));
+        //show summaryReport
+        $out['addicanBalanceParamaters']= $this->addicanBalanceParamaters($input, $output);
+        $out['summaryReportPage1']=  $this->summaryReportPage1($input, $output, $mineral) ;
+        $out['summaryReportPage2']=  $this->summaryReportPage2($input, $output, $mineral) ;
+        $out['ingrediantEnergyProteinSupply']=($this->ingrediantEnergyProteinSupply($feed, $output, $feedInput));
+        $out['aminoAcids']=($this->aminoAcids($output));
+        $out['macroMineralDataTable']=($this->macroMineralDataTable($mineral));
+        $out['microMineralDataTable']=($this->microMineralDataTable($mineral));
+        $out['vitaminMineralDataTable']=($this->vitaminMineralDataTable($mineral));
 
 
 
@@ -1353,6 +1453,8 @@ LEFT JOIN batch.valacta_data_latest_test_view ON bovinecurr.local_number = valac
 
           print_r2($y['TDN_Act']);
          */
+         
+         return $out;
     }
 
     /**
@@ -1518,7 +1620,7 @@ EX;
 
 
  $str = '';
-        $str = $str .($dt->startLocal($feedParamArrFixed, $columnsStr, null, '  searching: false,
+        $str = $str .($dt->startLocal('Title Local CHANGE ME', $feedParamArrFixed, $columnsStr, null, '  searching: false,
         paging: false,
         ordering: false,
         info: false'));
@@ -1607,14 +1709,14 @@ HTML;
         } else {
             $msg = '';
             if ($value >= ($referenceValue - $safeLowerBound) && ($value <= ($referenceValue + $safeUpperBound))) {  //within upper and lower bounds
-                $msg = $msg . BootStrap::sucessSpan(round($value, $roundValue)); //slightly lower
+                $msg = $msg . (new BootStrap)->sucessCallout(round($value, $roundValue)); //slightly lower
             } elseif ($value >= ($referenceValue - 2 * $safeLowerBound) && ($value <= ($referenceValue + 2 * $safeUpperBound))) {      //within 2 TIMES upper and lower bounds
-                $msg = $msg . BootStrap::warningSpan(round($value, $roundValue));  //slightly higher
+                $msg = $msg . (new BootStrap)->warningCallout(round($value, $roundValue));  //slightly higher
             } else {
-                $msg = $msg . BootStrap::dangerSpan(round($value, $roundValue));
+                $msg = $msg . (new BootStrap)->dangerCallout(round($value, $roundValue));
 
                 $txt = "Error: " . round($value, $roundValue) . " out of range: (" . round($referenceValue - 2 * $safeLowerBound, $roundValue) . " to " . round($referenceValue + 2 * $safeUpperBound, $roundValue) . "), rebalance!";
-                $msg = $msg . BootStrap::errorNotify($txt);
+                $msg = $msg . (new BootStrap)->errorNotify($txt);
             }
             return $msg;
         }
@@ -1692,6 +1794,39 @@ HTML;
 
 
                return $this->bootstrapBox('Animal Inputs',$html);
+    }
+
+    
+    
+    /*
+     * show main things in ration to balance for with min max.
+     * 
+     */
+    public function addicanBalanceParamaters($input, $output) {
+        //CP %	RDP  %	RUP %	NDF %	ADF %	NEL (MCal/kg)	NFC % DCAD
+
+    //function attention($value, $referenceValue, $safeLowerBound = .2, $safeUpperBound = .2, $roundValue = 2, $AnimalType) 
+        
+       
+        $out[] = '<ul>';
+        $out[] = " <li>CP - Diet  {$this->attention($output->DietCP * 100, 17, 1.4, 1, 1, $input->AnimalType)} (% DM) </li>";
+        $out[] = " <li>CP - RUP   {$this->attention( ($output->RUPSup/$output->TotalDMFed*100/1000), 7, 1.5, 1.5, 2, $input->AnimalType)} (% DM)";
+        $out[] = " <li>NDF: {$this->attention($output->DietNDF * 100, 30, 2, 3, 1, $input->AnimalType)}  (%DM)</li>";
+        $out[] = " <li>ADF: {$this->attention($output->DietADF * 100, 22, 4, 4, 1, $input->AnimalType)}  (%DM)</li>";
+        
+     //  
+        $out[] = ("<li>NEl Allowable Milk : {$this->attention($output->EnergyAllowableMilk/$output->TotalDMFed, 1.7, .5, .5, 3, $input->AnimalType)} (kg/ kg of DM)  </li>"); //WRONG???
+        $out[] = ("  <li>NFC: {$this->attention($output->DietaryNFC / $output->DMI_Total * 100, 39, 1, 1, 1, $input->AnimalType)}  (%DM)</li>");
+       
+      
+        $out[] = ("    <li>DCAD:   {$this->attention($output->DCAD, 300, 50, 50, 1, $input->AnimalType)} (mEq/kg)</li>");
+
+        $out[] = '</ul>';
+
+
+
+
+        return $this->bootstrapBox('Major Paramaters', implode($out));
     }
 
     /**
@@ -1823,7 +1958,7 @@ EX;
         $str = $str . '</ul>';
         $str = $str . ("<br/>");
         
-         $str = $str .($dt->startLocal($aminoAcidArrFixed, $columnsStr, null, '  searching: false,
+         $str = $str .($dt->startLocal('Title Local CHANGE ME', $aminoAcidArrFixed, $columnsStr, null, '  searching: false,
         paging: false,
         ordering: false,
         info: false'));
@@ -1923,7 +2058,7 @@ EX;
 EX;
 
 
-        $str=($dt->startLocal($macroMinArr, $columnsStr, null, '  searching: false,
+        $str=($dt->startLocal('Title Local CHANGE ME', $macroMinArr, $columnsStr, null, '  searching: false,
         paging: false,
         ordering: false,
         info: false'));
@@ -2018,7 +2153,7 @@ EX;
 EX;
 
 
-        $str=($dt->startLocal($microMinArr, $columnsStr, null, '  searching: false,
+        $str=($dt->startLocal('Title Local CHANGE ME', $microMinArr, $columnsStr, null, '  searching: false,
         paging: false,
         ordering: false,
         info: false'));
@@ -2098,7 +2233,7 @@ EX;
 EX;
 
 
-        $str=($dt->startLocal($vitArray, $columnsStr, null, '  searching: false,
+        $str=($dt->startLocal('Title Local CHANGE ME', $vitArray, $columnsStr, null, '  searching: false,
         paging: false,
         ordering: false,
         info: false'));
@@ -2197,7 +2332,7 @@ EX;
        
 EX;
 
-        $str = $str .($dt->startLocal($dietNutrientBlanacesFixed, $columnsStr, null, '  searching: false,        paging: false,        ordering: false,        info: false'));     
+        $str = $str .($dt->startLocal('Title Local CHANGE ME', $dietNutrientBlanacesFixed, $columnsStr, null, '  searching: false,        paging: false,        ordering: false,        info: false'));     
         $str = $str . "<p>Note: Total Supplied is Total Absorbable for Ca,P, and K.</p>";
 
        return $this->bootstrapBox('Diet Nutrient Balances',$str);
@@ -2284,7 +2419,7 @@ EX;
         } //end validation
         else {
             $form->accept($renderer);
-            echo $renderer->toHtml();
+            return $renderer->toHtml();
         }
     }
 
@@ -2295,7 +2430,7 @@ EX;
         $recipe_id = $values['recipe_id'];
         $recipeID = $recipe_id;
 
-        print_r2($values);
+       // print_r2($values);
 
 
 
@@ -2353,7 +2488,7 @@ EX;
         // Close the transaction
         //////////////////////////////////////////
         //forward to same page, ob_start() is key to making this work!
-        header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
+        header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
         exit();
     }
 
@@ -2367,7 +2502,7 @@ EX;
         //select the items.
         $sql = "SELECT feed_library_name,kg_day_dry FROM nutrition.nrc_recipe_item where nrc_recipe=$recipe_id ORDER BY kg_day_dry DESC";
         $res = $GLOBALS['pdo']->query($sql);
-        $currentlyUsedFeedsArray = "";
+        $currentlyUsedFeedsArray = array();
         while (($row = $res->fetch((PDO::FETCH_ASSOC)))) {
             $currentlyUsedFeedsArray[$row['feed_library_name']] = "{$row['feed_library_name']}";
             $displayText = $row['feed_library_name'];
@@ -2376,8 +2511,10 @@ EX;
 
             //create group of items and delete buttons.
             $item['id'] =  $form->createElement('hidden', 'id', "$id");
+               $item['sss']= $form->createElement('static', 'dddd');
             $item['kg_day_dry'] =  $form->createElement('text', 'kg_day_dry', null, array('size' => 4));
             $item['delete'] =  $form->createElement('checkbox', 'delete', null, 'delete');
+         
             $form->addGroup($item, "recipeitem_$id", "$displayText", '&nbsp;');
 
             //set default dry matter values
@@ -2428,7 +2565,7 @@ Select * from nutrition.feed_library_local
         } //end validation
         else {
             $form->accept($renderer);
-            echo $renderer->toHtml();
+            return $renderer->toHtml();
         }
     }
 
@@ -2492,14 +2629,14 @@ Select * from nutrition.feed_library_local
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
 
 
         // Close the transaction
         //////////////////////////////////////////
         //forward to same page, ob_start() is key to making this work!
-        header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
+        header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&editrecipeid=$recipeID");
         exit();
     }
 
@@ -2559,23 +2696,23 @@ class AccordionImplementationNRC2001Quickforms extends AccordionSub {
     }
 
     function tab1() {
-        NRC2001::editRecipeQuickform(self::$recipeID, self::$title);
+        return NRC2001::editRecipeQuickform(self::$recipeID, self::$title);
     }
 
     function tab2() {
        
-        NRC2001::editRecipeAnimalInputParamQuickform(self::$recipeID, self::$title);
+        return NRC2001::editRecipeAnimalInputParamQuickform(self::$recipeID, self::$title);
     }
 
     function tab3() {
        
-        NRC2001::editRecipeLocationsQuickform(self::$recipeID, self::$title);
+       return  NRC2001::editRecipeLocationsQuickform(self::$recipeID, self::$title);
     }
 
     function tab4() {
 
        
-        NRC2001::editLinkFeedsNRCtoOnFarmQuickform(self::$recipeID, self::$title);
+        return NRC2001::editLinkFeedsNRCtoOnFarmQuickform(self::$recipeID, self::$title);
     }
 
 }

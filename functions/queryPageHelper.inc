@@ -34,11 +34,13 @@ class QueryPageHelper {
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $time = strtotime($row['fresh_date']);
             $str = ("<div class='hr_1'><div class='hr_2'><span class='hr_3'>&#8593; Lactation $counter &#8593;</span></div></div>");
-             $outArray = makeTimeString($outArray, $time - 2, $str); // the minus 2 to display before calvinga nd lactation start
+             $outArray = $GLOBALS['MiscObj']->makeTimeString($outArray, $time - 2, $str); // the minus 2 to display before calvinga nd lactation start
             $counter++;
         }
         return $outArray;
     }
+    
+    
     
     
     

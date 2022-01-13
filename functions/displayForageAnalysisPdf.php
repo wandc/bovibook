@@ -15,7 +15,7 @@ if ($res->rowCount() == 1) {
     header('Content-type: application/pdf');
     header("Cache-Control: no-cache");
     header("Pragma: no-cache");
-    header("Content-Disposition: inline;filename='$sample_number.pdf'");
+    header("Content-Disposition: inline;filename=$sample_number.pdf");
     header("Content-length: " . $length); //use octet_length
 
     fpassthru($lob); //echo out data

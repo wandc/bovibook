@@ -7,22 +7,21 @@
 class EstrusHeats extends BasePage {
 
     public function defaultDisplay() {
-        
-    $a=new QF2_EstrusHeats((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        
-    $html = <<<HTML
-    <div class='row'>
-        <div class='col-sm-4 col-sm-push-8'>
-            {$a->renderBox('qf2_heatsEntry','Record Heat Event')}
-            {$this->displayEstrusDetectorHighProbabilityHeats()}
-        </div>
-        <div class='col-sm-8 col-sm-pull-4'> 
+     
+    $a=new QF2_EstrusHeats((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
+         
+            
+        $left = <<<HTML
             {$this->displayLast100DaysEstrusEvents()}
-        </div>
-    </div>    
-HTML;
-    
-        print($html);
+        HTML; 
+           
+        $right = <<<HTML
+            {$a->renderBox('qf2_heatsEntry','Record Heat Event')}   
+            {$this->displayFutureHeatEvents()}
+        HTML; 
+               
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);
     }
 
     /**
@@ -62,67 +61,80 @@ HTML;
         //if animal is too young.
         //use volunatry breeding period instead.
         //if animal is already bred, then write that.
+
+        //uses order of presedence. first reason hit is the one that gets displayed. 
+        
         $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.breeding_event WHERE bovine_id = $bovine_id AND actual_breeding_time > timestamp '$event_time' - interval '2 days'");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
-            $returnMessage = 'Already Bred.';
+           return 'Already Bred.';
         }
 
         //see if animal has reached vountary waiting period yet.
         $query = "SELECT bovinemanagement.calculate_breeding_voluntary_waiting_period(id),date_trunc('day',now()-bovinemanagement.calculate_breeding_voluntary_waiting_period(id)) from bovinemanagement.bovinecurr WHERE id=$bovine_id";
         $res = $GLOBALS['pdo']->query($query);
         $row = $res->fetch(PDO::FETCH_ASSOC);
+        if (!empty($row['calculate_breeding_voluntary_waiting_period'])) {
         if (strtotime($row['calculate_breeding_voluntary_waiting_period']) >= strtotime("now")) {
-            $returnMessage = "Voluntary waiting period not reached until {$row['calculate_breeding_voluntary_waiting_period']}.";
-        }
+           return "Voluntary waiting period not reached until {$row['calculate_breeding_voluntary_waiting_period']}.";
+        }}
 
         //if animal is on do not breed list write that.
         $res = $GLOBALS['pdo']->query("SELECT bovine_id,donotbreed FROM bovinemanagement.service_picks WHERE bovine_id= $bovine_id ORDER BY event_time DESC LIMIT 1");
         $row = $res->fetch(PDO::FETCH_ASSOC);
-        if ($row['donotbreed'] == 't') {
-            $returnMessage = 'On Do Not Breed List.';
-        }
+        if ($res->rowCount() > 0) {
+        if ($row['donotbreed'] == true) {
+           return 'On Do Not Breed List.';
+        }}
 
 
         //if animal was preg check positive in the last 14 days, assume they are definately pregnant.
-        $res = $GLOBALS['pdo']->query("SELECT event_time FROM bovinemanagement.preg_check_event WHERE bovine_id= $bovine_id  AND preg_check_result='pregnant' AND event_time >= (current_date - interval '14 days') ORDER BY event_time DESC LIMIT 1");
+        $res = $GLOBALS['pdo']->query("SELECT event_time FROM bovinemanagement.preg_check_event WHERE bovine_id= $bovine_id  AND preg_check_result='pregnant' AND event_time >= ('$event_time'::date - interval '14 days') ORDER BY event_time DESC LIMIT 1");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
-            $returnMessage = "Marked Pregnant on " . date('M d', strtotime($row['event_time'])) . ".";
+           return "Marked Pregnant on " . date('M d', strtotime($row['event_time'])) . ".";
         }
 
-        //if animal was preg checked past 60 days assume they are pregnant for sure.
-        $res = $GLOBALS['pdo']->query("SELECT event_time FROM bovinemanagement.preg_check_event WHERE bovine_id= $bovine_id  AND preg_check_result='pregnant' AND event_time >= (current_date - interval '14 days') ORDER BY event_time DESC LIMIT 1");
+        //if animal is less than 180 days until they are due. 
+        $res = $GLOBALS['pdo']->query("SELECT (calculated_potential_due_date - '$event_time') as days FROM bovinemanagement.combined_breeding_embryo_view WHERE recipient_bovine_id=$bovine_id ORDER BY event_time DESC limit 1");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
-            $returnMessage = "Marked Pregnant on " . date('M d', strtotime($row['event_time'])) . ".";
+            if (($row['days'] <= 180) && ($row['days'] > 0))
+           return "Marked Pregnant, only {$row['days']} days till due.";
         }
 
-
+            //if animal is to be bred way in the furture.
+        $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.breeding_event WHERE bovine_id = $bovine_id AND actual_breeding_time is null AND estimated_breeding_time > ('$event_time'::date  + interval '1.5 day')");
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        if ($row != null) {
+           return 'Marked to breed in the future.';
+        }
+        
 
         //if animal is to be bred.
         $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.breeding_event WHERE bovine_id = $bovine_id AND actual_breeding_time is null AND estimated_breeding_time > timestamp '$event_time' - interval '1 days'");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
-            $returnMessage = '<b id="boldRed">Marked to Breed.</b>';
+           return '<b id="boldRed">Marked to Breed.</b>';
         }
 
-          //if animal is to be bred way in the furture.
-        $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.breeding_event WHERE bovine_id = $bovine_id AND actual_breeding_time is null AND estimated_breeding_time > (current_timestamp  + interval '1.5 day')");
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        if ($row != null) {
-            $returnMessage = 'Marked to breed in the future.';
-        }
-        
+      
         
         //if animal is marked for embryo transfer.
         $res = $GLOBALS['pdo']->query("SELECT id,estimated_event_time FROM bovinemanagement.embryo_implant WHERE bovine_id = $bovine_id AND estimated_event_time > timestamp '$event_time' - interval '4 days'");
         $row = $res->fetch(PDO::FETCH_ASSOC);
         if ($row != null) {
             $embryoTransferTime = date("l M d", strtotime($row['estimated_event_time']));
-            $returnMessage = "Marked for Embryo Transfer on $embryoTransferTime.";
+           return "Marked for Embryo Transfer on $embryoTransferTime.";
         }
 
+        //check if breeding banned
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusBreedings.inc');
+        $breedingBan=QF2_BreedingBan::isAnimalBreedingBanned($bovine_id);
+         if (!empty($breedingBan)) {   
+         return "Breeding banned until $breedingBan.";
+         }
+        
         //print_r($record);
         return $returnMessage;
     }
@@ -162,52 +174,86 @@ HTML;
         }
     }
 
-   
-
-    function printActionButtons2($bovine_id,$event_time,$estrus_id, $callBackURL = null) {
-        $checkToBeSorted='';
-        $deleteButtonAsString = '';
-        $currentUserid = $GLOBALS['auth']->getUsername();
-
-        //find the last entry for the current user and use that as a basais to display the delete button or not.
-        //We only want the delete button shown once for the latest entry.
-        $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.estrus_event WHERE userid='$currentUserid' ORDER BY id DESC LIMIT 1");
-
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-       
-        if ($estrus_id == $row['id']) {
-           
-             $a=new QF2_GenericDeleteButton((object) array('callBackURL' =>$callBackURL),'individual',(object) array('deleteID'=>$estrus_id,'schemaTable'=>'bovinemanagement.estrus_event'));
-             $deleteButtonAsString=($a->renderDelete($estrus_id));    
-        }
+    
+  
+    public function displayFutureHeatEvents() {
+        $arr=$this->watchForFutureHeatsEvents();
+        $out=array();
+        $prevTime=null;
+          foreach ($arr as &$row) {
+              if ($row['event_time']!=$prevTime) {
+                    $out[]='<h3>&#xb1; '.$row['event_time'].'</h3>';
+              }
+              $prevTime=$row['event_time'];
+            
+              $out[]='<li>'.$row['local_number'].'</li>';
+          }
         
-        //sort gate
-        require_once $_SERVER['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/movementSortGate.inc'; 
-        $checkToBeSorted = MovementSortGate::checkToBeSorted($bovine_id, $event_time);
-        
-        return $deleteButtonAsString.$checkToBeSorted;
+      
+        $content=(implode($out));
+     return(    (new BootStrap)->generalInfoBox('ion-ios-eye-outline','bg-info','Watch For Heats',$content));
     }
-
-    public function AllHeats7Days($request) {
-        $sql = "Select estrus_event.id as estrus_id,estrus_event.bovine_id,local_number,full_name,estrus_type.name as event_name,estrus_event.event_time as event_time,birth_date,estrus_event.userid,locationcurr.name as location_name,estrus_type.id as estrus_type_id
+    
+    
+    public function watchForFutureHeatsEvents() {
+        
+        /* this shows breeding protocol watch for heat, but not animals who were just bred. */
+        $sql = <<<SQL
+Select estrus_event.id as estrus_id,estrus_event.bovine_id,local_number,full_name,estrus_type.name as event_name,estrus_event.event_time as event_time,birth_date,estrus_event.userid,locationcurr.name as location_name,estrus_type.id as estrus_type_id,bovinemanagement.last_breeding(bovine.id)
  FROM bovinemanagement.estrus_event
 	    LEFT JOIN bovinemanagement.bovine ON bovine.id=estrus_event.bovine_id 
 	    LEFT JOIN bovinemanagement.estrus_type ON estrus_event.estrus_type_id=estrus_type.id  
 	    LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id=bovine.id
-             WHERE estrus_event.event_time >=  CURRENT_DATE - interval '7 days'
-	     ORDER BY estrus_event.event_time DESC ";
+             WHERE 
+    estrus_event.event_time >=  CURRENT_DATE - interval '2 days' 
+AND estrus_event.event_time <  CURRENT_DATE + interval '2 days' 
+AND system_entry = true
+AND (bovinemanagement.last_breeding(bovine.id) IS NULL OR bovinemanagement.last_breeding(bovine.id) <=  (CURRENT_DATE - interval '2 days') )
+ORDER BY estrus_event.event_time DESC 
+SQL;
+    
+         $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        $resultsOut=array();
+        //change presentation
+        foreach ($results as &$row) {
+            $rowOut['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+            $rowOut['event_time'] = date("l M d", strtotime($row['event_time']));  //has to be at end.
+             $resultsOut[] = $rowOut; 
+        }
+          
+        return $resultsOut;
+    }
+   
+
+    public function AllHeats7Days($request) {
+        
+         $sql = <<<SQL
+Select estrus_event.id as estrus_id,estrus_event.bovine_id,local_number,full_name,estrus_type.name as event_name,estrus_event.event_time as event_time,birth_date,estrus_event.userid,locationcurr.name as location_name,estrus_type.id as estrus_type_id
+ FROM bovinemanagement.estrus_event
+	    LEFT JOIN bovinemanagement.bovine ON bovine.id=estrus_event.bovine_id 
+	    LEFT JOIN bovinemanagement.estrus_type ON estrus_event.estrus_type_id=estrus_type.id  
+	    LEFT JOIN bovinemanagement.locationcurr ON locationcurr.bovine_id=bovine.id
+             WHERE estrus_event.event_time >=  CURRENT_DATE - interval '7 days' AND system_entry = false
+	     ORDER BY estrus_event.event_time DESC 
+SQL;
+         
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+         $delButton=new QF2_DeleteButtonDecider('user_1only',(object) array('schemaTable'=>'bovinemanagement.estrus_event'));
+        
         //change presentation
         foreach ($results as &$row) {
             $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
             $row['event_time_raw'] = strtotime($row['event_time']);
             $row['note'] = $this->reasonsNotToBreed($row['bovine_id'], $row['event_time'], $row['birth_date']);
-            $row['action'] = $this->printActionButtons2($row['bovine_id'], $row['event_time'],$row['estrus_id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['action']=$delButton->output($row['estrus_id']) .  MovementSortGate::checkToBeSorted($row['bovine_id'], $row['event_time']);     
             $row['event_time'] = date("l M d H:00", strtotime($row['event_time']));  //has to be at end.
             
             if ((($row['estrus_type_id']) == 1) AND empty($row['note'])) {
@@ -248,8 +294,8 @@ HTML;
         }
            
 EX;
-        $str.=("<h3>Estrus Detector Last 2 Days</h3>");
-        $str.=($dt->start(140, 'highProbabilityHeats', null, $columnsStr));
+
+        $str.=($dt->start('Estrus Detector Last 2 Days', 140, 'highProbabilityHeats', null, $columnsStr));
         return  $str;
     }
 
@@ -291,20 +337,30 @@ EX;
             {
                 data: "action",
                 title: "Action"
-            }
+            }   
 EX;
-        return($dt->start(28, 'AllHeats7Days', null, $columnsStr));
+        return($dt->start('Heat Events', 28, 'AllHeats7Days', null, $columnsStr));
 
        
     }
 
+    /*
+    * used by breeding protocol to say watch for heat. Bit clunky, but so is kamar red.
+    * 
+    */
+    public function protocolEstrusDefaultInsert($bovine_id, $event_time, $estrus_type_id, $uuid)  {
+         //don't put id value, uses next one in DB.
+        $query = "INSERT INTO bovinemanagement.estrus_event (bovine_id,event_time,estrus_type_id,userid,protocol_uuid) VALUES ($bovine_id,'$event_time',$estrus_type_id,'{$GLOBALS['auth']->getUsername()}','$uuid')";
+        $res = $GLOBALS['pdo']->exec($query);       
+    }
+    
 
 }//end class
 
 
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_EstrusHeats extends Quickform2Helper {
+       
+Class QF2_EstrusHeats extends QF2_Base {
 
     function definition($form) {
 
@@ -312,9 +368,9 @@ Class QF2_EstrusHeats extends Quickform2Helper {
 
         $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
         //grab a list of heat events.
-        $res = $GLOBALS['pdo']->query("SELECT id,name from bovinemanagement.estrus_type WHERE display_order > 0 ORDER BY display_order");
+        $res = $GLOBALS['pdo']->query("SELECT id,name from bovinemanagement.estrus_type WHERE display_order > 0 AND system_entry = false ORDER BY display_order");
 
         $heatEvents[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch())) {
@@ -330,7 +386,7 @@ Class QF2_EstrusHeats extends Quickform2Helper {
             $form->addElement('select', 'bovine_id', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");
             
         } else {
-            $form->addElement('hidden', 'bovine_id')->setValue($this->param->bovine_id);
+            $form->addElement('hidden', 'bovine_id')->setValue($this->param->bovineID);
         }
         $form->addElement('select', 'heatType', null, array('options' => $heatEvents, 'label' => 'Type of Heat Event'))->addRule("required", "Please specify your type of heat");
         $form->addElement('select', 'dateHeat', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time of heat");
@@ -348,4 +404,3 @@ Class QF2_EstrusHeats extends Quickform2Helper {
     }
 
 }//end class
-?>

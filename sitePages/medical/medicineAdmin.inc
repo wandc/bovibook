@@ -25,7 +25,7 @@ HTML;
     /**     * **************************** */
     function displayMedicineList($mode = 'default') {
         $sql = "SELECT * FROM bovinemanagement.medicine ORDER BY trade_name ASC";
-       return( (new JQueryDataTable)->startBasicSql($sql,'order: false')); 
+       return( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql,'order: false')); 
 
     }
 
@@ -35,7 +35,7 @@ HTML;
     /**     * **************************** */
     function addMedicineQuickform() {
 
-        $default_body_location = MedicalCase::medicalBodyLocations(true);
+        $default_body_location = (new MedicalCase)->medicalBodyLocations(true);
 
         $form = new HTML_QuickForm("addMedicineQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'addMedicineQuickform', "Add Medicine");
@@ -116,12 +116,12 @@ HTML;
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 

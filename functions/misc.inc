@@ -9,6 +9,40 @@
 
 class Misc {
 
+    //takes from DB calving_event table bool
+    function iconCalfChimeric($calf_chimeric) {
+       return ($calf_chimeric==true) ? '<i class="fas fa-venus-mars"></i>' :'';
+    }
+
+     function iconNotHolstein($calf_breed) {
+       return ($calf_breed!='HO') ? '<i class="fab fa-github-alt"></i>' : '';
+    }
+    
+    
+    /**
+     * used to calculate averages of array by index.
+     * used for component test. 
+     */
+    public function Array2dAvg($arr, $indexName) {
+        if (empty($arr) == false) {
+            $sum = 0;
+            $count = 0;
+            foreach ($arr as $key => $value) {
+                $sum = $sum + $value[$indexName];
+                $count++;
+            }
+
+            if ($count == 0) {
+                return 0;
+            } else {
+                return $sum / $count; //average    
+            }
+        } else {
+            return null;
+        }
+    }
+
+    
     //used to create a limited list of hours from the last day.
     function createHourlyDatesForLastDay() {
 //create
@@ -260,7 +294,7 @@ class Misc {
 //create
 //day of the week for today, yesterday, and use unix epoch as index..
         $dateArray[null] = "Please Select one..."; //dummy value
-        for ($j = 0; $j >= -1365; $j--) {
+        for ($j = 0; $j >= -365; $j--) {
             $timeIndex = strtotime(date('Y-m-d 12:00:00', date(strtotime("$j days")))); //rounds timeIndex to nearest hour.
             $timeDisplay = date("M d, Y", $timeIndex);
             $dateArray[$timeIndex] = $timeDisplay;
@@ -274,7 +308,21 @@ class Misc {
 //create
 //day of the week for today, yesterday, and use unix epoch as index..
         $dateArray[null] = "Please Select one..."; //dummy value
-        for ($j = 0; $j >= -1365; $j--) {
+        for ($j = 0; $j >= -4865; $j--) {
+            $timeIndex = strtotime(date('Y-m-d 0:00:00', date(strtotime("$j days")))); //rounds timeIndex to nearest hour.
+            $timeDisplay = date("M d, Y", $timeIndex);
+            $dateArray[$timeIndex] = $timeDisplay;
+        }
+
+        return $dateArray;
+    }
+    
+    
+    function createDailyDatesForNextSixtyDays() {
+//create
+//day of the week for today, yesterday, and use unix epoch as index..
+        $dateArray[null] = "Please Select one..."; //dummy value
+        for ($j = -7; $j <= 60; $j++) {
             $timeIndex = strtotime(date('Y-m-d 0:00:00', date(strtotime("$j days")))); //rounds timeIndex to nearest hour.
             $timeDisplay = date("M d, Y", $timeIndex);
             $dateArray[$timeIndex] = $timeDisplay;
@@ -311,6 +359,35 @@ class Misc {
 
         return $dateArray;
     }
+    
+    
+     function createDailyDatesForNext14DaysAtMidnight() {
+//create
+//day of the week for today, yesterday, and use unix epoch as index..
+        $dateArray[null] = "Please Select one..."; //dummy value
+        for ($j = 0; $j <= 14; $j++) {
+            $timeIndex = strtotime(date('Y-m-d 0:00:00', date(strtotime("$j days")))); //rounds timeIndex to nearest hour.
+            $timeDisplay = date("l - M d, Y", $timeIndex);
+            $dateArray[$timeIndex] = $timeDisplay;
+        }
+
+        return $dateArray;
+    }
+    
+    
+    function createDailyDatesForNextYear() {
+//create
+//day of the week for today, yesterday, and use unix epoch as index..
+        $dateArray[null] = "Please Select one..."; //dummy value
+        for ($j = 0; $j <= 365; $j++) {
+            $timeIndex = strtotime(date('Y-m-d 0:00:00', date(strtotime("$j days")))); //rounds timeIndex to nearest hour.
+            $timeDisplay = date("M d, Y", $timeIndex);
+            $dateArray[$timeIndex] = $timeDisplay;
+        }
+
+        return $dateArray;
+    }
+    
 
 //used to create a list of daily dates for next 12 days at midnight and noon. used for the sort gate.
 //used for sort gate
@@ -401,7 +478,7 @@ class Misc {
      * 
      */
 
-    function createListOfAllAliveCows($animalQuery = false) {
+    function createListOfAllAliveBovines($animalQuery = false) {
         $aniNumber[null] = "Please Select one..."; //dummy value
         if ($animalQuery == true) {
             $aniNumber[null] = null;
@@ -417,7 +494,10 @@ class Misc {
         return $aniNumber;
     }
 
-    function createListOfAllAliveCowsFemale($animalQuery = false) {
+    
+   
+    
+    function createListOfAllAliveBovinesFemale($animalQuery = false) {
         $aniNumber[null] = "Please Select one..."; //dummy value
         if ($animalQuery == true) {
             $aniNumber[null] = null;
@@ -433,16 +513,31 @@ class Misc {
         return $aniNumber;
     }
 
-    function createListOfAllCowsMilking($sireRegNum) {
+    function createCDNLink($regNum) {
 
         //break up the reg number.
-        $regArray = $GLOBALS['MiscObj']->breakUpFullRegNumber($sireRegNum);
-        //NOTE: do not change & to &amp; here, breaks other things.
-        return "https://www.cdn.ca/query/detail_ge.php?breed={$regArray['breed']}&country={$regArray['country']}&sex={$regArray['sex']}&regnum={$regArray['number']}";
+        $regArray = $GLOBALS['MiscObj']->breakUpFullRegNumber($regNum);
+        return empty($regArray) ? null : "https://www.cdn.ca/query/detail_ge.php?breed={$regArray['breed']}&country={$regArray['country']}&sex={$regArray['sex']}&regnum={$regArray['number']}"; //NOTE: do not change & to &amp; here, breaks other things.
     }
 
+    //only supports angus, but should maybe supprt limousine, etc
+    function isSireBeefBullThenSymbol($full_reg_number) {
+         $extra='';
+            if (substr($full_reg_number,0,2)=='AN') {
+              $extra='<i class="fab fa-github-alt"></i> ';
+            } 
+            return $extra;
+    }
+    
+    
+    function createCDNLinkHref($full_name,$regNum) {
+        $link=$this->createCDNLink($regNum);
+        
+        return '<a href="'.$link.'">'.$full_name.'</a>';
+    }
+    
 //break up a registration number.
-    function breakUpFullRegNumber($full_reg_number) {
+    function breakUpFullRegNumber($full_reg_number,$beef=false) {
 
         $full_reg_number = trim($full_reg_number); //clear any excess spaces
 
@@ -455,6 +550,9 @@ class Misc {
         $returnArray['number'] = substr($full_reg_number, 6, strlen($full_reg_number));
 
         $status = true; //default is true
+       
+        if ($beef == false) {
+
 //AY Ayrshire
 //BS Brown Swiss
 //CN Canadienne
@@ -463,9 +561,18 @@ class Misc {
 //JE Jersey
 //MS Milking Shorthorn
 //NR Norwegian Red
-        if ($returnArray['breed'] != ('AY' || 'BS' || 'CN' || 'GU' || 'HO' || 'JE' || 'MS' || 'NR')) {
-            $status = false;
+            if ($returnArray['breed'] != ('AY' || 'BS' || 'CN' || 'GU' || 'HO' || 'JE' || 'MS' || 'NR')) {
+                $status = false;
+            }
+        } else { //beef==true
+            //common beef bulls.
+            //https://www.naab-css.org/uniform-breed-codes
+            if ($returnArray['breed'] != ('AN' || 'SM' || 'LM' || 'HH' || 'HP' )) {
+                $status = false;
+            }
         }
+
+
         /*
           CAN Canada
           USA United States
@@ -596,9 +703,9 @@ class Misc {
         return "/index.php?pageid=6&bovine_id=$bovineid";
     }
     
-    function hrefToBovinePageFullName($bovine_id,$local_number,$full_name) {
-        $t=preg_split("/[\s,]+/", $full_name); // this must be this way for pass by reference error. limnitation of the lanbguage. 
-    return "<a href=\"" . self::hrefToBovinePage($bovine_id) . "\"> <b>$local_number</b> - " . end($t) . "</a>";
+    function hrefToBovinePageFullName($bovine_id,$local_number,$full_name,$class=null,$breed=null) {
+        $t=preg_split("/[\s,]+/", $full_name); // this must be this way for pass by reference error. limnitation of the language. 
+    return "<a class='bovineNameNumber $class' href=\"" . self::hrefToBovinePage($bovine_id) . "\"> $breed<b>$local_number</b> - " . end($t) . "</a>";
     }
 
     function hrefToFieldPage($field_id) {
@@ -654,25 +761,79 @@ class Misc {
 
     /** converts time to either days ago or hours ago if it is that day */
     function daysOrHoursAgo($time) {
+
+        $dayTime = round(( strtotime(date('Y-m-d', strtotime('now'))) - strtotime(date('Y-m-d', $time)) ) / 86400);
+
+        //Find if it is today and if so draw special attention to it. 
         if (date('Y-m-d', strtotime('now')) == date('Y-m-d', $time)) { //then it is todays date
             $hours = round((strtotime('now') - $time) / 3600);
-            if ($hours < 0) { // it is in the futre)
-                $str = "<b id='boldBlue'>" . '+' . abs($hours) . "hours</b>";
-            } else {
-                $str = "<b id='boldRed'>$hours hours</b>";
-            }
-        } else { //it is some other date in the past (OR future);
-            $tt = round(( strtotime(date('Y-m-d', strtotime('now'))) - strtotime(date('Y-m-d', $time)) ) / 86400);
-
-            if ($tt < 0) { // it is in the futre)
-                $str = '<b id="boldBlue">' . '+' . abs($tt) . " days</b>";
-            } else {
-                $str = $tt . " days";
-            }
+            //when true in the future. 
+            $str = ($hours < 0) ? (new BootStrap)->dangerSpan('+' . abs($hours) . 'ʰ') : (new BootStrap)->dangerSpan('-' . abs($hours) . 'ʰ');
         }
+        //in the future, but not today.
+        elseif (date('Y-m-d', $time) > date('Y-m-d', strtotime('now'))) {
+            $str = (new BootStrap)->primarySpan('+' . abs($dayTime) . 'ᵈ');
+        } else { //in the past.           
+            $str = (new BootStrap)->mutedSpan('-' . abs($dayTime) . 'ᵈ');
+        }
+
+
         return $str;
     }
 
+    //FROM: https://stackoverflow.com/questions/1057572/how-can-i-get-a-hex-dump-of-a-string-in-php
+    /**
+* Dumps a string into a traditional hex dump for programmers,
+* in a format similar to the output of the BSD command hexdump -C file.
+* The default result is a string.
+* Supported options:
+* <pre>
+*   line_sep        - line seperator char, default = "\n"
+*   bytes_per_line  - default = 16
+*   pad_char        - character to replace non-readble characters with, default = '.'
+* </pre>
+*
+* @param string $string
+* @param array $options
+* @param string|array
+*/
+function hex_dump($string, array $options = null) {
+    if (!is_scalar($string)) {
+        throw new InvalidArgumentException('$string argument must be a string');
+    }
+    if (!is_array($options)) {
+        $options = array();
+    }
+    $line_sep       = isset($options['line_sep'])   ? $options['line_sep']          : "\n";
+    $bytes_per_line = @$options['bytes_per_line']   ? $options['bytes_per_line']    : 16;
+    $pad_char       = isset($options['pad_char'])   ? $options['pad_char']          : '.'; # padding for non-readable characters
+
+    $text_lines = str_split($string, $bytes_per_line);
+    $hex_lines  = str_split(bin2hex($string), $bytes_per_line * 2);
+
+    $offset = 0;
+    $output = array();
+    $bytes_per_line_div_2 = (int)($bytes_per_line / 2);
+    foreach ($hex_lines as $i => $hex_line) {
+        $text_line = $text_lines[$i];
+        $output []=
+            sprintf('%08X',$offset) . '  ' .
+            str_pad(
+                strlen($text_line) > $bytes_per_line_div_2
+                ?
+                    implode(' ', str_split(substr($hex_line,0,$bytes_per_line),2)) . '  ' .
+                    implode(' ', str_split(substr($hex_line,$bytes_per_line),2))
+                :
+                implode(' ', str_split($hex_line,2))
+            , $bytes_per_line * 3) .
+            '  |' . preg_replace('/[^\x20-\x7E]/', $pad_char, $text_line) . '|';
+        $offset += $bytes_per_line;
+    }
+    $output []= sprintf('%08X', strlen($string));
+    return @$options['want_array'] ? $output : join($line_sep, $output) . $line_sep;
+}
+
+    
 //from: http://stackoverflow.com/questions/13818064/check-if-an-ip-address-is-private
     function isPublicAddress($ip) {
 
@@ -711,6 +872,132 @@ class Misc {
         return true;
     }
 
+    //from https://natedenlinger.com/php-random-number-generator-with-normal-distribution-bell-curve/
+    //php has a pecl stats function, but pain to install. it would be better of course. 
+    function purebell($min,$max,$std_deviation,$step=1) {
+  $rand1 = (float)mt_rand()/(float)mt_getrandmax();
+  $rand2 = (float)mt_rand()/(float)mt_getrandmax();
+  $gaussian_number = sqrt(-2 * log($rand1)) * cos(2 * M_PI * $rand2);
+  $mean = ($max + $min) / 2;
+  $random_number = ($gaussian_number * $std_deviation) + $mean;
+  $random_number = round($random_number / $step) * $step;
+  if($random_number < $min || $random_number > $max) {
+    $random_number = $this->purebell($min, $max,$std_deviation);
+  }
+  return $random_number;
+}
+    
+
+//FROM: https://gist.github.com/drazisil/eda9065698dd0beedede
+    /**
+	 * Formats a JSON string for pretty printing
+	 *
+	 * @param string $json The JSON to make pretty
+	 * @param bool $html Insert nonbreaking spaces and <br />s for tabs and linebreaks
+	 * @return string The prettified output
+	 * @author Jay Roberts
+	 */
+         public function format_json_for_html($json, $html = true) {
+		$tabcount = 0; 
+		$result = ''; 
+		$inquote = false; 
+		$ignorenext = false; 
+
+		if ($html) { 
+		    $tab = "&nbsp;&nbsp;&nbsp;"; 
+		    $newline = "<br/>"; 
+		} else { 
+		    $tab = "\t"; 
+		    $newline = "\n"; 
+		} 
+
+		for($i = 0; $i < strlen($json); $i++) { 
+		    $char = $json[$i]; 
+
+		    if ($ignorenext) { 
+		        $result .= $char; 
+		        $ignorenext = false; 
+		    } else { 
+		        switch($char) { 
+		            case '{': 
+		                $tabcount++; 
+		                $result .= $char . $newline . str_repeat($tab, $tabcount); 
+		                break; 
+		            case '}': 
+		                $tabcount--; 
+		                $result = trim($result) . $newline . str_repeat($tab, $tabcount) . $char; 
+		                break; 
+		            case ',': 
+		                $result .= $char . $newline . str_repeat($tab, $tabcount); 
+		                break; 
+		            case '"': 
+		                $inquote = !$inquote; 
+		                $result .= $char; 
+		                break; 
+		            case '\\': 
+		                if ($inquote) $ignorenext = true; 
+		                $result .= $char; 
+		                break; 
+		            default: 
+		                $result .= $char; 
+		        } 
+		    } 
+		} 
+
+		return $result; 
+	}
+    
+    
+// adds a time and string to an array.
+//used for bovine query and field query
+function makeTimeString($outArray, $time, $str) {
+
+    if (!is_array($outArray)) { throw new Exception('Error: outArray needs to be an array.'); }
+    
+    if (empty($time)) {
+        throw new Exception('Error: empty time .');
+    }
+
+    if (array_key_exists($time, $outArray) == true) {
+        $time = $time + 1; // create new array key and try again
+        $outArray = $GLOBALS['MiscObj']->makeTimeString($outArray, $time, $str); // recursive
+        // call until events don't have the same time.
+    } else {
+        $outArray [$time] = $str; // add to array
+    }
+
+
+    return $outArray;
+}
+
+
+/* used as short cut for insert. */
+//note values of array are used, not keys. 
+function createPDOInsertNamesFromArray($out) {
+
+$columns=array_values($out);
+$column_list = join(',', $columns);
+$param_list = join(',', array_map(function($col) { return ":$col"; }, $columns));
+$param_values = array_intersect_key($out, array_flip($columns));
+
+$out2['column_list']=$column_list;
+$out2['param_list']=$param_list;
+return $out2;
+} 
+
+function createPDOInsertNamesFromArrayKeys($out) {
+
+$columns=array_keys($out);
+$column_list = join(',', $columns);
+$param_list = join(',', array_map(function($col) { return ":$col"; }, $columns));
+$param_values = array_intersect_key($out, array_flip($columns));
+
+$out2['column_list']=$column_list;
+$out2['param_list']=$param_list;
+return $out2;
+} 
+
+
 }//end class
 
 
@@ -722,27 +1009,7 @@ class Misc {
 
 
 
-// adds a time and string to an array.
-//used for bovine query and field query
-function makeTimeString($outArray, $time, $str) {
 
-    if (empty($time)) {
-        throw new Exception('Error: empty time .');
-    }
-
-    if (array_key_exists($time, $outArray) == true) {
-        $time = $time + 1; // create new array key and try again
-        $outArray = makeTimeString($outArray, $time, $str); // recursive
-        // call until events
-        // don't have the same
-        // time.
-    } else {
-        $outArray [$time] = $str; // add to array
-    }
-
-
-    return $outArray;
-}
 
 //used when bovine pic is uploaded.
 /** taken from php.net docs for gd, requires gd */
@@ -932,5 +1199,7 @@ class notifyObj {
         return (" callingClass {$this->callingClass} time {$this->time}  level {$this->level} text {$this->text}");
     }
 
+    
+    
 }//end class
 ?>

@@ -8,7 +8,7 @@ class Task extends TabPage {
         $this->displayScore();
 
         //setup for tabs.
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $tabArray[1]['name'] = 'Tasks Needing Completion';
 
 if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
@@ -25,19 +25,19 @@ if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_
     }
 
     function tab2() {
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->displayListOfTasksToDo('all');
         }
     }
 
     function tab3() {
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->displayTaskLog();
         }
     }
 
     function tab4() {
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->displayScoreLog();
         }
     }
@@ -77,7 +77,7 @@ GROUP BY userid,quarter ORDER BY quarter,userid
 )
 SELECT * FROM temp ;
 		";
-          print( (new JQueryDataTable)->startBasicSql($sql)); 
+          print( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql)); 
         
     }
 
@@ -89,7 +89,7 @@ SELECT * FROM temp ;
 		";
 
         //Name  Userid   Event Time Comment
-                print( (new JQueryDataTable)->startBasicSql($sql)); 
+                print( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql)); 
        
     }
 
@@ -109,7 +109,7 @@ SELECT * FROM temp ;
         }
 
         // Name Completion Time How Often Details Last Completed Completed? COLOUR ROWS
-          print( (new JQueryDataTable)->startBasicSql($sql)); 
+          print( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql)); 
         
     }
 
@@ -199,12 +199,12 @@ SELECT * FROM temp ;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table

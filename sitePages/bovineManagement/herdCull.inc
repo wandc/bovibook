@@ -1,36 +1,25 @@
-<?php 
-
-
-
-
-
-;
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc'; 
+<?php
 
 /** records an actual cull from the herd and why */
 class HerdCull extends BasePage {
 
-  
-
     public function defaultDisplay() {
-        
-           print("<div class='row'>");
-            print("<div class='col-sm-4 col-sm-push-8'>");
-            
-        $a=new QF2_HerdCullAnimal((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('QF2_HerdCullAnimal','Mark Animal(s) That Have Been Culled'));  
-        print($a->formJS());
-        print("</div>");
-        print("<div class='col-sm-8 col-sm-pull-4'>");
-         $this->plotCullBarGraph();
-         $this-> displayCowsWhoHaveBeenCulled('default');
-        //$this->cowsWhoHaveBeenCulled();
-        print("</div>");
-       
-        print("</div>");
-        
-    
-       
+
+
+
+        $a = new QF2_HerdCullAnimal((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+
+        $left = <<<HTML
+            {$this->plotCullBarGraph()}
+            {$this->displayCowsWhoHaveBeenCulled('default', $this->pageid)}
+        HTML;
+
+        $right = <<<HTML
+            {$a->renderBox('QF2_HerdCullAnimal', 'Mark Animal(s) Culled')}
+        HTML;
+
+        $content = (new Bootstrap)->oneThirdTwoThirds($left, $right);
+        print($content);
     }
 
     /**
@@ -49,9 +38,9 @@ class HerdCull extends BasePage {
         $headerStrArr['Died'] = 'number';
         $headerStrArr['Beefed'] = 'number';
         $headerStrArr['Sold'] = 'number';
-         $opt='';
+        $opt = '';
         $x = new GoogleVisualizationColumn($opt, $headerStrArr, $arrayDied, $arrayBeefed, $arraySold);
-        print($x->toString());
+        return ($x->toString());
     }
 
     private function findMonthlyTotals($reason) {
@@ -78,10 +67,9 @@ FROM temp ORDER BY month
         return $arrayReason;
     }
 
-    
-    function displayCowsWhoHaveBeenCulled($mode='default') {
-        $dt=new JQueryDataTable();
-$columnsStr= <<<EX
+    function displayCowsWhoHaveBeenCulled($mode = 'default', $pageid) {
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
             {
                  data: "event_time_raw",
                  "visible": false,
@@ -109,6 +97,10 @@ $columnsStr= <<<EX
                 data: "details",
                 title: "Details"
             },
+            {
+                data: "truck_driver",
+                title: "Driver"
+            },
          
             {
                 data: "userid",
@@ -120,23 +112,29 @@ $columnsStr= <<<EX
                 title: "Action"
             }
 EX;
-    print($dt->start($this->pageid,'cowsWhoHaveBeenCulled',$mode,$columnsStr));   
+        return ($dt->start('Aniamls Who Have Been Culled', $pageid, 'cowsWhoHaveBeenCulled', $mode, $columnsStr));
     }
-    
-    
-    public function cowsWhoHaveBeenCulled($request) {
-         if (!empty($request['item'])) {
-        
-        
 
-        if ($request['item'] == 'default') {
+    public function cowsWhoHaveBeenCulled($request) {
+        if (!empty($request['item'])) {
+
+
+
+            if ($request['item'] == 'default') {
                 // Setup your database connection
                 $sql = "	     
-SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinemanagement.bovine ON bovine.id=cull_event.bovine_id ORDER BY event_time DESC;
+SELECT bovine.*,cull_event.*,calving_event.calf_breed as breed,cull_event.id as id FROM bovineManagement.cull_event 
+LEFT JOIN bovinemanagement.bovine ON bovine.id=cull_event.bovine_id 
+LEFT JOIN bovinemanagement.calving_event ON bovine.rfid_number=calving_event.calf_rfid_number 
+ORDER BY cull_event.event_time DESC;
 ";
             } elseif ($request['item'] == 'milkTestInputsDisplay') {
-                $sql = "	     
-SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinemanagement.bovine ON bovine.id=cull_event.bovine_id WHERE event_time  >= (current_date - interval '10 weeks') ORDER BY event_time DESC;
+                $sql = "
+                    SELECT bovine.*,cull_event.*,calving_event.calf_breed as breed,cull_event.id as id FROM bovineManagement.cull_event 
+LEFT JOIN bovinemanagement.bovine ON bovine.id=cull_event.bovine_id 
+LEFT JOIN bovinemanagement.calving_event ON bovine.rfid_number=calving_event.calf_rfid_number 
+WHERE cull_event.event_time  >= (current_date - interval '10 weeks') 
+ORDER BY cull_event.event_time DESC;
 ";
             } else {
                 throw new Exception("ERROR invalid paramater sent with request");
@@ -153,26 +151,25 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
 
         //change presentation
         foreach ($results as &$row) {
-           $row['event_time_raw']=strtotime($row['event_time']);
-           $row['event_time']= date("M d, Y",strtotime($row['event_time'])); 
-           $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
-           $row['reg_num'] =(new JQueryDataTable)->formattedShortRegNum($row['full_reg_number']);
-           $row['reason'] =  $row['reason'];
-           $row['details'] =   $row['comment'];
-        
-           $row['action'] = $this->printActionButtons($row['id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['event_time_raw'] = strtotime($row['event_time']);
+            $row['event_time'] = date("M d, Y", strtotime($row['event_time']));
+            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name'],null,$row['breed']);
+            $row['reg_num'] = (new JQueryDataTable)->formattedShortRegNum($row['full_reg_number']);
+            $row['truck_driver'] = $row['truck_driver'];
+            $row['reason'] = $row['reason'];
+            $row['details'] = $row['comment'];
+
+            $row['action'] = $this->printActionButtons($row['id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
         }
 
         //output
         $output['data'] = $results;
         return ($output);
-        
-    
     }
 
 //end function
     //show delete button
-    function printActionButtons($id,$callBackURL=null) {
+    function printActionButtons($id, $callBackURL = null) {
         $currentUserid = $GLOBALS['auth']->getUsername();
 
         //find the last entry for the current user and use that as a basais to display the delete button or not.
@@ -183,20 +180,21 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if (($id == $row['id'])) {
 
-                $returnButtonsAsString = self::deleteQuickForm($row['id'],$callBackURL); //show delete button
+                $returnButtonsAsString = self::deleteQuickForm($row['id'], $callBackURL); //show delete button
             }
         }
 
-   
+
         return $returnButtonsAsString;
     }
 
-    function deleteQuickForm($tableid,$callBackURL) {
+    function deleteQuickForm($tableid, $callBackURL) {
 
-        $form = new HTML_QuickForm("CullEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("CullEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'tableid', $tableid);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete', array('class' => 'btn btn-warning'));
 
 
         // Try to validate a form
@@ -208,35 +206,37 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
 
 
             // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
+            try {
+                $res = $GLOBALS['pdo']->beginTransaction();
 
 
-            //delete movement
-            $res = $GLOBALS['pdo']->query("SELECT location_event_id,bovine_id FROM bovineManagement.cull_event WHERE id='$tableid' LIMIT 1");
-            $row = $res->fetch(PDO::FETCH_ASSOC);
-            $location_event_id = $row['location_event_id'];
-            $bovine_id = $row['bovine_id'];
+                //delete movement
+                $res = $GLOBALS['pdo']->query("SELECT location_event_id,bovine_id FROM bovineManagement.cull_event WHERE id='$tableid' LIMIT 1");
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $location_event_id = $row['location_event_id'];
+                $bovine_id = $row['bovine_id'];
 
-            //delete the cull event
-            $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.cull_event where id='$tableid'");
+                //delete the cull event
+                $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.cull_event where id='$tableid'");
 
-            //delete movement
-            $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.location_event where id='$location_event_id'");
-
-
-            //change the bovine so that the death date is erased.
-            $query = "UPDATE bovinemanagement.bovine SET death_date=null WHERE id=$bovine_id";
-            $res = $GLOBALS['pdo']->exec($query);
+                //delete movement
+                $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.location_event where id='$location_event_id'");
 
 
-            // determine if the commit or rollback
-  
-               $GLOBALS['pdo']->commit();
+                //change the bovine so that the death date is erased.
+                $query = "UPDATE bovinemanagement.bovine SET death_date=null WHERE id=$bovine_id";
+                $res = $GLOBALS['pdo']->exec($query);
+
+
+                // determine if the commit or rollback
+
+                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
+                error_log($e->getMessage(), 0);
             }
-            
+
 
 
             header($callBackURL);
@@ -246,68 +246,66 @@ SELECT *,cull_event.id as id FROM bovineManagement.cull_event LEFT JOIN bovinema
     }
 
 }
+
 //end class
 
 /*
  * Herd Cull animal form.
  * 
  */
-Class QF2_HerdCullAnimal extends Quickform2Helper {
+Class QF2_HerdCullAnimal extends QF2_Base {
 
     function definition($form) {
-       
-        //only show if userid is admin or owner group.
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+
+        //only show if in owner group.
+        if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastSevenDays(); //for admin only.   //$GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon //use if needed.
-        }else {
-           $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.  
+        } else {
+            $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.  
         }
 
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
-        
+
+
         //list of cull reasons
         $cullReason = array(null => 'Please Select one...', 'Sold' => 'Sold (put who sold to)', 'Beefed' => 'Beefed  (put name of driver)', 'Died' => 'Died  (put cuase of death)');
 
-        
-        
-        
-        ////
-        //$fieldset = $form->addFieldset('header')->setLabel('Check Animals to Add to Sales List');
-        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        //list of drivers
+        $truckDriverList = array(null => 'Please Select one...', 'Ron Beckwith' => 'Ron Beckwith', 'Raine Beckwith' => 'Raine Beckwith', 'Jerry Bos' => 'Jerry Bos','Jordan Anderson' => 'Jordan Anderson','Unknown' => 'Unknown');
+
         if ($this->mode == 'group') {
-            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($aniNumber);
+            $form = (new Quickform2_GroupSelect())->definitionAnimalGroup($form);
         } else {
-                $form->addElement('hidden', 'animalSelected')->setValue( $this->param->bovine_id);       
+            $form = (new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalGroup($form);
         }
-        
+
         $form->addElement('select', 'reason', null, array('options' => $cullReason, 'label' => 'Reason'))->addRule("required", "Please specify your type of cull");
-        $form->addElement('textarea', 'details',  array('rows' => 6))->setLabel("Comments : ");
-               
-        
+        $form->addElement('textarea', 'details', array('rows' => 6))->setLabel("Comments : ");
+
+        $form->addElement('select', 'driver', null, array('options' => $truckDriverList, 'label' => 'Truck Driver\'s Name'));
+        HTML_QuickForm2_Factory::registerRule('error1', 'HTML_QuickForm2_Rule_Callback', null, array('callback' => 'QF2_HerdCullAnimal::checkDriverNameRequired'));
+        $form->addRule('error1', 'Truck Driver Name is required!', array('test'));
+
+
+
         $form->addElement('select', 'dateEvent', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your event time");
-        
-  return $form; //required   
+
+        return $form; //required   
     }
 
-    //select2 javascript needed for form
-    function formJS() {
-$jscript = <<<JSCRIPT
- <script>           
-var s2 = $("#selectEvents").select2({
-    placeholder: "Choose Animals",
-    tags: false
-});   
-      </script>      
-JSCRIPT;
+    //if animal died skip the driver requirement.
+    function checkDriverNameRequired($value) {
 
-            return $jscript;
+        if ((empty($value['driver'])) AND ($value['reason'] != 'Died')) {
+            return false;
+        } else {
+            return true;
+        }
     }
-    
-    
+
     function process($value) {
 
 
-          $value['event_time'] = date('Y-m-d H:i:sO', $value['dateEvent']);
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['dateEvent']);
 
         if (is_array($value['animalSelected'])) {
             //group
@@ -330,7 +328,7 @@ JSCRIPT;
                     $last_location_event_id = $GLOBALS['pdo']->lastInsertId('bovinemanagement.location_event_id_seq');
 
                     //record in cull_event
-                    $query = "INSERT INTO bovinemanagement.cull_event (bovine_id,event_time,reason,comment,userid,location_event_id) VALUES ($bovine_id,'{$value['event_time']}','{$value['reason']}','{$value['details']}','{$GLOBALS['auth']->getUsername()}',$last_location_event_id)";
+                    $query = "INSERT INTO bovinemanagement.cull_event (bovine_id,event_time,reason,comment,userid,location_event_id,truck_driver) VALUES ($bovine_id,'{$value['event_time']}','{$value['reason']}','{$value['details']}','{$GLOBALS['auth']->getUsername()}',$last_location_event_id,'{$value['driver']}')";
                     $res = $GLOBALS['pdo']->exec($query);
 
                     //record death_date in bovine
@@ -341,6 +339,7 @@ JSCRIPT;
                 } catch (Exception $e) {
                     $GLOBALS['pdo']->rollBack();
                     echo "Failed: " . $e->getMessage();
+                    error_log($e->getMessage(), 0);
                 }
             }
         }
@@ -354,34 +353,32 @@ JSCRIPT;
     }
 
     //this is kind of stupid. not really andy difference from harcoding the id numbers. 
-function offFarmLcoations($reason){
-   //safe way to find location_event id.
-            switch ($reason) {
-                case 'Sold':
-                    $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Sold' LIMIT 1";
-                    $res = $GLOBALS['pdo']->query($sql);
-                    $row = $res->fetch(PDO::FETCH_ASSOC);
-                    $location_id = $row['id'];
-                    break;
-                case 'Beefed':
-                    $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Beef' LIMIT 1";
-                    $res = $GLOBALS['pdo']->query($sql);
-                    $row = $res->fetch(PDO::FETCH_ASSOC);
-                    $location_id = $row['id'];
-                    break;
-                case 'Died':
-                    $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Dead' LIMIT 1";
-                    $res = $GLOBALS['pdo']->query($sql);
-                    $row = $res->fetch(PDO::FETCH_ASSOC);
-                    $location_id = $row['id'];
-                    break;
-                default:
-                    $location_id = 'null'; //should never be called.
-                    throw new Exception("Error: reason method input not given to offFarmLcoations method.");
-            }
-return $location_id;
-}
+    function offFarmLcoations($reason) {
+        //safe way to find location_event id.
+        switch ($reason) {
+            case 'Sold':
+                $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Sold' LIMIT 1";
+                $res = $GLOBALS['pdo']->query($sql);
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $location_id = $row['id'];
+                break;
+            case 'Beefed':
+                $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Beef' LIMIT 1";
+                $res = $GLOBALS['pdo']->query($sql);
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $location_id = $row['id'];
+                break;
+            case 'Died':
+                $sql = "SELECT id FROM bovineManagement.location WHERE name='Off Farm - Dead' LIMIT 1";
+                $res = $GLOBALS['pdo']->query($sql);
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $location_id = $row['id'];
+                break;
+            default:
+                $location_id = 'null'; //should never be called.
+                throw new Exception("Error: reason method input not given to offFarmLcoations method.");
+        }
+        return $location_id;
+    }
 
 }//end class   
-
-?>

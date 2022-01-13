@@ -1,12 +1,5 @@
 <?php 
 
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/googleCharts.inc');
-
-
-
-
 /**
    Shows a parlor milking report.
  */
@@ -146,10 +139,9 @@ WHERE date='$date' and milking_number=$milking_number order by mpcnumber";
             $out = $out . <<<JS
   
 
-            <script type="text/javascript" src="https://www.google.com/jsapi?autoload={'modules':[{'name':'visualization',
-       'version':'1','packages':['timeline']}]}"></script>
+         
 <script type="text/javascript">
-
+  google.charts.load('current', {'packages':['timeline']});
   setTimeout(drawChart_$uuid, 200); //firefox workaround. 
 google.charts.setOnLoadCallback(drawChart_$uuid);
                      $(window).resize(function(){
@@ -173,8 +165,8 @@ JS;
             while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['manualkey']=='t') {$manulaMilking='- Manual';}
                 else { $manulaMilking='';}
-                
-                $out = $out . ("['{$row['mpcnumber']}', '{$row['local_number']} - {$row['location_name']} $manulaMilking', " . GoogleChartsHelper::javascriptDateTime($row['milktime']) . "	, " . GoogleChartsHelper::javascriptDateTime($row['milkendtime']) . "],");
+                $locationTruncated= substr($row['location_name'],0,6);
+                $out = $out . ("['{$row['mpcnumber']}', '{$row['local_number']} - {$locationTruncated} $manulaMilking', " . GoogleChartsHelper::javascriptDateTime($row['milktime']) . "	, " . GoogleChartsHelper::javascriptDateTime($row['milkendtime']) . "],");
 //print("['{$row['mpcnumber']}', '{$row['local_number']} ', ".GoogleChartsHelper::javascriptDateTime($row['milktime'])."	, ".GoogleChartsHelper::javascriptDateTime($row['milkendtime'])."],");                
             }
 
@@ -193,7 +185,7 @@ JS;
 }
 </script>
 
-<div id="example5.2_$uuid" style="width: 1200px; height: 900px;"></div>
+<div id="example5.2_$uuid" style="height: 1200px;"></div>
                         
 JS;
 

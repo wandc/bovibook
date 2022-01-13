@@ -14,31 +14,39 @@ class Milk2020HoofSync {
 
     function downloadData() {
 
-        print("hello\n\r");
+        print("Start...\n\r");
 
         $crl = curl_init();
-        $url = "http://app.milk2020.ca/api/trim/farm?producer_num=" . $GLOBALS['config']['MILK2020_HOOF']['producerNumber'];
+        $url = "https://app.milk2020.ca/api/trim/farm?producer_num=" . $GLOBALS['config']['MILK2020_HOOF']['producerNumber'];
         curl_setopt($crl, CURLOPT_URL, $url);
         curl_setopt($crl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($crl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($crl, CURLOPT_POST, 1);
         $headers = array(
             'Content-Type:application/json',
-            'Authorization: Basic ' . base64_encode($GLOBALS['config']['MILK2020_HOOF']['login'] . ":" . $GLOBALS['config']['MILK2020_HOOF']['password']) // <---
+            'Authorization: Basic ' . base64_encode($GLOBALS['config']['MILK2020_HOOF']['login'] . ":" . $GLOBALS['config']['MILK2020_HOOF']['password']) 
         );
         curl_setopt($crl, CURLOPT_HTTPHEADER, $headers);
         $result = curl_exec($crl);
+        if (curl_exec($crl) === false) {
+            print('Curl error: ' . curl_error($crl) . "\n\r");
+        }
         $headers = curl_getinfo($crl);
         curl_close($crl);
+        if (empty($result)) {
+            throw new Exception("Curl result set returned is empty.....");
+        }
+        
+        //print($result);
         json_decode($result); //used for json error check below
-        if ((strpos($result, 'Little River') !== false) && (json_last_error() == JSON_ERROR_NONE)) {
+        if ((strpos($result, 'Little river holsteins') !== false) && (json_last_error() == JSON_ERROR_NONE)) {
             print("We have sucessfully logged in and downloaded some data!\n\r");
 
 
 
             $array = json_decode($result, TRUE);
 
-            //print_r($array['trim_history']);
+            print_r($array['trim_history']);
 
             foreach ($array['trim_history'] as &$value) {
 

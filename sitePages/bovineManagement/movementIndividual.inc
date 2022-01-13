@@ -4,32 +4,23 @@
 class MovementIndividual extends BasePage {
 
     public function defaultDisplay() {
-           
-         print("<div class='row'>");
-     
-        print("<div class='col-sm-4 col-sm-push-8'>");
-            
-         $a=new QF2_MoveAnimal((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
-        print($a->renderBox('qf2_MoveAnimal','Select Animal(s) to Move Between Groups'));  
-        print($a->formJS());
         
-          print("<hr><br/>");    
-           print("<br/><br/><br/>");print("<h3>Force Sort Gate Sync Now</h3>"); 
-           print("<h4>Note: press only once.</h4>"); 
-        ///SSE button for syncing with alpro
-        include_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/misc/longProcesses.inc');
+        $a=new QF2_MoveAnimal((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
         $longProcesses = new LongProcesses();
-        $longProcesses->showSSEButton(20007); //harcoded bad.
-        ///
-        print("<hr><br/>");
-          
-        print("</div>");
-           print("<div class='col-sm-8 col-sm-pull-4'>");
-         $this->displayAllMovements();
-        print("</div>");
+        $note=(new Bootstrap)->infoCallout('Note: Force sort gate Sync now, press only once.');
         
-        print("</div>");
-        
+        $left = <<<HTML
+            {$this->displayAllMovements()}
+        HTML; 
+            
+        $right = <<<HTML
+            {$a->renderBox('qf2_MoveAnimal','Select Animal(s) to Move Between Groups')}
+            {$longProcesses->showSSEButton(20007)}   
+        HTML; 
+                
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);
+      
     }
 
    
@@ -42,7 +33,7 @@ class MovementIndividual extends BasePage {
 FROM bovinemanagement.location_event 
 LEFT JOIN bovinemanagement.location ON location.id=location_event.location_id 
 LEFT JOIN bovinemanagement.bovine ON bovine.id=location_event.bovine_id 
-WHERE event_time > current_date - interval '1 year'
+WHERE event_time > current_date - interval '6 months'
 ORDER BY location_event.event_time DESC ";
            
         $statement = $GLOBALS['pdo']->prepare($sql);
@@ -50,6 +41,9 @@ ORDER BY location_event.event_time DESC ";
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+         $delButton=new QF2_DeleteButtonDecider('user_timeLimit',(object) array('dateTimePeriodDays' =>'1','schemaTable'=>'bovinemanagement.location_event'));
+         $delButtonTransaction=new QF2_DeleteButtonDecider('user_timeLimit',(object) array('dateTimePeriodDays' =>'1','deleteName' =>'transaction_id', 'schemaTable'=>'bovinemanagement.location_event'));
+        
         //change presentation
         foreach ($results as &$row) {
            $row['local_number'] =JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']);
@@ -58,8 +52,12 @@ ORDER BY location_event.event_time DESC ";
            $row['event_time']= date("l M d Y, H:00",strtotime($row['event_time']));  
            $row['event_time_raw']= strtotime($row['event_time']);  
            $row['userid'] = $row['userid'];
-           $row['action'] = $this->printActionButtons($row['id'],$row['transaction_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
-  
+        
+           $but=array();
+           $but[]=$delButton->output($row['id']);     
+           $but[]=$delButtonTransaction->output($row['transaction_id'],null,"<i class='fa fa-fw fa-object-group'></i><i class='fa fa-fw fa-trash'></i>");   //show transaction icon
+           $row['action']=implode($but);
+          
         }
 
         //output
@@ -101,37 +99,11 @@ $columnsStr= <<<EX
         }
            
 EX;
-    print("<h3>Recent Moves</h3>");
-    print($dt->start($this->pageid,'allMovements',null,$columnsStr));     
+
+    return ($dt->start('Recent Moves', $this->pageid,'allMovements',null,$columnsStr));     
 } 
   
-    function printActionButtons($id,$transaction_id,$callBackURL=null) {
-        $retStr='';
-        $currentUserid = $GLOBALS['auth']->getUsername();
-
-        //find the last entry for the current user and use that as a basais to display the delete button or not.
-        //We only want the delete button shown once for the latest entry.
-        $res = $GLOBALS['pdo']->query("SELECT id,transaction_id FROM bovinemanagement.location_event WHERE userid='$currentUserid' ORDER BY id DESC LIMIT 1");
-
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $deleteButtonAsString = null;
-        if ($id == $row['id']) {
-            
-            $a=new QF2_GenericDeleteButton((object) array('callBackURL' =>$callBackURL),'individual',(object) array('deleteID'=>$id,'schemaTable'=>'bovinemanagement.location_event'));
-             $retStr=($a->renderDelete($id,'Delete'));    
-           
-        }
-
-        if (($transaction_id == $row['transaction_id'])) {
-            
-             $b=new QF2_GenericDeleteButton((object) array('callBackURL' =>$callBackURL),'individual',(object) array('deleteID'=>$transaction_id,'deleteName'=>'transaction_id','schemaTable'=>'bovinemanagement.location_event'));
-             $retStr = $retStr.($b->renderDelete($transaction_id,'Delete Trans.'));  
-            
-        }
-        
-        return $retStr;
-    }
-
+  
     
 
 //shows a small summary of the latest info.
@@ -200,19 +172,18 @@ EX;
  * move animal form.
  * 
  */
-Class QF2_MoveAnimal extends Quickform2Helper {
+Class QF2_MoveAnimal extends QF2_Base {
 
     function definition($form) {
 
         $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay();
         $location = $this->listActiveLocationsAndCounts();  
-       $combinedArr=parent::currentAniamlsAndGroups(); 
-
-        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        if ($this->mode == 'group') {
-            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($combinedArr);
-        } else {         
-                $form->addElement('hidden', 'animalSelected')->setValue( $this->param->bovine_id);
+        
+         if ($this->mode == 'group') {
+            $form=(new Quickform2_GroupSelect())->definitionAnimalGroup($form);
+        }
+        else {
+            $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalGroup($form);
         }
         
         $form->addElement('select', 'newLocation', null, array('options' => $location, 'label' => 'Location Moving to'))->addRule("required", "Please specify your location");
@@ -221,19 +192,7 @@ Class QF2_MoveAnimal extends Quickform2Helper {
   return $form; //required   
     }
 
-    //select2 javascript needed for form
-    function formJS() {
-$jscript = <<<JSCRIPT
- <script>           
-var s2 = $("#selectEvents").select2({
-    placeholder: "Choose Animals",
-    tags: false
-});   
-      </script>      
-JSCRIPT;
-
-            return $jscript;
-    }
+ 
     
     
     function process($value) {
@@ -292,12 +251,12 @@ JSCRIPT;
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
     }
 
     //used for animals movements
-function listActiveLocationsAndCounts(){
+public static function listActiveLocationsAndCounts(){
     //grab a list of locations with pen counts// SQL SMALL BUG ON COUNT	
 		$res = $GLOBALS['pdo']->query("SELECT DISTINCT ON (location.name) location.name,location.id,COUNT(*) as count FROM bovinemanagement.location LEFT JOIN bovinemanagement.bovinecurrall ON bovinecurrall.location_id=location.id   WHERE location.active=true GROUP BY location.name,location.id ORDER BY location.name");
 		

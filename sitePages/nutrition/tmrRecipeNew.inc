@@ -1,11 +1,4 @@
 <?php
-
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-
 class TmrRecipeNew extends BasePage {
 
     public function defaultDisplay() {
@@ -77,7 +70,7 @@ HTML;
 
     //who is currently in the feeder.
     function displayCurrentlyInFeeder() {
-        ?> 
+    $js=<<<JS
 
         <script>
             $(document).ready(function() {
@@ -85,7 +78,9 @@ HTML;
 
            
            $.ajax({
-            url: 'https://int.littleriver.ca/api/json/146/currentTMRMass',
+        /*    url: '{$GLOBALS['config']['HTTP']['JSON_API']}/146/currentTMRMass', */
+        /* use this when digistar away and just using open scale.*/
+              url: '{$GLOBALS['config']['HTTP']['JSON_API']}/api/json/146/currentTMRMass_open_scale', 
                     dataType : "html",
                     success: function(data) {
                     var objData = JSON.parse(data);
@@ -131,10 +126,12 @@ HTML;
             });
 
         </script>
-        <?php
+JS;
+    return $js;        
 
     }
 
+    //digistar serial output to rasp pi
     //used for 2 second updates
     function currentTMRMass() {
         $sql = "
@@ -150,11 +147,24 @@ HTML;
         return ($output);
     }
 
-    function customJavascript() {
+    
+    //no digistar, just rasp pi and openscale.
+     //used for 2 second updates
+    function currentTMRMass_open_scale() {
+        $sql = "
+           SELECT event_time ,gross_weight as display_weight  from bas.openscale_raw WHERE device_name='tmr_mixer_openscale' AND event_time >( localtimestamp - interval '10 seconds') ORDER BY event_time DESC limit 1
+            ";
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once($_SERVER['DOCUMENT_ROOT'] . 'template/tabPage.php');
-        TabPage::customJavascript();
+        //output
+        $output['data'] = $results;
+        return ($output);
     }
+    
+   
 
     function displayRecipeWrapper($nrc_recipe_id, $nrc_recipe_update_time) {
         $str = '';
@@ -306,7 +316,7 @@ EX;
 
     private function recipeDataTableJavascript($dataTableName) {
 
-        $str = $str . <<<jss1
+        $str =  <<<jss1
       <script>
             //when row is selected.           
  $(document).ready(function() {
@@ -380,7 +390,7 @@ bootstrap_alert.warning = function(message) {
                 console.log(myJSON); //debug
                 //
                 $.ajax({
-                url: ' https://int.littleriver.ca/put.php',
+                url: '{$GLOBALS['config']['HTTP']['URL_SHORT']}/put.php',
                 type: 'PUT',
                 data: '['+myJSON+']',
                 success: function(data) {
@@ -421,8 +431,4 @@ jss1;
         return $str;
     }
 
-}
-
-//end class
-?>
-
+} //end class

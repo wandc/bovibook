@@ -9,7 +9,7 @@ class CornSilageMilk2006Calculation {
     
     
 //takes a DB row and does the milk 2006 calculations.
-    function calculateMilk2006($dm_perc,$cp_perc,$ndf_perc,$potential_digest_perc,$ash_perc,$fat_perc,$starch_perc,$dm_yield_ton_per_acre=1) {
+    public static function calculateMilk2006($dm_perc,$cp_perc,$ndf_perc,$potential_digest_perc,$ash_perc,$fat_perc,$starch_perc,$dm_yield_ton_per_acre=1) {
 
       
   /*
@@ -149,14 +149,14 @@ class CornSilageMilk2006Calculation {
 
         //NonStarch NFC                % DMB
         //=IF(W15-M15>15,15,W15-M15)
-        if (($W15 - $M15) > 15) {
+        if (((float)$W15 - (float)$M15) > 15) {
             $X15 = 15;
         } else {
             $X15 = $W15 - $M15;
         }
         
         //NRC-01 TDN-1x           % DMB
-        $Y15 = (((0.93 * $H15) + (0.97 * ($O15 - 1) * 2.25) + ($M15 * $V15) + ($X15 * 0.98) + (($I15 - 1.3) * ($L15 / 100))) - 7);
+        $Y15 = (((0.93 * (float)$H15) + (0.97 * ((float)$O15 - 1) * 2.25) + ((float)$M15 * (float)$V15) + ((float)$X15 * 0.98) + (((float)$I15 - 1.3) * ((float)$L15 / 100))) - 7);
 
         //TDN-1x % DM
         //$Z15=IF($Y15>78,78,$Y15); //VB

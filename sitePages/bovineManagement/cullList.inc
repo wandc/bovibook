@@ -1,15 +1,16 @@
 <?php 
-
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-
-
-
 class CullList extends BasePage{
 
 	private $bovine_id;
 
 
 	public function defaultDisplay() {
+            
+            $left=$this->lacatanetRevenueByLactationNumber();
+            $right='';
+           print( (new BootStrap)->oneThirdTwoThirds($left, $right));
+     
+            
 
             if (empty($_REQUEST['bovine_id'])) {
                 $_REQUEST['bovine_id']=null;
@@ -30,7 +31,16 @@ class CullList extends BasePage{
 
 	}
 
-
+        public function lacatanetRevenueByLactationNumber() {
+            
+            $sql=<<<SQL
+                    SELECT distinct lact_nu as "Lact #", round(avg(batch.calculate_gross_solid_price(fat305,prot305)) OVER (PARTITION BY lact_nu) )  as "Projected Lactation Revenue ($)"
+FROM "batch"."valacta_data_latest_test_view"
+SQL;
+             
+       return( (new JQueryDataTable)->startBasicSql('Projected Revenue by Lacation Number', $sql,'order: false')); 
+            
+        }
 	function cullEventQuickForm()
 	{
 		//grab name/number info on current bovine
@@ -128,14 +138,14 @@ class CullList extends BasePage{
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 			// Close the transaction
 
 
 			//forward to same page, ob_start() is key to making this work!
 			$host  = $_SERVER['HTTP_HOST'];
-			header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id={$this->bovine_id}");
+			header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id={$this->bovine_id}");
 			exit();
 
 		} //end validation
@@ -147,7 +157,7 @@ class CullList extends BasePage{
 	function animalQueryQuickForm()
 	{
 
-		$aniNumber=$GLOBALS['MiscObj']->createListOfAllAliveCows();
+		$aniNumber=$GLOBALS['MiscObj']->createListOfAllAliveBovines();
 
 		//javascript to allow submission on change of select element.
 		$attrs = array('onchange' => "javascript:location.href='?bovine_id='+this.options[this.selectedIndex].value+'&pageid={$_REQUEST['pageid']}';$('#example > ul').tabs('select', 0);");

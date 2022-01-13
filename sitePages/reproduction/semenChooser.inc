@@ -9,7 +9,7 @@ class SemenChooser extends BasePage {
     }
 
     function customJavascript() {
-        ?>
+    $js=<<<JS
         <script type="text/javascript" language="javascript">
             $(document).ready(function () {
 
@@ -26,7 +26,8 @@ class SemenChooser extends BasePage {
             });
         </script>
         <?php 
-
+JS;
+    return ($js);
     }
 
     function run() {
@@ -34,11 +35,10 @@ $str='';
 $str1='';
 $str2='';
 
-        $str=$str.('<style> #cdnframe { position:absolute;}</style>'); //NOTE: css hack to put next to each other. replace when we have time (unfortunately never).
         
 
         $str1=$str1.('
-<select id="selectID">
+<select class="form-control" id="selectID">
    <option selected="selected">Please select a cow...</option>
 ');
         //go through array for each cow and sire.
@@ -54,7 +54,7 @@ $str2='';
 
 
         $str2=$str2.('
-<select id="selectID2">
+<select  class="form-control" id="selectID2">
    <option selected="selected">Please select a sire...</option>
 ');
         //go through array for each cow and sire.
@@ -66,17 +66,13 @@ $str2='';
 <div id="dynamic_div_2"></div>
 ');
 
-         print("<div class='row'>" . "\n\r");
-        print("<div class='col-sm-6 col-sm-push-6'>" . "\n\r");
-        print($str1);
-        print("</div>" . "\n\r");
-        print("<div class='col-sm-6 col-sm-pull-6'>" . "\n\r");
-         print($str2);
-        print("</div>" . "\n\r");
-        print("</div>" . "\n\r");
+        
+        $content=(new Bootstrap)->halfHalf($str2,$str1);                
+        print($content);    
+        
+       
 
 
-        print($str);
     }
 
     function getFemale() {

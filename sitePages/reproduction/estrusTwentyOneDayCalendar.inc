@@ -21,6 +21,9 @@ class EstrusTwentyOneDayCalendar extends BasePage {
         } //pregnant 
         if ($row['do_not_breed'] == 1) {
             return 'DNB';
+        }    //breeding schedule protocol   
+        if ($row['breeding_protocol_scheduled'] == 1) {
+            return 'Breeding Scheduled';
         } //do not breed
         if ($row['bred_recent'] != 1) {
             return 'Eligible';
@@ -62,16 +65,19 @@ SELECT numerator::numeric/denominator::numeric from temp2
     function plotRepro() {
         print("<h2></h2>");
         $sql = "
-         SELECT local_number,( EXTRACT(epoch FROM (current_date-fresh_date))/86400)  as dim, 1 as milk_dollars, prodoll,
+    SELECT local_number,( EXTRACT(epoch FROM (current_date-fresh_date))/86400)  as dim, 1 as milk_dollars, prodoll,
 (SELECT true WHERE current_date -bovinemanagement.calculate_breeding_voluntary_waiting_period (bovinecurr.id)  > 0) as past_voluntary_waiting,
 (SELECT true WHERE bovinemanagement.	last_breeding (bovinecurr.id) >= (current_date - interval '30 days')) as bred_recent,
 (SELECT true WHERE bovinemanagement.donotbreed_at_timestamp (bovinecurr.id, current_date)) as do_not_breed,
 (SELECT true WHERE bovinemanagement.due_date(bovinecurr.id) is not null) as pregnant,
-lactation_revenue/( EXTRACT(epoch FROM (current_date-fresh_date))/86400) as daily_revenue
+lactation_revenue/( EXTRACT(epoch FROM (current_date-fresh_date))/86400) as daily_revenue,
+(SELECT id::boolean FROM bovinemanagement.breeding_event WHERE actual_breeding_time is null AND protocol_uuid is not null AND bovine_id=bovinecurr.id limit 1) as breeding_protocol_scheduled
 FROM bovinemanagement.bovinecurr 
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bovinecurr.full_reg_number
 LEFT JOIN  batch.bovinecurr_long ON bovinecurr.id=bovinecurr_long.id
 WHERE fresh_date is not null order by current_date-fresh_date 
+
+
              ";
         ?>
         <script type="text/javascript">
@@ -129,6 +135,9 @@ WHERE fresh_date is not null order by current_date-fresh_date
                             'Eligible': {
                                 color: 'green'
                             },
+                            'Breeding Scheduled': {
+                                color: 'yellow'
+                            },
                             'Bred Recently': {
                                 color: 'red'
                             }
@@ -147,7 +156,7 @@ WHERE fresh_date is not null order by current_date-fresh_date
    /* used to forward to animal when bubble clicked */
     function selectHandler(e)     {   
        // alert(data.getValue(chart.getSelection()[0].row, 0));
-        window.open('https://int.littleriver.ca/index.php?pageid=6&tabtocall=4&bovine_local_number='+data.getValue(chart.getSelection()[0].row, 0), '_blank');
+        window.open('<?php echo($GLOBALS['config']['HTTP']['URL']);?>?pageid=6&tabtocall=4&bovine_local_number='+data.getValue(chart.getSelection()[0].row, 0), '_blank');
     };
                 chart.draw(data, options);
             }

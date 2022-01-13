@@ -14,7 +14,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'global.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'functions/alproCommands.php');
 
 /**
- * Script that runs quite often, (every 2 minutes?) and keeps the int.littleriver.ca
+ * Script that runs quite often, (every 2 minutes?) and keeps  bovibook
  * system and the DeLaval Alpro system in sync. Dec 4, 2012
  * This was written to decouple the web gui with the sycing, too slow otherwise.
  */

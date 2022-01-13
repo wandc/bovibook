@@ -28,7 +28,9 @@ class GoogleCalendar {
 
     //default is bovine_treatement, change this string for other things.
 
-    public function __construct($calendarID = 'littleriver.ca_phrs87e7efrsf6qc0hk4bfk88g@group.calendar.google.com') {
+    public function __construct($calendarID) {
+        $calendarID = empty($calendarID) ? $GLOBALS['config']['GOOGLE_CALENDAR']['BOVINE_TREATMENT'] : $calendarID;
+        
         $this->calendarID = $calendarID;
 
 

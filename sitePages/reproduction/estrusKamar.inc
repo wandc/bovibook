@@ -3,37 +3,86 @@
 class EstrusKamar extends BasePage {
 
     public function defaultDisplay() {
-        print("<div class='row'>");
-
-        print("<div class='col-sm-4 col-sm-push-8'>");
-        //$this->kamarEventQuickForm();
-        $a = new QF2_EstrusKamar((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'])), 'group');
-        print($a->renderBox('qf2_kamarEntry', 'Record Kamar Event'));
-
-        print("</div>");
-        print("<div class='col-sm-8 col-sm-pull-4'>");
-        $this->displayLastAllKamarEvents();
-        print("</div>");
-        print("</div>");
+        
+         $a = new QF2_EstrusKamar((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+        
+        $left = <<<HTML
+            {$this->displayLastAllKamarEvents()}
+            {$this->displayNext2DaysScheduledKamars()}
+        HTML; 
+            
+        $right = <<<HTML
+            {$a->renderBox('qf2_kamarEntry', 'Record Kamar Event')}
+        HTML; 
+                
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);
+        
     }
 
-    function printActionButtons($kamar_id, $callBackURL = null) {
+    
+     function displayNext2DaysScheduledKamars($bovine_id=null) {
+         $out=array();
+            if (!empty($bovine_id)) {
+                   $sql = "
+SELECT * ,kamar_event.id as kamar_event_id
+FROM bovinemanagement.kamar_event 
+LEFT JOIN bovinemanagement.bovineall ON bovineall.id = kamar_event.bovine_id
+WHERE  bovine_id=$bovine_id  AND scheduled_event_time <= (current_timestamp + interval '2 days') AND event_time is null
+		ORDER BY scheduled_event_time ASC
+   ";               
+        }else {   
+         $sql = "
+SELECT * ,kamar_event.id as kamar_event_id
+FROM bovinemanagement.kamar_event 
+LEFT JOIN bovinemanagement.bovineall ON bovineall.id = kamar_event.bovine_id
+WHERE  scheduled_event_time <= (current_timestamp + interval '2 days') AND event_time is null
+		ORDER BY scheduled_event_time ASC
+   "; 
+         }
+         
+          $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        //get data
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        $currentUserid = $GLOBALS['auth']->getUsername();
+          $delButton=new QF2_DeleteButtonDecider('user_1only',(object) array('schemaTable'=>'bovinemanagement.kamar_event'));
+        
+          $resultsOut=array();
+          
+        //change presentation
+        foreach ($results as &$row) {
+        $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'], $row['local_number'], $row['full_name']);
+        $rowOut['Scheduled Time'] = JQueryDataTable::formattedDateTimeDofW($row['scheduled_event_time']);
+       
+    
+         $rowOut['Action'] = $delButton->output($row['id']);
+         $rowOut['action2'] = $this->printActionButtonKamarScheduledComplete($row['kamar_event_id'],$row['bovine_id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+     
 
-        //find the last entry for the current user and use that as a basais to display the delete button or not.
-        //We only want the delete button shown once for the latest entry.
-        $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.kamar_event WHERE userid='$currentUserid' ORDER BY id DESC LIMIT 1");
-
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-        $deleteButtonAsString = null;
-        if ($kamar_id == $row['id']) {
-            $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $kamar_id, 'schemaTable' => 'bovinemanagement.kamar_event'));
-            $deleteButtonAsString = '' . ($a->renderDelete($kamar_id));
+            $resultsOut[]=$rowOut;  
         }
 
-        return $deleteButtonAsString;
+       //output
+        $dataArr = $resultsOut;
+      
+        $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Scheduled Kamars', $dataArr));
+            return implode($out);
+
     }
+    
+    function printActionButtonKamarScheduledComplete($kamar_id, $bovine_id,$callBackURL = null) {
+        //we dont need an if statement because we have a where above. 
+                $a = new QF2_EstrusKamarScheduledComplete((object) array('callBackURL' => $callBackURL), 'individual', (object) array('kamarID' => $kamar_id));
+            $returnButtonsAsString = '' . ($a->renderComplete($kamar_id,'Completed'));
+            //print button
+ 
+        return $returnButtonsAsString;
+    }
+    
+    
+    
+    
 
     static function checkKamarStatus($valueArr, $elementNameArr) {
         //generic loop to convert $form elements we want into a usuable array
@@ -153,6 +202,17 @@ class EstrusKamar extends BasePage {
         $row = $res->fetch(PDO::FETCH_ASSOC);
         return $row['kamar_event_type']; //return last kamar event or null if none.
     }
+    
+     /*
+    * used by breeding protocol to say watch for heat. Bit clunky, but so is kamar red.
+    * 
+    */
+    public function protocolKamarDefaultScheduleInsert($bovine_id, $event_time, $kamar_event_type, $uuid)  {
+         //don't put id value, uses next one in DB.
+        $query = "INSERT INTO bovinemanagement.kamar_event (bovine_id,scheduled_event_time,kamar_event_type,scheduled_userid,protocol_uuid) VALUES ($bovine_id,'$event_time','$kamar_event_type','{$GLOBALS['auth']->getUsername()}','$uuid')";
+        $res = $GLOBALS['pdo']->exec($query);       
+    }
+    
 
     /**
      * 
@@ -185,6 +245,8 @@ class EstrusKamar extends BasePage {
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+          $delButton=new QF2_DeleteButtonDecider('user_1only',(object) array('schemaTable'=>'bovinemanagement.kamar_event'));
+        
         //change presentation
         foreach ($results as &$row) {
             $row['local_number'] = $GLOBALS['MiscObj']->hrefToBovinePageFullName($row['bovine_id'],$row['local_number'],$row['full_name']);
@@ -196,7 +258,7 @@ class EstrusKamar extends BasePage {
             } else {
                 $row['colour_row'] = 0;
             }
-            $row['action'] = $this->printActionButtons($row['id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            $row['action']=$delButton->output($row['id']); 
         }
 
         //output
@@ -227,7 +289,7 @@ class EstrusKamar extends BasePage {
         }
 
 
-        return(BootStrap::bootstrapSmallBox('Kamar', $text , null, $colour, 'ion-model-s'));  
+        return((new BootStrap)->bootstrapSmallBox('Kamar', $text , null, $colour, 'ion-pinpoint'));  
     }
     
     function displayLastAllKamarEvents($bovine_id = null) {
@@ -264,16 +326,43 @@ class EstrusKamar extends BasePage {
                 title: "Action"
             } 
 EX;
-        print($dt->start(31, 'AllKamarCurrent', $bovine_id, $columnsStr, 'highlight_important', ' paging: false'));
+        return ($dt->start('Kamar Events', 31, 'AllKamarCurrent', $bovine_id, $columnsStr, 'highlight_important', ' paging: false'));
     }
 
 }
 
 //end class
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';
+Class QF2_EstrusKamarScheduledComplete extends QF2_Base {
 
-Class QF2_EstrusKamar extends Quickform2Helper {
+    
+    function definition($form) {
+
+       //dummy, use directly passed paramaters. 
+
+        return $form; //required       
+    }
+
+    function process($value) {
+             
+       
+        
+        if (empty($this->param->kamarID)){
+            throw new Exception("Error: param->kamarID not provided!");
+        }
+        /*
+             * This is a bit hackish, but as long as code is correct it should be fine. Not efficent for a prepared statement. 
+             * 
+             */
+            $stmt = $GLOBALS['pdo']->prepare("UPDATE bovinemanagement.kamar_event SET event_time=now(),userid='{$GLOBALS['auth']->getUsername()}' WHERE id=:kamarID");
+            $stmt->bindParam(':kamarID', $this->param->kamarID);
+            $stmt->execute();
+       
+    }
+
+}//end class
+
+Class QF2_EstrusKamar extends QF2_Base {
 
     function definition($form) {
 
@@ -283,7 +372,7 @@ Class QF2_EstrusKamar extends Quickform2Helper {
 
         $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
 
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
 
 
         ////
@@ -292,7 +381,7 @@ Class QF2_EstrusKamar extends Quickform2Helper {
         if ($this->mode == 'group') {
             $form->addElement('select', 'bovine_id', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");
         } else {
-            $form->addElement('hidden', 'bovine_id')->setValue($this->param->bovine_id);
+            $form->addElement('hidden', 'bovine_id')->setValue($this->param->bovineID);
         }
         $form->addElement('select', 'kamarEventType', null, array('options' => $kamarEventsArray, 'label' => 'Type of Kamar Event'))->addRule("required", "Please specify your type of kamar state change.");
         $form->addElement('select', 'event_time', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time of kamar event");
@@ -342,7 +431,7 @@ Class QF2_EstrusKamar extends Quickform2Helper {
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
     }
 

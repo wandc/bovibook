@@ -25,9 +25,22 @@ class MilkingStats extends TabPage {
         $tabArray[4]['name'] = 'Herd Stats (NB Lab)';
         $tabArray[5]['name'] = 'Saleable Milk Stats (Parlor)';
         $tabArray[6]['name'] = 'Milked Yet this Morning';
+        $tabArray[7]['name'] = 'Milked per Year';
+        $tabArray[8]['name'] = 'Milk Pickups';
         $this->renderTabs($tabArray);
     }
 
+    function tab8() {
+          (new BulkTankPickup)->plotBulkTankPickups();
+    }
+    
+    
+    
+     function tab7() {
+        print($this->milkedPerYear());
+    }
+    
+    
     function tab6() {
         $this->displayNotMilkedYetThisAm();
     }
@@ -111,7 +124,7 @@ select date,name,location_id,milk_per_cow,
 from temp4 as n1 
 )
                      ";
-        $res0 = & $GLOBALS['pdo']->exec($sql0);
+        $res0 =  $GLOBALS['pdo']->exec($sql0);
 
         print("<h2>Milk Production by Group</h2>");
 
@@ -169,8 +182,23 @@ SELECT * FROM temp2 where one is not null and two is not null
         $headerStrArr['AM'] = 'number';
         $headerStrArr['PM'] = 'number';
 
-        $x = new GoogleVisualizationLine(null, $headerStrArr, $one, $two);
+        $x = new GoogleVisualizationLine( null, null, $headerStrArr, $one, $two);
         print($x->toString());
+    }
+    
+    
+    /*
+     * milking cows by year.
+     * 
+     */
+    public function milkedPerYear() {
+               $sql = <<<SQL
+ SELECT distinct date_trunc('year',date)::date as date,round((avg(number_of_cows) OVER (PARTITION BY date_trunc('year',date)) )) as avg_yearly_number_of_milking_cows 
+from batch.daily_number_cows_milking 
+order by date desc
+SQL;
+        
+ return ( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql));
     }
     
     /*
@@ -220,13 +248,13 @@ select * from temp where milktime is null order by location_id,local_number
                 title: "Current Location"
            }
 EX;
-        print($dt->start(73, 'notMilkedYetThisAm', null, $columnsStr));
+        print($dt->start('Title CHANGE ME', 73, 'notMilkedYetThisAm', null, $columnsStr));
     }
 
     function drawGroupMilk($location_id) {
 
         $sql1 = "SELECT name FROM bovinemanagement.location WHERE id=$location_id limit 1";
-        $res1 = & $GLOBALS['pdo']->query($sql1);
+        $res1 =  $GLOBALS['pdo']->query($sql1);
         $row1 = $res1->fetch(PDO::FETCH_ASSOC);
 
         print("<h3>Group: {$row1['name']}</h3>");
@@ -235,7 +263,7 @@ EX;
         $sql = "SELECT * FROM group_milk WHERE location_id=$location_id ORDER by date"; //low=41, heif=42, high=40
 
 
-        $res = & $GLOBALS['pdo']->query($sql);
+        $res =  $GLOBALS['pdo']->query($sql);
         $str = '';
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if (trim($row['milk_per_cow_am']) == '') {
@@ -293,7 +321,7 @@ EX;
     function displayLastValactaMUNByGroup($location_id) {
 
         $sql1 = "SELECT name FROM bovinemanagement.location WHERE id=$location_id limit 1";
-        $res1 = & $GLOBALS['pdo']->query($sql1);
+        $res1 = $GLOBALS['pdo']->query($sql1);
         $row1 = $res1->fetch(PDO::FETCH_ASSOC);
 
         print("<h3>MUN Group: {$row1['name']}</h3>");
@@ -363,7 +391,7 @@ SQL;
         //output
         $dataArr = $resultsOut;
       
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'')); 
          return implode($out); 
     }
 
@@ -469,7 +497,7 @@ SQL;
             }
 EX;
         $out[]=("<h3>Aggregate Milking Stats For Last 7 Days</h3>");
-        $out[]=($dt->start($this->pageid, 'aggregateStats', null, $columnsStr, 'highlight_important', ' paging: false'));
+        $out[]=($dt->start('Title CHANGE ME', $this->pageid, 'aggregateStats', null, $columnsStr, 'highlight_important', ' paging: false'));
         return (implode($out));
     } 
     
@@ -543,7 +571,7 @@ SQL;
         //output
         $dataArr = $resultsOut;
       
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,''));
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,''));
         return implode($out);
     }
 
@@ -587,7 +615,7 @@ SELECT  location_id,test_date,avg(total_milk) as avg_total_milk,avg(fat_per) as 
         $headerStrArr['Fat (kg)'] = 'number';
         $headerStrArr['Protein (kg)'] = 'number';
 
-        $x = new GoogleVisualizationLine(null, $headerStrArr, $fatArr, $protArr);
+        $x = new GoogleVisualizationLine( null, null, $headerStrArr, $fatArr, $protArr);
         print($x->toString());
 
 
@@ -617,7 +645,7 @@ SELECT  location_id,test_date,avg(total_milk) as avg_total_milk,avg(fat_per) as 
         $headerStrArr['Fat (kg)'] = 'number';
         $headerStrArr['Protein (kg)'] = 'number';
 
-        $x = new GoogleVisualizationLine(null, $headerStrArr, $fatArr, $protArr);
+        $x = new GoogleVisualizationLine( null, null, $headerStrArr, $fatArr, $protArr);
         print($x->toString());
 
 

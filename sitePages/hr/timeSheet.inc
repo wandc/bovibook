@@ -1,35 +1,165 @@
-<?php 
-
-
-
- 
- ;
-
-
+<?php
 
 class TimeSheet extends BasePage {
 
-   
-
     public function defaultDisplay() {
 
-        //only show admin
-        if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $this->displayPayrollView();
-            $this->displayNotes();
+        //only show owner
+        if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+
+            $left = ( $this->showLast3WeeksPayrollForAllCurrentEmployees() );
+            $right = $this->showLast3WeeksPayrollSummary() . $this->vacationYearlySummary() .$this->displayNotes();
+
+
+
+            //   $this->displayPayrollView();
         } else { //employee view
-            $this->addRemoveTimeQuickform();
-            $this->displayNotes();
-            $this->displayTimeLog($GLOBALS['auth']->getUsername());
+            $right = $this->addRemoveTimeQuickform() . $this->displayNotes();
+            $left = $this->displayTimeLog($GLOBALS['auth']->getUsername());
         }
+
+
+        print (new BootStrap)->oneThirdTwoThirds($left, $right);
     }
 
     function displayNotes() {
-        print("NOTE:<br>");
-        print("1. Pay periods are from Saturday 00:00 to Friday 23:59." . "<br>");
-        print("2. Time Can only be banked for time over 9 hours in a single day." . "<br>");
-        print("3. Time Bank withdrawls can only be used to top up to 9 hours in a single day." . "<br>");
-        print("4. Time Bank must be used up by the end of the calendar year." . "<br>");
+
+        $out[] = '<li>Pay periods are from Saturday 00:00 to Friday 23:59.</li>';
+        $out[] = '<li>Time Can only be banked for time over 9 hours in a single day.</li>';
+        $out[] = '<li>Time Bank withdrawls can only be used to top up to 9 hours in a single day.</li>';
+        $out[] = '<li>Time Bank must be used up by the end of the calendar year.</li>';
+
+        $content = (implode($out));
+        return( (new BootStrap)->generalInfoBox('fa-sticky-note', 'bg-info', 'Note', $content));
+    }
+
+    /*
+     * shows what employee entered. Not what was actually paid. 
+     */
+    private function vacationYearlySummary(){
+        
+        $sql=<<<SQL
+SELECT userid,count(explanation), explanation, (date_part('year', now() - interval '0' year))  as year
+FROM hr.time_sheet_view 
+WHERE deleted=false 
+AND explanation =  ANY(ARRAY['Day Off','Vacation','For Holiday','Sick']::varchar[])
+AND event_time BETWEEN date_trunc('year', now()) - interval '0' year AND (date_part('year', current_date) || '-12-31 23:59:59')::timestamp - interval '0' year
+GROUP BY userid, explanation
+UNION
+SELECT userid,count(explanation), explanation, (date_part('year', now() - interval '1' year))  as year
+FROM hr.time_sheet_view 
+WHERE deleted=false 
+AND explanation =  ANY(ARRAY['Day Off','Vacation','For Holiday','Sick']::varchar[])
+AND event_time BETWEEN date_trunc('year', now()) - interval '1' year AND (date_part('year', current_date) || '-12-31 23:59:59')::timestamp - interval '1' year
+GROUP BY userid, explanation
+UNION
+SELECT userid,count(explanation), explanation, (date_part('year', now() - interval '2' year))  as year
+FROM hr.time_sheet_view 
+WHERE deleted=false 
+AND explanation =  ANY(ARRAY['Day Off','Vacation','For Holiday','Sick']::varchar[])
+AND event_time BETWEEN date_trunc('year', now()) - interval '2' year AND (date_part('year', current_date) || '-12-31 23:59:59')::timestamp - interval '2' year
+GROUP BY userid, explanation
+ORDER BY userid,year DESC
+
+SQL;        
+        return ( (new JQueryDataTable)->startBasicSql('Time Off Summary Last 3 Years', $sql));
+        
+    }
+    
+    
+    private function showLast3WeeksPayrollForAllCurrentEmployees() {
+
+        $sql = <<<SQL
+            SELECT distinct(userid) FROM hr.time_sheet_view WHERE event_time::date BETWEEN (current_date - interval '3 weeks') AND current_date ORDER by userid ASC    
+        SQL;
+        $res = $GLOBALS['pdo']->query($sql);
+        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = $this->showLast3WeeksPayrollForSpecificEmployee($row['userid']);
+        }
+
+        return implode($out);
+    }
+
+    private function showLast3WeeksPayrollSummary() {
+
+        $sql = <<<SQL
+            SELECT distinct(userid) FROM hr.time_sheet_view WHERE event_time::date BETWEEN (current_date - interval '3 weeks') AND current_date ORDER by userid ASC    
+        SQL;
+        $res = $GLOBALS['pdo']->query($sql);
+        $dataArr = array();
+        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $employeeDataArr = $this->last3WeeksPayrollForSpecificEmployee($row['userid']);
+
+            foreach ($employeeDataArr as $key => $value) {
+
+                if ((!empty($value['Pay Period Balance'])) AND (strtotime($value['Date']) >= strtotime('-1 week'))) {
+                    $rowOut['Date'] = $value['Date'];
+                    $rowOut['Employee'] = $row['userid'];
+                    $rowOut['Pay Period Balance'] = $value['Pay Period Balance'];
+                    $dataArr[] = $rowOut;
+                }
+            }
+        }
+
+        return ( (new JQueryDataTable)->startBasicArray('To Be Paid Summary', $dataArr));
+    }
+
+    private function showLast3WeeksPayrollForSpecificEmployee($userid) {
+
+        $dataArr = $this->last3WeeksPayrollForSpecificEmployee($userid);
+        $out[] = '<style> table.dataTable { font-size:small;}</style>';
+        $out[] = ( (new JQueryDataTable)->startBasicArrayColour('Time Sheet: ' . ucwords($userid), $dataArr, $options = 'sorting: false,paging: true, pageLength: 15', 'highlight_attention'));
+        return implode($out);
+    }
+
+    private function last3WeeksPayrollForSpecificEmployee($userid) {
+
+        $sql = <<<SQL
+    
+    /* generate a date series and join hr table */
+with temp as (
+SELECT series::date as date,to_char(series, 'Day') as day_of_week,date_trunc('WEEK',(series::date + interval '2 day'))- interval '2 day' AS week_starting
+,xx.*
+FROM generate_series( current_date - interval '3 months', current_date, '1 day'::interval) AS series
+LEFT JOIN 
+ (SELECT * FROM hr.time_sheet_view WHERE userid='$userid' AND deleted=FALSE ) xx
+ON series=xx.event_time::date 
+)
+/*sum total time over the week period SAT to FRI. */
+SELECT *, sum(time_banked) OVER (PARTITION BY (week_starting)) as sum_week_ending_total_time, sum(total_time) OVER (PARTITION BY (week_starting)) as sum_week_ending_total_time
+FROM TEMP  
+ORDER BY date DESC    
+            
+SQL;
+
+
+        $statement = $GLOBALS['pdo']->prepare($sql);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        //change presentation
+        foreach ($results as &$row) {
+
+            $rowOut['Date'] = JQueryDataTable::formattedDate($row['date']);
+            $rowOut['Shift'] = $row['shift_type'];
+            $rowOut['Basic Explanation'] = $row['explanation'];
+            $rowOut['Actual Time Worked (hours)'] = $row['time_worked'];
+            $rowOut['Time Bank (Deposit / Withdrawl)'] = $row['time_banked'];
+            $rowOut['Time Bank Balance'] = $this->printTimeBankToDate($row['userid'], $row['event_time']);
+            $rowOut['Pay Period Balance'] = (trim($row['day_of_week']) == 'Friday') ? $row['sum_week_ending_total_time'] : '';
+            $rowOut['Overtime Explanation'] = $row['explanation_overtime'];
+            $rowOut['colour_row'] = (trim($row['day_of_week']) == 'Friday') ? 1 : 0;
+
+            //only show rows with info.
+            if ((!empty($row['shift_type'])) OR (trim($row['day_of_week']) == 'Friday')) {
+                $resultsOut[] = $rowOut;
+            }
+        }
+
+        //output
+        $dataArr = $resultsOut;
+
+        return $dataArr;
     }
 
     function displayPayrollView($mode = 'default') {
@@ -47,7 +177,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
 ";
         $res = $GLOBALS['pdo']->query($sql);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $this->displayTimeLog(strtolower($row['firstname']), 'payrollView');
+            $this->displayTimeLog(($row['userid']), 'payrollView');
         }
     }
 
@@ -86,7 +216,8 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
         $reason = array(null => 'Please Select one...', 'Vacation' => 'Vacation', 'Day Off' => 'Day Off', 'For Holiday' => 'For Holiday', 'Sick' => 'Sick');
         $shiftTypeArr = array(null => 'Please Select one...', 'Milking AM' => 'Milking AM', 'Milking PM' => 'Milking PM', 'Cropping' => 'Cropping');
 
-        $form = new HTML_QuickForm("addRemoveTimeFromBankQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("addRemoveTimeFromBankQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('header', 'hdrQuickform', 'Hours Worked');
 
         $form->addElement('select', 'dateEvent', 'Date of Event', $dateArray);
@@ -130,7 +261,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
 
         //custom rule for if over 9 hours of work they need an explanation.
         $form->registerRule('checkExplanationForOvertime', 'function', 'checkExplanationForOvertime');
-        $form->addRule(array('workTime','explanation_overtime'), 'ERROR: No Explanation for overtime worked.', 'checkExplanationForOvertime', array('workTime','explanation_overtime'));
+        $form->addRule(array('workTime', 'explanation_overtime'), 'ERROR: No Explanation for overtime worked.', 'checkExplanationForOvertime', array('workTime', 'explanation_overtime'));
 
         function checkDateNotAlreadyInDB($junk, $valueArr, $elementNameArr) {
             $count = 0;
@@ -161,7 +292,7 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
                 $count++;
             }
 
-            
+
             //when workTime is ovetime and textbox is blank...
             if ((trim($formData['explanation_overtime']) == '') AND ($formData['workTime'] > 9)) {
                 $retValue = 0; //error
@@ -183,21 +314,19 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
 
             //when time bank time is being withdrawn we can only allow the total time to be 9.
             //when time bank time is being deposited we can only allow the total time to drop to 9.
-           // $bankTime=0;
-           if (!array_key_exists('bankTime',$formData)) {
+            // $bankTime=0;
+            if (!array_key_exists('bankTime', $formData)) {
                 $bankTime = 0;
-           } 
-           else {
-                     $bankTime = $formData['bankTime'];
-           }
-           //
-           if (!array_key_exists('workTime',$formData)) {
+            } else {
+                $bankTime = $formData['bankTime'];
+            }
+            //
+            if (!array_key_exists('workTime', $formData)) {
                 $bankTime = 0;
-           } 
-           else {
-                     $workTime = $formData['workTime'];
-           }
-  
+            } else {
+                $workTime = $formData['workTime'];
+            }
+
 
             /*
               work bank
@@ -239,85 +368,76 @@ SELECT * FROM temp WHERE temp.owner is null ORDER BY temp.lastname
             $shiftType = $form->exportValue('shiftType');
             $explanation_overtime = $form->exportValue('explanation_overtime');
 
-            if  ($explanation_overtime =='') {
-                $explanation_overtime='null';
+            if ($explanation_overtime == '') {
+                $explanation_overtime = 'null';
+            } else {
+                $explanation_overtime = "'" . pg_escape_string($explanation_overtime) . "'";
             }
-            else {
-                $explanation_overtime="'".pg_escape_string($explanation_overtime)."'";
-            }
-                        
-            
+
+
             //don't put id value, uses next one in DB. //use global username as security feature, instead of passing it.
             $query = "INSERT INTO hr.time_sheet (event_time,time_worked,time_banked,userid,deleted,explanation,shift_type,explanation_overtime) VALUES ('$event_date','$workTime','$bankTime','{$GLOBALS['auth']->getUsername()}','false','$explanation','$shiftType',$explanation_overtime)";
-            
-            $res = $GLOBALS['pdo']->exec($query);
 
-            {
+            $res = $GLOBALS['pdo']->exec($query); {
                 print_r($res);
-              
             }
 
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
-    
     public function timeLog($request) {
         $useridtouse = Sanit::reqVal('item', false, 'STR');
-        
-      if ($useridtouse!=false) {
-        //for sercurity reasons,only allow give userid for when admin logged in.
-          if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            //when admin allow any userid.ie pass thorugh.
-              
-          
-        } else { //employee view
-            $useridtouse=$GLOBALS['auth']->getUsername(); //only user userid of user no matter what
-            
-        }
-        
-       // Setup your database connection
-        $sql = "SELECT '$useridtouse' as useridtouse,explanation,shift_type,* FROM hr.time_sheet_view WHERE userid='$useridtouse' AND deleted=false ORDER BY event_time DESC ";
- 
-        $statement = $GLOBALS['pdo']->prepare($sql);
-        $statement->execute();
-        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        //change presentation
-        foreach ($results as &$row) {
-            
- 
-	  //  $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
-            $row['event_time_nice'] = date("l  M j, Y", strtotime($row['event_time'])); 
-            $row['time_bank_balance'] = $this->printTimeBankToDate($row['useridtouse'],$row['event_time']);
-            $row['pay_period_to_date']= $this->printPayPeriodToDate($row['useridtouse'],$row['event_time']) ;
-            $row['action']=$this->printActionButtons($row['id'],"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
-            $row['colour_row']= (date("N", strtotime($row['event_time'])) == 5) ? 1 : 0;
-                   
+        if ($useridtouse != false) {
+            //for sercurity reasons,only allow give userid for when admin logged in.
+            if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+                //when admin allow any userid.ie pass thorugh.
+            } else { //employee view
+                $useridtouse = $GLOBALS['auth']->getUsername(); //only user userid of user no matter what
+            }
+
+            // Setup your database connection
+            $sql = "SELECT '$useridtouse' as useridtouse,explanation,shift_type,* FROM hr.time_sheet_view WHERE userid='$useridtouse' AND deleted=false AND event_time>= current_date - interval ' 2 years'  ORDER BY event_time DESC ";
+
+            $statement = $GLOBALS['pdo']->prepare($sql);
+            $statement->execute();
+            $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+            //change presentation
+            foreach ($results as &$row) {
+
+
+                //  $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createCDNLink($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
+                $row['event_time_nice'] = date("l  M j, Y", strtotime($row['event_time']));
+                $row['time_bank_balance'] = $this->printTimeBankToDate($row['useridtouse'], $row['event_time']);
+                $row['pay_period_to_date'] = $this->printPayPeriodToDate($row['useridtouse'], $row['event_time']);
+                $row['action'] = $this->printActionButtons($row['id'], "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+                $row['colour_row'] = (date("N", strtotime($row['event_time'])) == 5) ? 1 : 0;
+            }
+            //output
+            $output['data'] = $results;
+            return ($output);
         }
-        //output
-        $output['data'] = $results;
-        return ($output);   
-      }
-      return null;
+        return null;
     }
-    
+
     function displayTimeLog($useridtouse, $mode = 'default') {
-       
+
         if ($mode == 'payrollView') {
             print("<h3>Payroll View : $useridtouse</h3>");
         } else {
             print("<h3>Time Log</h3>");
         }
 
-      
-         $dt=new JQueryDataTable();
-$columnsStr= <<<EX
+
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
             {
                  data: "event_time",
                  "visible": false,
@@ -370,17 +490,12 @@ $columnsStr= <<<EX
                 title: "Action"
             }
 EX;
-    
-          print($dt->start(70,'timeLog',$useridtouse,$columnsStr,'highlight_attention',false));       
-    
+
+        return($dt->start('Time Log', 70, 'timeLog', $useridtouse, $columnsStr, 'highlight_attention', false));
     }
 
-    
-   
+    function printTimeBankToDate($useridtouse, $event_time) {
 
-
-    function printTimeBankToDate($useridtouse,$event_time) {
-      
         $rowDate = strtotime($event_time);
 
 
@@ -395,8 +510,8 @@ EX;
         return $returnVal;
     }
 
-    function printPayPeriodToDate($useridtouse,$event_time) {
-      
+    function printPayPeriodToDate($useridtouse, $event_time) {
+
         $rowDate = strtotime($event_time);
         $rowDayOfWeek = date('N', $rowDate);
         //ISO-8601 numeric representation of the day of the week 1 (for Monday) through 7 (for Sunday)
@@ -443,7 +558,7 @@ EX;
         return $returnVal;
     }
 
-    function printActionButtons($id,$callBackURL) {
+    function printActionButtons($id, $callBackURL) {
 
         //find the last entry for the current user and use that as a basais to display the delete button or not.
         //We only want the delete button shown once for the latest entry.
@@ -452,20 +567,21 @@ EX;
 
         $deleteButtonAsString = null;
         if ($id == $row['id']) {
-            $deleteButtonAsString = self::deleteQuickForm($id,$callBackURL); //show delete button
+            $deleteButtonAsString = self::deleteQuickForm($id, $callBackURL); //show delete button
         }
 
         return $deleteButtonAsString;
     }
 
-    function deleteQuickForm($timeSheetID,$callBackURL) {
+    function deleteQuickForm($timeSheetID, $callBackURL) {
 
         //$estrusID=85;
 
-        $form = new HTML_QuickForm("timeSheetEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("timeSheetEventDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'timeSheetID', $timeSheetID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete', array('class' => 'btn btn-warning'));
 
 
         // Try to validate a form
@@ -483,9 +599,4 @@ EX;
         return $form->toHtml(); //pass on as html string to display later in the table
     }
 
-  
-
-}
-
-//end class
-?>
+}//end class

@@ -161,7 +161,7 @@ HTML;
             $res = $GLOBALS['pdo']->exec($query);
 
             //$_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 
@@ -206,9 +206,9 @@ SQL;
             $rowOut['Description'] = ($row['description']);
             $rowOut['Requesting User'] = ($row['supplier']);
             $rowOut['Requesting User'] = ($row['requesting_userid']);
-            $rowOut['Action'] = $this->printActionButtons2($row,"Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
-             if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $rowOut['Completed?'] = $this->printActionButtons($row,"Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            $rowOut['Action'] = $this->printActionButtons2($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+            if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+            $rowOut['Completed?'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
              }
            
 
@@ -219,7 +219,7 @@ SQL;
         $dataArr = $resultsOut;
          //var_dump($dataArr);
          $out[]=("<h3>Purchase</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'order: false')); 
          return implode($out); 
         
     }
@@ -257,7 +257,7 @@ SQL;
         $dataArr = $resultsOut;
          //var_dump($dataArr);
          $out[]=("<h3>Purchase Log</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'order: false')); 
          return implode($out); 
          
  
@@ -285,7 +285,7 @@ SQL;
         $form = new HTML_QuickForm("purchasesDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'purchasesID', $purchasesID);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
 
         // Try to validate a form

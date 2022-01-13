@@ -65,7 +65,7 @@ Info! This alert box indicates a neutral informative change or action.
           $content='<li class="smallish">'.'<b>'.'NOTE: Data Probably Out of Date. (fix error checking script)' .'</b>'.'</li>'.$content;  //put at top so we see it.
        }
         
-      return (new BootStrap)->plainBox('', $content);
+      return (new BootStrap)->plainCard('', $content);
 
     }
   

@@ -34,7 +34,7 @@ class BeefMarketReport  {
         }
         //since it updates in realtime, we dont want to d/l data during updates. lag one day behind.
         $endDate = date("Y-m-d", strtotime("-1 day"));
-        //$endDate = '2018-9-12'; //for debug
+        $endDate = '2021-04-24'; //for debug
 
         //main loop through all dates
         while (strtotime($date) <= strtotime($endDate)) {
@@ -45,7 +45,7 @@ class BeefMarketReport  {
                //print($pageContent);
 
                if (empty($pageContent)) {
-                   throw new Exception('\nError: curl did not download data from bovine quebec. site or the Internet is down?\n\n');
+                   throw new Exception('\nError: curl did not download data from bovine quebec. site or the Internet is down? Check to see if you can manually contact the Bovine Quebec website.\n\n');
                }
                
             $dom = new DOMDocument();
@@ -58,7 +58,20 @@ class BeefMarketReport  {
         
           
             //first do a check if the day had no data, if zero cull cows traded, then no action occured (Assumed)
-            $valueArr = $xpath->query("//form[@id='form1']/table[@class='t_info']/tr[9]/td[2]");
+           // $valueArr = $xpath->query("//form[@id='form1']/table[@class='t_info']/tr[9]/td[2]");
+            $valueArr = $xpath->query('//form[@id="form1"]/table[@class="t_info"]/tr[4]/td[2]');
+
+            //basic check, can be valid even if no data that day.    
+            if (trim($valueArr[0]->textContent, chr(0xC2).chr(0xA0)) !='Dairy type') { //removes nbsp; hex codes first before comparing
+                throw new Exception ('Error: Basic check of page failed!!! Page either changed by Bovine Quebec or site is returning something strange for the url and date: '.$date.'. Go check the page manually and see if "Dairy type" string is on the page.');
+            }
+            
+            //check to see if auction data is non zero.
+            
+             $valueArr = $xpath->query('//form[@id="form1"]/table[@class="t_info"]/tr[4]/td[4]');
+            var_dump($valueArr[0]->textContent);
+            
+            exit();
             $checkData = $valueArr[0]->textContent;
 
 
@@ -102,7 +115,7 @@ class BeefMarketReport  {
 
                 //write the data collected to db.
                 $query = "INSERT INTO batch.beef_report (event_date,data) VALUES ('$date','$dataJson');";
-                $res = $GLOBALS['pdo']->exec($query);
+               // $res = $GLOBALS['pdo']->exec($query);
 
                 //print_r($dataArr);
             } else {
@@ -149,6 +162,12 @@ class BeefMarketReport  {
     //grabs individual lines from bovine quebec page for CULL COWS
     function xPathToArray_Data_Cull($xpath, $lineNum,$date,$auction='all') {
         $answer = array();
+        
+        
+        
+        $valueArr = $xpath->query("/*[@id=%22form1%22]/table[4]/tbody/tr[4]/td[2]");
+        var_dump($valueArr);
+        
 
         $valueArr = $xpath->query("/html/body/div/div/div/div/div/div/div/form[@id='form1']/table[@class='t_info']/tr[$lineNum]/td[3]");
        
@@ -175,7 +194,7 @@ class BeefMarketReport  {
     function downloadPageData($date) {
         
     
-   //generate url. Always starts at the the day before because they seem to be slow updating.
+   //generate url. Always starts at the the day before because they seem to be slow updating.]
    $url="http://bovin.qc.ca/en/price-info/cull-cattle-and-bob-calves/daily/?date=".$date;
 
 
@@ -187,7 +206,7 @@ class BeefMarketReport  {
     curl_setopt($ch,CURLOPT_TIMEOUT,30);
         
  $pageData= curl_exec($ch);  
-
+ //print($pageData); //DEBUG
 
     return $pageData;
     }

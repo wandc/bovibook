@@ -1,42 +1,54 @@
 <?php
-
-//Lists straws of semen in our inventory
-
-require_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCharts.inc');
-
-
-
 class MoistureForageTest extends BasePage {
 
     public function defaultDisplay() {
 
 
-        $this->addBagMoistureTestQuickform();
-        print($this->displayBagMoistureTestLog());
+        $left = <<<HTML
+        {$this->displayBagMoistureTestLog()}
+        {$this->moistureTestsForAllOpenBags()}
+        HTML; 
+           
+        $right = <<<HTML
+                {$this->addBagMoistureTestQuickform()}
+        HTML; 
+               
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content);
+        
+       
+        
+    }
 
+    function moistureTestsForAllOpenBags() {
+        $out=array();
         //display moisture graphs for currently open bags that have moisture tests,
         $query = "SELECT DISTINCT bag_current_open.id as bag_id FROM nutrition.bag_current_open
         LEFT JOIN nutrition.bag_moisture_test ON bag_current_open.id = bag_moisture_test.bag_id";
         $res = $GLOBALS['pdo']->query($query);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $this->plotMoistureVsTime($row['bag_id']);
+          $out[]=  $this->plotMoistureVsTime($row['bag_id']);
         }
+        return implode($out);
     }
-
+    
+    
+    
     function addBagMoistureTestQuickform() {
 
         //daily dates rray, with unix timestamp as index.
         $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays();
 
         //get open bags with footages availble in bag.
-        $retArr = BagConsumption::openBagsWithValidFootages(false);
+        $retArr = (new BagConsumption)->openBagsWithValidFootages(false);
         $listOfBags = $retArr[0];
         $listOfFootages = $retArr[1];
 
         //generate list of percentages 5 to 95
         $listOfPercentages[null] = "Please Select one..."; //dummy value
         for ($i = 10.0; $i <= 90.0; $i = $i + 0.1) {
-            $listOfPercentages["$i"] = "$i %";
+            $output=round($i,1);
+            $listOfPercentages["$output"] = "$output %";
         }
 
         $form = new HTML_QuickForm("addBagMoistureTestQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -61,9 +73,9 @@ class MoistureForageTest extends BasePage {
         $form->addGroup($submitGroup, 'submitGroup');
 
         //defaults
-        $form->setDefaults(array('whichBag' => 0));
-        $form->setDefaults(array('percentWater' => 0));
-        $form->setDefaults(array('dateEvent' => 0));
+       // $form->setDefaults(array('whichBag' => 0));
+       // $form->setDefaults(array('percentWater' => 0));
+       // $form->setDefaults(array('dateEvent' => 0));
 
         //rules
         $form->addRule('whichBag', 'Bag is required', 'required');
@@ -100,21 +112,21 @@ class MoistureForageTest extends BasePage {
 
 
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     function displayBagMoistureTestLog($mode = 'default') {
 
         $sql = <<<SQL
-SELECT bag_moisture_test.footage,percent_dry_matter,bag_moisture_test.event_time,bag_current_open.slot,bag_current_open.current_feed
+SELECT bag_moisture_test.footage,percent_dry_matter,bag_moisture_test.event_time,bag_current_open.slot,bag_current_open.current_feed,substring(location from 1 for 1) || slot as bag2
 		FROM nutrition.bag_moisture_test
 LEFT JOIN nutrition.bag_current_open ON bag_moisture_test.bag_id = bag_current_open.id
-WHERE bag_current_open.slot is not null ORDER BY bag_id,event_time DESC
+WHERE bag_current_open.slot is not null ORDER BY bag_id,event_time ASC
 SQL;
 
         $statement = $GLOBALS['pdo']->prepare($sql);
@@ -124,8 +136,9 @@ SQL;
         //change presentation
         foreach ($results as &$row) {
 
+            $rowOut['raw'] = strtotime($row['event_time']);
             $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
-            $rowOut['Bag #'] = ($row['slot']);
+            $rowOut['Bag #'] = ($row['bag2']);
             $rowOut['Feed'] = ($row['current_feed']);
             $rowOut['Footage'] = ($row['footage']);
             $rowOut['Water %'] = 100 - (empty(!($row['percent_dry_matter'])) ? $row['percent_dry_matter'] : null);
@@ -137,12 +150,13 @@ SQL;
         //output
         $dataArr = $resultsOut;
 
-        $out[] = ('<h3>Moisture Test of Feed in Ag Bags</h3>');
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, ''));
+
+        $out[] = ( (new JQueryDataTable)->startBasicArrayNoSort('Moisture Test of Feed in Ag Bags', $dataArr));
         return implode($out);
     }
 
     function plotMoistureVsTime($bagId) {
+        $out=array();
         //set how far back to plot data.
         $plotStartDate = date('Y-m-d', strtotime("-250 days"));
 
@@ -164,9 +178,9 @@ LEFT JOIN  nutrition.bag_with_current_feed ON bag_with_current_feed.id=bag.id WH
             }
         }
 
-        print('<div class="bagMoisturePlots">');
+        $out[]=('<div class="bagMoisturePlots">');
         if (!empty($slot)) {
-            print("<h3>$currentFeed (slot: $slot)</h3>");
+            $out[]=("<h3>$currentFeed (slot: $slot)</h3>");
         }
         if (!empty($one)) {
 
@@ -175,11 +189,13 @@ LEFT JOIN  nutrition.bag_with_current_feed ON bag_with_current_feed.id=bag.id WH
             $headerStrArr['Water %'] = 'number';
 
             $opt = ' pointSize:20';
-            $x = new GoogleVisualizationLine($opt, $headerStrArr, $one);
-            print($x->toString());
+            $x = new GoogleVisualizationLine( null, $opt, $headerStrArr, $one);
+            $out[]=($x->toString());
         }
 
-        print('</div> <!-- endbagMoisturePlots -->');
+        $out[]=('</div> <!-- endbagMoisturePlots -->');
+        
+        return implode($out);
     }
 
     function bagDryMatterSparkline() {

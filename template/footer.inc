@@ -7,92 +7,61 @@ class Footer {
 
    
     public function footerContent() {
-        ?>
-          <!-- Main Footer -->
-  <footer class="main-footer">
-    <!-- To the right -->
-    <div class="pull-right hidden-xs">
-      <?php     print($this->showContent()); ?>
-    </div>
-    <!-- Default to the left -->
-    <strong>Copyright &copy; 2017 <a href="#">LR</a>.</strong> 
-  </footer>
+        $footer = <<<HTML
+    <!-- Main Footer -->
+    <footer class="main-footer">
+        <!-- To the right -->
+       <div class="float-right d-none d-sm-block">
+            {$this->showContent()}
+              <!-- Default to the left -->
+    <span><strong>Copyright &copy; 2020 <a href="#">LR</a>.</strong></span>
+        </div>
+  
+    </footer>
        
-        <?php
+      
+HTML;    
+    $footer2 = <<<HTML
+            
+          <footer class="main-footer">
+  
+    <strong>Copyright © 2014-2019 <a href="http://adminlte.io">AdminLTE.io</a>.</strong> All rights
+    reserved.
+  </footer>
+HTML;          
+            
+        return $footer;
     
-        
-    }
-    
-    
-    //OLD WAY
-    public function original() {
-        print("<div id='footer'> <!--overwritten with AJAX --></div>" . "\n\r");
-        if (isset($_SESSION['access_token'])) {
-         $access_token=rtrim(strtr(base64_encode(json_encode($_SESSION['access_token'])), '+/', '-_'), '=');
-        }
-        else {
-         $access_token='ERRROR: no access token supplied!';   
-        }
-        ?>          
-        <script type="text/javascript" language="javascript"> 
-            
-            
-            
-             $(document).ready(function(){ 
-                        $(function(){
-      function load(){
-         $.ajax({
-  url: "/api/html/10001/content",
-   headers: {"Authorization": "Bearer <?php echo($access_token);?>"}    
-  }).done(function(data) {
-     $('#footer').html(data);
-});
-    }
-    load();
-    setTimeout(load,300000);//300 seconds
-    });
-                       
-                    }); 
-            
-            
-        </script>
-        <?php 
 
     }
-
-    public function content() {
-        
-        
-            $out=self::showContent(); 
-         
-          return $out;
-          
-    }
-
     
-
     
-
-    
+  
     
     private function dailyOverUnderQuotaLitres($str,$Quota) {
          ///////////
         $retArr=$Quota->calculateLastOverUnderQuota(); 
-        $quotaDiff=$retArr['magnitudeLitres'];
+
+           if (!empty($retArr['fat_percentage'])) {
+            $overUnderLitresDaily = round(($retArr['fat_kg_latest'] - $retArr['total_quota']) / ($retArr['fat_percentage'] * .01));
+        } else {
+            $overUnderLitresDaily = null;
+        }
+
         //show quota red if below and green if above.
-        if ($quotaDiff >= 0)
+        if ((int) $overUnderLitresDaily >= 0)
         {
-             $quotaDiffStr="<b class='quotaDiffFooterGreen'>$quotaDiff &#x2113</b>";
+             $quotaDiffStr="<b class='quotaDiffFooterGreen'>$overUnderLitresDaily &#x2113</b>";
         }
         else {
-            $quotaDiffStr="<b class='quotaDiffFooterRed'>$quotaDiff &#x2113</b>";
+            $quotaDiffStr="<b class='quotaDiffFooterRed'>$overUnderLitresDaily &#x2113</b>";
         }
 
      
 
-         $str = $str . ('<span class="footerCowCount">');
-         $str = $str . ("Quota:&nbsp;$quotaDiffStr");
-         $str = $str . ('</span>');
+         $out[]=  ('<span class="footerCowCount">');
+         $out[]=  ("Quota:&nbsp;$quotaDiffStr");
+         $out[]=  ('</span>');
       return $str;  
     }
     
@@ -100,21 +69,33 @@ class Footer {
      private function monthlyOverUnderQuotaLitres($str,$Quota) {
          ///////////
         $retArr=$Quota->calculateLastOverUnderQuota(); 
-   
-        $quotaDiff=   $retArr['overUnderLitresMonth'];
-        
-        //show quota red if below and green if above.
-        if ($quotaDiff >= 0)
-        {
-             $quotaDiffStr="<b class='quotaDiffFooterGreen'>$quotaDiff &#x2113</b>";
-        }
-        else {
-            $quotaDiffStr="<b class='quotaDiffFooterRed'>$quotaDiff &#x2113</b>";
+
+        if (!empty($retArr['fat_percentage'])) {
+            $overUnderLitresDaily = round(($retArr['produced_quota'] - $retArr['total_quota']) / ($retArr['fat_percentage'] * .01));
+        } else {
+            $overUnderLitresDaily = null;
         }
 
-         $str = $str . ('<span class="footerCowCount">');
-         $str = $str . ("Month:&nbsp;$quotaDiffStr &nbsp;&nbsp;&nbsp;");
-         $str = $str . ('</span>');
+        //find days remaining this month
+        $timestamp = strtotime('now');
+        $daysRemaining = (int)date('t', $timestamp) - (int)date('j', $timestamp);
+        $monthlyOverUnderLitres=$daysRemaining*$overUnderLitresDaily;
+        
+        
+        
+        //show quota red if below and green if above.
+        if ((int) $monthlyOverUnderLitres >=0)
+        {
+             $quotaDiffStr="<b class='quotaDiffFooterGreen'>$monthlyOverUnderLitres &#x2113</b>";
+        }
+        else {
+            $quotaDiffStr="<b class='quotaDiffFooterRed'>$monthlyOverUnderLitres &#x2113</b>";
+        }
+
+
+         $out[]=  ('<span class="footerCowCount">');
+         $out[]=  ("Month:&nbsp;$quotaDiffStr &nbsp;&nbsp;&nbsp;");
+         $out[]=  ('</span>');
       return $str;  
     }
     
@@ -165,8 +146,8 @@ class Footer {
      * Works, but slower, delay deploying..,...
      */
     function showContent() {
-        $str = '';
-
+       
+        $str='';
         //initial calculations
         $milkCowCountArray = $GLOBALS['MiscObj']->milkingCowCount(); //.08s load time, maybe could be faster.
         $dim = $milkCowCountArray['dimMiklkingTotal']; //find DIM
@@ -174,12 +155,12 @@ class Footer {
         
        $Quota=new Quota();
         $str=$this->dailyOverUnderQuotaLitres($str,$Quota);
-         $str=$this->monthlyOverUnderQuotaLitres($str,$Quota);
+        $str=$this->monthlyOverUnderQuotaLitres($str,$Quota);
         $milkCowCountArrayDisplay=$this->checkForOverCrowding($milkCowCountArray);
        /* High 60 Stalls. Heifer 60 Stalls. Low 40 Stalls. Sick 16 Stalls. */  
-       $str = $str . ('<span class="footerCowCount">');    
-        $str = $str . ("High {$milkCowCountArrayDisplay['countHigh']} / Heifer {$milkCowCountArrayDisplay['countHeifer']} / Low {$milkCowCountArrayDisplay['countLow']} / Fresh {$milkCowCountArrayDisplay['countFresh']}"  . "\n\r");
-       $str = $str . ('</span>');
+       $out[]=  ('<span class="footerCowCount">');    
+       $out[]=  ("High {$milkCowCountArrayDisplay['countHigh']} / Heifer {$milkCowCountArrayDisplay['countHeifer']} / Low {$milkCowCountArrayDisplay['countLow']} / Fresh {$milkCowCountArrayDisplay['countFresh']}"  . "\n\r");
+       $out[]=  ('</span>');
 
 
 
@@ -191,80 +172,58 @@ class Footer {
         $dataArray = $this->findNumberMilkingForDateRange($startDate, $endDate);
         //replace the last data point with today's up to the minute data.
         $dataArray[sizeof($dataArray) - 1] = $milkCowCountArray['countTotal'];
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
         $cows=new GoogleVisualizationSparkLine();
-        $str = $str . $cows->sparklineContainerVis('# Cows', $dataArray, end($dataArray));
-        $str = $str . ('</span>');
+        $out[]=  $cows->sparklineContainerVis('# Cows', $dataArray, end($dataArray));
+        $out[]=  ('</span>');
 
         //DIM
         $startDate = date('Y-m-d 00:00:00', strtotime("-90 days"));
         $endDate = date('Y-m-d H:i:s', strtotime("now"));
         $dataArray = $this->findAverageDIMForDateRange($startDate, $endDate);
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
         $dim=new GoogleVisualizationSparkLine();
-        $str = $str . $dim->sparklineContainerVis('DIM', $dataArray, round(end($dataArray)));
-        $str = $str . ('</span>');
+        $out[]=  $dim->sparklineContainerVis('DIM', $dataArray, round(end($dataArray)));
+        $out[]=  ('</span>');
 
         //// Milk Pickup
         $startDate = date('Y-m-d 00:00:00', strtotime("-90 days"));
         $endDate = date('Y-m-d H:i:s', strtotime("now"));
         $dataArray = $this->findMilkPickupForDateRange($startDate, $endDate);
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
         $pickup=new GoogleVisualizationSparkLine();
-        $str = $str . $pickup->sparklineContainerVis('Pickup', $dataArray, end($dataArray));
-        $str = $str . ('</span>');
+        $out[]=  $pickup->sparklineContainerVis('Pickup', $dataArray, end($dataArray));
+        $out[]=  ('</span>');
 
         //// Fat
         //code needed to supply data to fat,prot,scc sparkline
         $startDate = date('Y-m-d 00:00:00', strtotime("-90 days"));
         $dataArray = $this->findProvComponentsForDateRange($startDate);
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
         $fat=new GoogleVisualizationSparkLine();
-        $str = $str . $fat->sparklineContainerVis('Fat', $dataArray['fat'], end($dataArray['fat']));
-        $str = $str . ('</span>');
+        $out[]=  $fat->sparklineContainerVis('Fat', $dataArray['fat'], end($dataArray['fat']));
+        $out[]=  ('</span>');
 
         //// Protein
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
         $prot=new GoogleVisualizationSparkLine();
-        $str = $str . $prot->sparklineContainerVis('Prot', $dataArray['prot'], end($dataArray['prot']));
-        $str = $str . ('</span>');
+        $out[]=  $prot->sparklineContainerVis('Prot', $dataArray['prot'], end($dataArray['prot']));
+        $out[]=  ('</span>');
 
         //// SCC
-       $str = $str . ('<span>');
+       $out[]=  ('<span>');
        $scc=new GoogleVisualizationSparkLine();
-       $str = $str . $scc->sparklineContainerVis('SCC (k)', $dataArray['scc'], end($dataArray['scc']));
+       $out[]=  $scc->sparklineContainerVis('SCC (k)', $dataArray['scc'], end($dataArray['scc']));
        
-         $str = $str . ('</span>');
+       $out[]=  ('</span>');
 
-      /*  //// breeding rate
-        require_once($_SERVER['DOCUMENT_ROOT'] . 'sitePages/reports/reproReport.inc');
-        $breedingRateInterval = 30;
-        $dataArray = ReproReport::calculateTwentyOneDayBreedingAverage(1, $breedingRateInterval, 90); //slow part .03s.
-        $str = $str . ('<span>');
-        $breedingrate=new GoogleVisualizationSparkLine();
-        $str = $str . $breedingrate->sparklineContainerVis('30d BR', $dataArray, end($dataArray));
-        $str = $str . ('</span>');
-*/
-                
-        /////////////////////
-        //$str = $str . ("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-//////////////////////////////
          //ajax container
-        $str = $str . ('<span>');
+        $out[]=  ('<span>');
        
-        $str = $str . ('</span>');
+        $out[]=  ('</span>');
 
-     
-
-        return $str;
+        return implode($out);
     }
-
-   
-    
-    
-    
-    
-
 
 
    
@@ -274,7 +233,7 @@ class Footer {
             $endDate = date('Y-m-d H:i:s', strtotime('now'));
         }
 //no end date, because average test results could be in the future.
-        $query = "SELECT test_time_start ,scc,fat,protein FROM batch.nb_bulk_tank_sample WHERE test_time_start >= '$startDate' AND test_time_start <= '$endDate' ORDER BY test_time_start ASC";
+        $query = "SELECT test_collection_date ,scc,fat,protein FROM batch.nb_bulk_tank_sample_every WHERE test_collection_date >= '$startDate' AND test_collection_date <= '$endDate' ORDER BY test_collection_date ASC";
 
         $res = $GLOBALS['pdo']->query($query);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
@@ -292,8 +251,8 @@ class Footer {
    
 
     public function findMilkPickupForDateRange($startDate, $endDate) {
-$dataArray=array();
-        $query = "SELECT milk_amount_sold FROM batch.milk_pickup_event WHERE event_time >= '$startDate' AND event_time <= '$endDate' ORDER BY event_time ASC";
+        $dataArray=array();
+        $query = "SELECT sum(milk_amount_sold)  over (PARTITION BY collection_date) as milk_amount_sold  FROM batch.milk_pickup_event WHERE collection_date >= '$startDate' AND collection_date <= '$endDate' ORDER BY collection_date ASC";
         $res = $GLOBALS['pdo']->query($query);
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $dataArray[] = $row['milk_amount_sold'];

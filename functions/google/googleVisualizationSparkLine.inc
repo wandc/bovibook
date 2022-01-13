@@ -22,21 +22,21 @@ class GoogleVisualizationSparkLine extends GoogleVisualization {
 
         ////////////////////////////////////////////////////
         //
-           ?>        
-        <script type="text/javascript" language="javascript">
+        $js = <<<JS
+<script type="text/javascript" language="javascript">
 
-            function drawVisualization_<?php  echo($this->uuid); ?>() {
+            function drawVisualization_{$this->uuid}() {
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'x');
                 data.addColumn('number', 'blue');
                 data.addColumn('number', 'red');
                 data.addColumn({type: 'string', role: 'annotation'});
                 data.addRows([
-        <?php  echo($data); ?>
+                                {$data}
                 ]);
 
         // Create and draw the visualization.
-                new google.visualization.LineChart(document.getElementById('visualization_<?php  echo($this->uuid); ?>')).
+                new google.visualization.LineChart(document.getElementById('visualization_{$this->uuid}')).
                         draw(data, {curveType: "function",
                             width: 120, height: 36, enableInteractivity: false, legend: 'none',
                             vAxis: {
@@ -55,31 +55,37 @@ class GoogleVisualizationSparkLine extends GoogleVisualization {
             ;
 
             $(document).ready(function () {
-                google.charts.setOnLoadCallback(drawVisualization_<?php  echo($this->uuid); ?>, true);
+                google.charts.setOnLoadCallback(drawVisualization_{$this->uuid}, true);
             });
             $(window).resize(function(){
-            google.charts.setOnLoadCallback(drawVisualization_<?php  echo($this->uuid); ?>);
+            google.charts.setOnLoadCallback(drawVisualization_{$this->uuid});
+            
             });
         </script>
+JS;
+           ?>        
+        
         <?php 
         /////////////////////////////////////////////////////
         //output 
-        $str = '';
-        $str = $str . ("<div class='ss00'>");
-        $str = $str . ("<div class='ss0'>");
-        $str = $str . ("<p>$text</p>");
-        $str = $str . ("<div class='ss1'>");
+        $out[]= $js;
+        $out[]=  ("<div class='ss00'>");
+        $out[]=  ("<div class='ss0'>");
+        $out[]=  ("<p>$text</p>");
+        $out[]=  ("<div class='ss1'>");
 
-        $str = $str . ("<div id='visualization_{$this->uuid}' style='width: 120px; height: 30px;'></div>");
-        $str = $str . ("</div>");
+        $out[]=  ("<div id='visualization_{$this->uuid}' class='googleVisSparkline' style='left:1em; width: 12em; height: 2em;'></div>");
+        $out[]=  ("</div>");
 
-        $str = $str . ("<div class='ss2'>");
-        $str = $str . ("$number");
-        $str = $str . ("</div>");
+        $out[]=  ("<div class='ss2'>");
+        $out[]=  ("$number");
+        $out[]=  ("</div>");
 
-        $str = $str . ("</div>");
-        $str = $str . ("</div>");
-        return $str;
+        $out[]=  ("</div>");
+        $out[]=  ("</div>");
+        
+        
+        return implode($out);
     }
 
 }

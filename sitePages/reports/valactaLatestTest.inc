@@ -41,11 +41,12 @@ class ValactaLatestTest extends BasePage {
     function valactaReportLatest() {
        //shows latest test data
         $sql = "SELECT total_milk,chain ,bovinecurr.local_number, bovinecurr.id as bovine_id,bovinecurr.full_name,test_date as event_time,location_name,bca_milk,bca_fat,bca_prot,prodoll,
-            extract(day from (now()-fresh)) as fresh_days
-            FROM batch.valacta_data
- LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
+            extract(day from (now()-fresh)) as fresh_days, round(batch.calculate_milk_revenue_per_cow_per_date (bovinecurr.id,test_date),2) as calculate_milk_revenue_per_cow_per_date,
+           round(batch.calculate_gross_solid_price(fat305,prot305)) as lact_calculate_gross_solid_price
+            FROM batch.valacta_data_latest_test_view
+ LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data_latest_test_view.chain
  LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bovinecurr.full_reg_number
-WHERE test_date=(SELECT max(test_date) FROM batch.valacta_data) AND bovinecurr.full_name IS NOT NULL 
+WHERE  bovinecurr.full_name IS NOT NULL 
 ORDER BY total_milk DESC, fresh_days DESC";
         
  $statement = $GLOBALS['pdo']->prepare($sql);
@@ -89,10 +90,22 @@ ORDER BY total_milk DESC, fresh_days DESC";
                 title: "Test Date",
                 type: "date"
             },
-              {
+                {
                 data: "total_milk",
                 title: "total_milk"
             },
+              {
+                data: "calculate_milk_revenue_per_cow_per_date",
+                title: "Daily Revenue ($)"
+            },
+            {
+                data: "lact_calculate_gross_solid_price",
+                title: "Projected Revenue ($)"
+            }, 
+            {
+                data: "lact_calculate_gross_solid_price",
+                title: "Adjusted Projected Revenue ($)"
+            },     
               {
                 data: "bca_milk",
                 title: "bca_milk"
@@ -120,7 +133,7 @@ ORDER BY total_milk DESC, fresh_days DESC";
             
            
 EX;
-        print($dt->start($this->pageid, 'valactaReportLatest', null, $columnsStr, null, false, $options));
+        print($dt->start('Title CHANGE ME', $this->pageid, 'valactaReportLatest', null, $columnsStr, null, false, $options));
         
     }
 
@@ -181,15 +194,14 @@ EX;
     }
 
     function displaySCC() {
-        $sql = "SELECT chain,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
-FROM batch.valacta_data
-LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
-WHERE test_date = (SELECT max(test_date) FROM batch.valacta_data LIMIT 1) AND total_milk !=0
+        $sql = "SELECT local_number,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
+FROM batch.valacta_data_latest_test_view
+ Left JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
 ORDER BY ssc DESC";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($row['ssc'] >= 200000) {
-                $scc["{$row['chain']}"] = $row['ssc'];
+                $scc["{$row['local_number']}"] = $row['ssc'];
             }
         }
 
@@ -205,14 +217,28 @@ ORDER BY ssc DESC";
     }
     
     function displayBHB() {
-        $sql = "SELECT chain,reg,bhb,'Suspect'  as status from batch.valacta_data_latest_test_view WHERE bhb >=.15 AND  bhb <.20
+        $sql = "with temp as (
+SELECT test_date,bovinecurr.id as bovine_id, local_number,reg,bhb,'Suspect'  as status 
+                FROM batch.valacta_data_latest_test_view 
+                LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+                WHERE bhb >=.15 AND  bhb <.20
 UNION
-SELECT chain,reg,bhb,'Positive'  as status from batch.valacta_data_latest_test_view WHERE bhb >=.20 
-ORDER BY bhb DESC";
+SELECT test_date,bovinecurr.id as bovine_id, local_number,reg,bhb,'Positive'  as status 
+FROM batch.valacta_data_latest_test_view 
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+WHERE bhb >=.20 
+ORDER BY bhb DESC
+)
+SELECT local_number,reg,bhb,status,(SELECT 1 from bovinemanagement.medical_ketone where bovine_id=temp.bovine_id AND event_time > temp.test_date limit 1) as local_test FROM temp";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             
-                $bhb["{$row['chain']}"] = $row['bhb'];
+             $local_test='';
+            if (($row['local_test'])==1) {
+                $local_test='TRUE';
+            }
+            
+                $bhb["{$row['local_number']}"." ".$local_test] = $row['bhb'];
             
         }
 
@@ -229,15 +255,15 @@ ORDER BY bhb DESC";
     
 
     function displaylowFat() {
-        $sql = "SELECT chain,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
-FROM batch.valacta_data
-LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
-WHERE test_date = (SELECT max(test_date) FROM batch.valacta_data LIMIT 1) AND total_milk !=0
+        $sql = "SELECT local_number,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
+FROM batch.valacta_data_latest_test_view
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+WHERE total_milk !=0
 ORDER BY fat_per ASC";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($row['fat_per'] <= 2.5) {
-                $fat["{$row['chain']}"] = $row['fat_per'];
+                $fat["{$row['local_number']}"] = $row['fat_per'];
             }
         }
 
@@ -253,15 +279,15 @@ ORDER BY fat_per ASC";
     }
 
       function displayHigthDIM() {
-        $sql = "SELECT chain,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
-FROM batch.valacta_data
-LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
-WHERE test_date = (SELECT max(test_date) FROM batch.valacta_data LIMIT 1) AND total_milk !=0
+        $sql = "SELECT local_number,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
+FROM batch.valacta_data_latest_test_view
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+WHERE total_milk !=0
 ORDER BY days_in_mi DESC";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($row['days_in_mi'] >= 305) {
-                $dim["{$row['chain']}"] = $row['days_in_mi'];
+                $dim["{$row['local_number']}"] = $row['days_in_mi'];
             }
         }
 
@@ -277,15 +303,15 @@ ORDER BY days_in_mi DESC";
     }
     
     function displayLowMilk() {
-        $sql = "SELECT chain,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
-FROM batch.valacta_data
-LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
-WHERE test_date = (SELECT max(test_date) FROM batch.valacta_data LIMIT 1) AND total_milk !=0
+        $sql = "SELECT local_number,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
+FROM batch.valacta_data_latest_test_view
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+WHERE total_milk !=0
 ORDER BY total_milk ASC";
         $res = $GLOBALS['pdo']->query($sql);
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if ($row['total_milk'] <= 20) {
-                $milk["{$row['chain']}"] = $row['total_milk'];
+                $milk["{$row['local_number']}"] = $row['total_milk'];
             }
         }
 
@@ -303,11 +329,11 @@ ORDER BY total_milk ASC";
     function displayValactaCalcs() {
         
         
-        $sql = "SELECT chain,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
-FROM batch.valacta_data
-LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.local_number = valacta_data.chain
-WHERE test_date = (SELECT max(test_date) FROM batch.valacta_data LIMIT 1) AND total_milk !=0
-ORDER BY total_milk,chain DESC";
+        $sql = "SELECT local_number,total_milk,fat_per,ssc,lact_nu,days_in_mi,bovinecurr.full_name,test_date
+FROM batch.valacta_data_latest_test_view
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = valacta_data_latest_test_view.reg
+WHERE total_milk !=0
+ORDER BY total_milk,local_number DESC";
         $res = $GLOBALS['pdo']->query($sql);
 //create array of scc 
 

@@ -48,10 +48,13 @@ class Field extends TabPage {
     }
 
     protected function tab5() {
-        $this->addNewSeedingToAFieldQuickform('potential', null);
+        
+            $left = ($this->addNewSeedingToAFieldQuickform('potential', null));
         $year = date('Y', strtotime('+ 1 year'));
-        print($this->displayFieldsForCurrentSeasonPlanting($year));
-        $this->findPotentialSeedingSums($year);
+         $right= $this->displayFieldsForCurrentSeasonPlanting($year) . $this->findPotentialSeedingSums($year);
+        $content = (new Bootstrap)->oneThirdTwoThirds($right,$left);
+        print($content);
+
         print("<hr/>");
         $year = date('Y', strtotime('now'));
         print($this->displayFieldsForCurrentSeasonPlanting($year));
@@ -68,7 +71,7 @@ class Field extends TabPage {
     }
 
     protected function tab7() {
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->addNewTillageEventQuickform();
         }
         print($this->displayTillageEvents());
@@ -77,9 +80,9 @@ class Field extends TabPage {
     protected function tab8() {
         //FIXME add quickform2
         /*
-          require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/cropping/manure.inc');
+ 
 
-          if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+         if ($GLOBALS['auth']->getOwnerAccess() == 1) {
           Manure::addNewManureLoadsEventQuickform();
           Manure::addNewManureEventQuickform();
           }
@@ -89,17 +92,27 @@ class Field extends TabPage {
     }
 
     protected function tab9() {
-        print($this->displaySprayEvents());
-        $this->displaySprayInfo();
-        $this->addSprayEventQuickform();
-        $a = new QF2_SprayEvent((object) array(forwardURLArr => array('pageid' => $_REQUEST['pageid'])), 'group');
-        print($a->renderBox('QF2_SprayEvent', 'Enter Field(s) Spray Events'));
-        print($a->formJS());
-        print($this->displaySprayLog());
+        $out[]=
+         $out[]=($this->displaySprayEvents());
+        $out[]= $this->displaySprayInfo();
+            $out[]=($this->displaySprayLog());
+            
+        $left=implode($out);
+       // $this->addSprayEventQuickform();
+        $a = new QF2_SprayEvent((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+         $out2[]=($a->renderBox('QF2_SprayEvent', 'Enter Field(s) Spray Events'));
+         $out2[]=($a->formJS());
+     
+         
+         $right=implode($out2);
+         
+         print(new BootStrap)->oneThirdTwoThirds($left, $right);
+         
+        
     }
 
     protected function tab10() {
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->addNewFertilizerEventQuickform('default');
             $this->addNewFertilizerEventQuickform('scheduled');
         }
@@ -112,14 +125,26 @@ class Field extends TabPage {
     }
 
     protected function tab12() {
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            $this->addNewLimeEventQuickform();
+        if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+
+            print("<div class='row'>");
+
+            print("<div class='col-sm-4 col-sm-push-8'>");
+            $a = new QF2_LimeEvent((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+            print($a->renderBox('QF2_LimeEvent', 'Enter Field(s) Lime Events'));
+            print($a->formJS());
+            print("</div>");
+            
+            print("<div class='col-sm-8 col-sm-pull-4'>");
             print($this->displayLimeEvent());
+            print("</div>");
+
+            print("</div>");
         }
     }
 
     protected function tab13() {
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $this->addNewFieldParamQuickform();
             $this->addNewGeneralCommentQuickform('default');
             print($this->displayFieldParamEvent());
@@ -143,7 +168,7 @@ class Field extends TabPage {
         print($this->displayCornYieldChart(date("Y", strtotime("-1 year"))));
         //print($this->displayCornYieldChart(date("Y", strtotime("-2 year"))));
         print("<br/>");
-        $this->plotCornYield(date("Y", strtotime("0 year")));
+        $this->plotCornYield(date("Y", strtotime("-1 year")));
         // $this->plotCornYield(date("Y", strtotime("-1 year")));
         // $this->plotCornYield(date("Y", strtotime("-2 year")));
         print("<br/><h3>All Years Corn Yields</h3>");
@@ -402,20 +427,23 @@ SELECT distinct(field_id),field_id, alpha_numeric_id ,company,name,chu, field_ha
 ";
 
 
-        $out[] = ("<h3>Corn Yield $year</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
-        return implode($out);
+        return ( (new JQueryDataTable)->startBasicSql("Corn Yield $year", $sql, 'order: false'));
+
     }
 
     function displayBaleYieldInfo($year = 2014) {
         $sql = <<<SQL
 With temp as(
-SELECT *,round((gis.ST_Area(gis.ST_Transform(border_geom, 2036))/10000)::numeric,2) as area
+SELECT *,
+round((gis.ST_Area(gis.ST_Transform(border_geom, 2036))/10000)::numeric,2) as area2,
+extract(year from yield_event.event_time) as year_of_interest
  FROM cropping.yield_event 
-LEFT JOIN cropping.fieldcurr ON field_id=fieldcurr.id
-LEFT JOIN cropping.yield_type ON yield_type.id = yield_type_id WHERE extract(year from event_time)=$year
+LEFT JOIN cropping.fieldcurr ON yield_event.field_id=fieldcurr.id
+LEFT JOIN cropping.yield_type ON yield_type.id = yield_type_id WHERE extract(year from yield_event.event_time)=$year
 )
-SELECT *,amount/area as yield,(SELECT sum(amount) from temp group by extract(year from event_time)) as amount_per_year,(SELECT sum(area) from temp group by extract(year from event_time)) as area_per_year
+SELECT *,amount/temp.area2 as yield,
+(SELECT sum(amount) from temp group by temp.year_of_interest) as amount_per_year,
+(SELECT sum(area) from temp group by  temp.year_of_interest) as area_per_year
 FROM temp 
 ORDER BY alpha_numeric_id;
 SQL;
@@ -424,7 +452,7 @@ SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
@@ -445,7 +473,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Bale Yield $year</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -508,7 +536,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
@@ -521,9 +549,8 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         //output
         $dataArr = $resultsOut;
         //var_dump($dataArr);
-        $out[] = ("<h3>Corn & Snaplage Yield for $year</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
-        return implode($out);
+        return ( (new JQueryDataTable)->startBasicArrayOpt("Corn & Snaplage Yield for $year", $dataArr, 'order: false'));
+      
     }
 
     /**
@@ -538,7 +565,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         
         if ($record['field_id'] != null) {
             $sql = "SELECT feed_type_name,round(yield_per_ha::numeric,2) as yield_per_ha,round((dm_kg_yield_per_linear_foot/1000)::numeric,2) as dm_tonne_yield_per_ha FROM   temp_bag_yield_current_$year WHERE field_id={$record['field_id']} ORDER BY feed_type_name";
-            return (new JQueryDataTable)->startBasicSql($sql, 'order: false');
+            return (new JQueryDataTable(false))->startBasicSql(null, $sql, 'order: false');
         } else {
             print_r2($record);
             throw new Exception("Error, no field_id provided for yield by crop.</br>");
@@ -550,10 +577,25 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
         return $record['feed_type_name'] . '&nbsp;' . $record['yield_per_ha'] . '(bag ft/ha) &nbsp;' . $record['dm_tonne_yield_per_ha'] . '(DM tonne/ha) &nbsp;';
     }
 
+    /* list of current fields  for quickform */
+    public function currentFieldsArr() {
+        //grab a list of fields.
+        $res = $GLOBALS['pdo']->query("SELECT id,alpha_numeric_id,common_name FROM cropping.fieldcurr ORDER BY alpha_numeric_id ASC");
+
+        $listOfFields[null] = "Please Select one..."; //dummy value
+        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
+            $listOfFields[$row['id']] = $row['alpha_numeric_id'] . ' - ' . $row['common_name'];
+        }
+        
+        return $listOfFields;
+    }
+    
+    
+    
     /* FORM portion */
 
     function quickformLinestringFORM($form) {
-        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/googleMapsDrawing.php');
+        include_once ($_SERVER ['DOCUMENT_ROOT'] . 'functions/google/googleMapsDrawing.php');
         $field_id = $form->exportValue('field');
 
         //we need some javascript to find out what field is currently seleced 
@@ -617,7 +659,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
 
         if ($form->getElementValue('polygon') != null) {
 
-            $lineString = CroppingHelper::kmlArrayToLinestringStr(CroppingHelper::convertLineStringORNumNumNum($form->getElementValue('polygon')));
+            $lineString = (new CroppingHelper)->kmlArrayToLinestringStr((new CroppingHelper)->convertLineStringORNumNumNum($form->getElementValue('polygon')));
 
             //when we are adding a new border, we don't want to check that it overlaps the current border.
             if ($border == false) {
@@ -714,7 +756,7 @@ WHERE feed_type_name = 'Corn Silage' OR feed_type_name = 'Snaplage' ORDER by yie
            
 EX;
         print("<h3>Crop Rotation</h3>");
-        print($dt->startCustom(4, 'currentYearCropRotation', null, $columnsStr));
+        print($dt->startCustom('Title Custom CHANGE ME', 4, 'currentYearCropRotation', null, $columnsStr));
     }
 
     /**
@@ -722,7 +764,7 @@ EX;
      */
     function addNewGeneralCommentQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
 
         $form = new HTML_QuickForm("addNewGeneralCommentQuickform", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
@@ -736,7 +778,7 @@ EX;
         } else {
             $form->addElement('select', 'field', 'Field', $fieldArray);
         }
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
 
         $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
         $form = self::quickformLinestringFORM($form);
@@ -787,11 +829,11 @@ EX;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -812,10 +854,23 @@ SQL;
 
 
         $out[] = ("<h3>Field Paramaters</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql, 'order: false'));
         return implode($out);
     }
 
+    //returns text represenation of drainage score. 
+    public function drainageScore($number) {
+        $arr=$this->drainageScoreArr();
+        return $arr[$number];
+    }
+    
+    
+     public function drainageScoreArr() {
+        
+        return array('1'=>'Tiled (Systematically)','2'=>'Tiled (Some)', '3'=>'Interval (Flood Plain)', '4'=>'Upland (Well Drained)', '5'=>'Normal', '6'=>'Wet (Ruts Up)' );
+    }
+    
+    
     /**
      * Adds a new type of seed.
      */
@@ -823,7 +878,7 @@ SQL;
 
 
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         $form = new HTML_QuickForm("addNewFieldParamQuickform", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -835,13 +890,14 @@ SQL;
         } else {
             $form->addElement('select', 'field', 'Field', $fieldArray);
         }
-        $form->addElement('date', 'event_time', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'event_time', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
         $form->addElement('advcheckbox', 'pasture', 'pasture');
         $form->addElement('advcheckbox', 'not_normally_farmed', 'not_normally_farmed');
         $form->addElement('advcheckbox', 'alfalfa_suitable', 'alfalfa_suitable');
         $form->addElement('advcheckbox', 'corn_suitable', 'corn_suitable');
         $form->addElement('advcheckbox', 'trefoil_suitable', 'trefoil_suitable');
         $form->addElement('advcheckbox', 'spfh_suitable', 'spfh_suitable');
+        $form->addElement('select', 'drainage_score', 'drainage_score', $this->drainageScoreArr());
 
         // defaults
         // rules
@@ -860,6 +916,7 @@ SQL;
             $form->setDefaults(array("corn_suitable" => $row['corn_suitable']));
             $form->setDefaults(array("trefoil_suitable" => $row['trefoil_suitable']));
             $form->setDefaults(array("spfh_suitable" => $row['spfh_suitable']));
+            $form->setDefaults(array("drainage_score" => $row['drainage_score']));
             //TODO
         } else {
             print("TODO: does not load previous parameter default values, be careful.");
@@ -888,6 +945,7 @@ SQL;
             $corn_suitable = $form->exportValue('corn_suitable');
             $trefoil_suitable = $form->exportValue('trefoil_suitable');
             $spfh_suitable = $form->exportValue('spfh_suitable');
+             $drainage_score = $form->exportValue('drainage_score');
 
             function trueOrFalse($val) {
                 if ($val == 1) {
@@ -906,11 +964,11 @@ SQL;
 
             //FIXME, if you do the same event_time, this will fail.           
             // 
-            $query = "INSERT INTO cropping.field_parameter (field_id,event_time,pasture,not_normally_farmed,userid,alfalfa_suitable,corn_suitable,trefoil_suitable,spfh_suitable) VALUES ($field_id,'$event_time','$pasture','$not_normally_farmed','{$GLOBALS['auth']->getUsername()}','$alfalfa_suitable','$corn_suitable','$trefoil_suitable','$spfh_suitable') ON CONFLICT DO NOTHING";
+            $query = "INSERT INTO cropping.field_parameter (field_id,event_time,pasture,not_normally_farmed,userid,alfalfa_suitable,corn_suitable,trefoil_suitable,spfh_suitable,drainage_score) VALUES ($field_id,'$event_time','$pasture','$not_normally_farmed','{$GLOBALS['auth']->getUsername()}','$alfalfa_suitable','$corn_suitable','$trefoil_suitable','$spfh_suitable',$drainage_score) ON CONFLICT DO NOTHING";
             $res = $GLOBALS ['pdo']->exec($query);
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -924,7 +982,7 @@ SQL;
      */
     function addSprayEventQuickform() {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         $sql = "SELECT id,name FROM cropping.spray ORDER BY name";
         $res = $GLOBALS ['pdo']->query($sql);
@@ -948,13 +1006,13 @@ SQL;
 
         $form->addElement('header', 'addNewSprayEventQuickform', 'Add a New spray Event');
         $form->addElement('select', 'field', 'Field', $fieldArray);
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
         $form->addElement('select', 'spray_type', 'spray Type', $typeArray);
         $form->addElement('text', 'spray_amount', 'Chemical Amount (l/hectare)');
         $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
 
         //only show the choice on who did the spray for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'spray_userid', 'Who did the spray', $sprayUsers);
             $form->addRule('spray_userid', 'spray User is required', 'required');
         } else {
@@ -1016,11 +1074,11 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -1029,40 +1087,41 @@ SQL;
     }
 
     function displaySprayInfo() {
-        print('<br/>');
-        print("OLD<br>");
-        print("Marksman 6.0 liters per tank. High 2 gear on 5030, 1500 rpm. 40psi spray rate.");
-        print('<br/>');
-        print("Roundup 2.2 liters per tank. High 2 gear on 5030, 1500 rpm. 40psi spray rate.");
-        print('<br/>');
+        $out[]=('<br/>');
+        $out[]=("OLD<br>");
+        $out[]=("Marksman 6.0 liters per tank. High 2 gear on 5030, 1500 rpm. 40psi spray rate.");
+        $out[]=('<br/>');
+        $out[]=("Roundup 2.2 liters per tank. High 2 gear on 5030, 1500 rpm. 40psi spray rate.");
+        $out[]=('<br/>');
 
 
-        print("<a href='http://www.monsanto.ca/products/Documents/roundup_transorb_en.pdf'>Roundup Transorb HC Label</a>");
-        print('<br/>');
-        print("<a href='https://agro.basf.ca/basf/agprocan/agsolutions/WebASProduct.nsf/WebDocCodeEast/Marksman/Marksman.pdf'>Marksman</a>");
-        print('<br/>');
-        print("<a href='http://www.al.gov.bc.ca/pesticides/ipco-24d-label.pdf'>2,4-D Amine 600 Label</a>");
-        print('<br/>');
-        print("<a href='http://www2.dupont.com/Crop_Protection/en_CA/assets/downloads/Banvel-II.pdf'>Banvel II Label</a>");
-        print('<br/>');
-        print("<a href='http://www.syngentafarm.ca/pdf/labels/FLEXSTAR_GT_30412_en_pamphlet.pdf'>Flexstar GT (soybeans)</a>");
-        print('<br/>');
-        print("<a href='http://www.bayercropscience.ca/English/LabelMSDS/273/File.ashx'>Select (pure Alfalfa)</a>");
-        print('<br/>');
+        $out[]=("<a href='http://www.monsanto.ca/products/Documents/roundup_transorb_en.pdf'>Roundup Transorb HC Label</a>");
+        $out[]=('<br/>');
+        $out[]=("<a href='https://agro.basf.ca/basf/agprocan/agsolutions/WebASProduct.nsf/WebDocCodeEast/Marksman/Marksman.pdf'>Marksman</a>");
+        $out[]=('<br/>');
+        $out[]=("<a href='http://www.al.gov.bc.ca/pesticides/ipco-24d-label.pdf'>2,4-D Amine 600 Label</a>");
+        $out[]=('<br/>');
+        $out[]=("<a href='http://www2.dupont.com/Crop_Protection/en_CA/assets/downloads/Banvel-II.pdf'>Banvel II Label</a>");
+        $out[]=('<br/>');
+        $out[]=("<a href='http://www.syngentafarm.ca/pdf/labels/FLEXSTAR_GT_30412_en_pamphlet.pdf'>Flexstar GT (soybeans)</a>");
+        $out[]=('<br/>');
+        $out[]=("<a href='http://www.bayercropscience.ca/English/LabelMSDS/273/File.ashx'>Select (pure Alfalfa)</a>");
+        $out[]=('<br/>');
 
-        print('<img src="/images/sprayerNozzleCatalogue.svg" width="1000"/>');
-        print('<br/>');
-        print('<br/>');
-        print('<br/>');
+        $out[]=('<img src="/images/sprayerNozzleCatalogue.svg" width="1000"/>');
+        $out[]=('<br/>');
+        $out[]=('<br/>');
+        $out[]=('<br/>');
 
-        print ("<h3> Totals</h3>");
+        $out[]= ("<h3> Totals</h3>");
         $year = date('Y', strtotime("now"));
-        $this->findPotentialSprayingTraitSums($year);
+         $out[]= $this->findPotentialSprayingTraitSums($year);
+         return implode($out);
     }
 
     function displaySprayLog() {
         $sql = <<<SQL
-SELECT * FROM cropping.spray_event 
+SELECT *,spray_event.id as spray_event_id FROM cropping.spray_event 
 LEFT JOIN cropping.field ON field.id=spray_event.field_id        
 LEFT JOIN cropping.spray ON spray_event.spray_id=spray.id
 ORDER by event_time DESC
@@ -1072,6 +1131,9 @@ SQL;
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+        
+           $delButton=new QF2_DeleteButtonDecider('user_timeLimit',(object) array('dateTimePeriodDays' =>'1','schemaTable'=>'cropping.spray_event'));
+        
         //change presentation
         foreach ($results as &$row) {
 
@@ -1081,7 +1143,8 @@ SQL;
             $rowOut['l/ha'] = ($row['amount']);
             $rowOut['Comment'] = ($row['comment']);
             $rowOut['Sprayer Employee'] = ($row['sprayer_userid']);
-
+            $rowOut['action']=  $delButton->output($row['spray_event_id']);     
+            
             $resultsOut[] = $rowOut;
         }
 
@@ -1089,7 +1152,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Spray Log</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -1116,12 +1179,12 @@ SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
             $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
-            $rowOut['Common Name'] = ($row['name']);
+            $rowOut['Common Name'] = empty($row['name']) ? '': $row['name'];
             $rowOut['Size (ha)'] = $this->printFieldArea($row);
             $rowOut['Planting Date'] = JQueryDataTable::formattedDate($row['event_time']);
             $rowOut['Crop'] = ($row['specific_type']);
@@ -1137,145 +1200,41 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Spray to do List (> 7days after planting)</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
-    /**
-     * Lime spread to a field.
-     */
-    function addNewLimeEventQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+     function printActionButtonsDeleteLime($record,$callBackURL=null) {
+        
 
-        // select active people in lime group to say who spread.
-        $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
-        $res = $GLOBALS ['pdo']->query($sql);
-        $limeUsers [null] = "Please Select one..."; // dummy value
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $limeUsers [$row ['userid']] = $row ['userid'];
-        }
-
-        // type of lime
-        $sql = "SELECT id,name FROM cropping.lime ORDER BY name";
-        $res = $GLOBALS ['pdo']->query($sql);
-        $limeType [null] = "Please Select one..."; // dummy value
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $limeType [$row ['id']] = $row ['name'];
-        }
-
-        $limeAmount = array(null => 'Please Select one...', '1' => '1', '1.25' => '1.25', '1.5' => '1.5', '1.75' => '1.75', '2' => '2', '2.25' => '2.25', '2.5' => '2.5', '2.75' => '2.75', '3' => '3', '3.25' => '3.25', '3.5' => '3.5', '3.75' => '3.75', '4' => '4', '4.25' => '4.25', '4.5' => '4.5', '4.75' => '4.75', '5' => '5', '5.25' => '5.25', '5.5' => '5.5', '5.75' => '5.75', '6' => '6', '6.25' => '6.25', '6.5' => '6.5', '6.75' => '6.75', '7' => '7');
-
-        $form = new HTML_QuickForm("addNewLimeEventQuickform", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-        $form->addElement('header', 'addNewLimeEventQuickform', 'Add a New Lime Application Event');
-        if ($field_id == null) {
-            $form->addElement('select', 'field', 'Field', $fieldArray);
-        } else {
-            $form->addElement('hidden', 'field', $field_id);
-        }
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
-        $form->addElement('select', 'lime_amount', 'Lime Amount (tonne/hectare)', $limeAmount);
-        $form->addElement('select', 'lime_type', 'Lime Type', $limeType);
-        $form->addElement('select', 'spreader_userid', 'Who Spread it', $limeUsers);
-        $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
-        $form = self::quickformLinestringFORM($form);
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        $form->setDefaults(array('date_start' => 'now')); // set default to
-        // today.
-        $form->setDefaults(array('spreader_userid' => "{$GLOBALS['auth']->getUsername()}")); // set
-        // default
-        // to
-        // current
-        // user.
-        // //need
-        // to
-        // be
-        // in
-        // lime
-        // group
-        // to
-        // access
-        // this
-        // page
-        // for
-        // this
-        // to
-        // not
-        // error.
-        $form->setDefaults(array('use_current_border_polygon' => '1')); // set
-        // default to
-        // today.
-        $form->setDefaults(array('lime_type' => '3972')); // set default to
-        // calcitic
-        // rules
-        $form->addRule('field', 'Field is required', 'required');
-        $form->addRule('date_start', 'Date Start is required', 'required');
-        $form->addRule('lime_amount', 'Amount is required', 'required');
-        $form->addRule('spreader_userid', 'Who spread the lime is required', 'required');
-        $form->addRule('lime_type', 'Type is required', 'required');
-
-
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            $field_id = $form->exportValue('field');
-
-            $tempArray = $form->getElementValue('date_start');
-            $event_time = date('Y-m-d', strtotime($tempArray ['Y'] [0] . '-' . $tempArray ['m'] [0] . '-' . $tempArray ['d'] [0]));
-            $lime_amount = $form->exportValue('lime_amount');
-            $spreader_userid = $form->exportValue('spreader_userid');
-            $lime_type = $form->exportValue('lime_type');
-            $comment = pg_escape_string(trim($form->exportValue('comment')));
-            if ($comment == '') {
-                $comment = null;
+        $currentUserid = $GLOBALS['auth']->getUsername();
+          
+         //normnal user
+                    $sql = <<<SQL
+SELECT lime_event.id as id
+        FROM cropping.lime_event 
+       WHERE userid='{$GLOBALS['auth']->getUsername()}' ORDER by event_time DESC limit 1
+SQL;
+        $res = $GLOBALS['pdo']->query($sql);
+     
+        $returnButtonsAsString = null;
+        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
+           
+            if (($record['lime_event_id'] == $row['id'])) {
+                 $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'cropping.lime_event'));
+                 $returnButtonsAsString = ($a->renderDelete('salePrice' . $row['id']));                
             }
+        }
 
-            // Open a transaction
-            try {
-                $res = $GLOBALS ['pdo']->beginTransaction();
-
-                // do insert of new polygon data and get the datum_id for it after
-                // insert.
-                $last_datum_id = self::quickformLinestringVALIDATE($form, $event_time);
-
-                // do an insert into cropping field and datum of data.
-                $query = "INSERT INTO cropping.lime_event (field_id,datum_id,event_time,lime_amount,userid,spreader_userid,comment,lime_id) VALUES ($field_id,$last_datum_id,'$event_time',$lime_amount,'{$GLOBALS['auth']->getUsername()}','$spreader_userid','$comment',$lime_type)";
-                $res = $GLOBALS ['pdo']->exec($query);
-
-                // determine if the commit or rollback
-
-                $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            }
-            // Close the transaction
-
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
-            exit();
-        } // end validation
-
-        $form->accept($renderer);
-        echo($renderer->toHtml());
-        print ("<p>1 tonne/acre = 2.5 tonne/hectare | 1.5 tonne/acre = 3.75 tonne/hectare | 2 tonne/acre = 5 tonne/hectare | 2.5 tonne/acre = 6.25 tonne/hectare</p>");
+        //print button
+        return $returnButtonsAsString;
     }
-
+    
     function displayLimeEvent($mode = 'default') {
-
-
+        
         $sql = <<<SQL
-SELECT *,lime_event.id as lime_event_scheduled_id,   lime_event.id as delete_table_id, 'lime_event' as delete_table_name,lime.name as lime_type,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
+SELECT *,lime_event.id as lime_event_id,   lime_event.id as delete_table_id, 'lime_event' as delete_table_name,lime.name as lime_type,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id  
         FROM cropping.lime_event 
         LEFT JOIN cropping.lime ON lime_event.lime_id=lime.id
         LEFT JOIN cropping.field ON field.id=lime_event.field_id
@@ -1293,13 +1252,14 @@ SQL;
 
             $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
             $rowOut['Common Name'] = ($row['common_name']);
-            $rowOut['Amount'] = ($row['amount']);
-            $rowOut['Type'] = ($row['type']);
+            $rowOut['Amount'] = ($row['lime_amount']);
+            $rowOut['Type'] = ($row['lime_type']);
             $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
             $rowOut['Size (ha)'] = $this->printFieldArea($row);
             $rowOut['Comment'] = ($row['comment']);
-            $rowOut['Employee'] = ($row['userid']);
-
+            $rowOut['Employee'] = ($row['userid']); 
+            $rowOut['Action'] = $this->printActionButtonsDeleteLime($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
+   
 
             $resultsOut[] = $rowOut;
         }
@@ -1308,7 +1268,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Lime Log</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -1360,7 +1320,7 @@ SQL;
         $form->addElement('hidden', 'tableid', $tableid);
         $form->addElement('hidden', 'tablename', $tablename);
         //only show the choice on who did the fertilizer for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'fertilizer_userid', 'Who did the spreading?', $fertilizer_users);
             $form->addRule('fertilizer_userid', 'Fertilizer User is required', 'required');
         } else {
@@ -1403,7 +1363,7 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
             header($callBackURL);
@@ -1429,7 +1389,7 @@ SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
@@ -1442,10 +1402,10 @@ SQL;
             $rowOut['Size (ha)'] = $this->printFieldArea($row);
             $rowOut['Employee'] = ($row['userid']);
 
-            if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-                $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+                $rowOut['Action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             }
-            $rowOut['Action2'] = $this->printActionButtons2($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            $rowOut['Action2'] = $this->printActionButtons2($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
 
 
 
@@ -1456,7 +1416,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Fertilizer To Do List</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -1512,7 +1472,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Fertilizer Lo</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -1570,7 +1530,7 @@ SQL;
 
     function addNewYieldEventQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
 
         $typeArray = self::yieldTypes();
@@ -1588,12 +1548,12 @@ SQL;
         } else {
             $form->addElement('hidden', 'field', $field_id);
         }
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
         $form->addElement('select', 'yield_type', 'Type', $typeArray);
 
         $form->addElement('text', 'amount', 'Amount (units)');
         //only show the choice on who did the yield for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'yield_userid', 'Who did the spreading?', $yield_users);
             $form->addRule('yield_userid', 'Yield User is required', 'required');
         } else {
@@ -1663,11 +1623,11 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -1677,7 +1637,7 @@ SQL;
 
     function addNewFertilizerEventQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
 
         $typeArray = self::fertilizerTypes();
@@ -1704,7 +1664,7 @@ SQL;
             } else {
                 $form->addElement('hidden', 'field', $field_id);
             }
-            $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+            $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
             $form->addElement('select', 'fertilizer_type', 'Type', $typeArray);
             $form->addElement('select', 'application_method', 'Application Method', $application_methodArray);
             $form->addElement('text', 'amount', 'Amount (kg/ha)');
@@ -1735,12 +1695,12 @@ SQL;
             } else {
                 $form->addElement('hidden', 'field', $field_id);
             }
-            $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+            $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
             $form->addElement('select', 'fertilizer_type', 'Type', $typeArray);
             $form->addElement('select', 'application_method', 'Application Method', $application_methodArray);
             $form->addElement('text', 'amount', 'Amount (kg/ha)');
             //only show the choice on who did the fertilizer for admin users.
-            if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
                 $form->addElement('select', 'fertilizer_userid', 'Who did the spreading?', $fertilizer_users);
                 $form->addRule('fertilizer_userid', 'Fertilizer User is required', 'required');
             } else {
@@ -1818,16 +1778,16 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
         $form->accept($renderer);
-        echo($renderer->toHtml());
+        return ($renderer->toHtml());
     }
 
     function displayTillageEvents($mode = 'default') {
@@ -1862,7 +1822,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Tillage Events</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -1871,7 +1831,7 @@ SQL;
      */
     function addNewTillageEventQuickform() {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         $sql = "SELECT id,name FROM cropping.tillage ORDER BY name";
         $res = $GLOBALS ['pdo']->query($sql);
@@ -1894,12 +1854,12 @@ SQL;
 
         $form->addElement('header', 'addNewTillageEventQuickform', 'Add a New Tillage Event');
         $form->addElement('select', 'field', 'Field', $fieldArray);
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
         $form->addElement('select', 'tillage_type', 'Tillage Type', $typeArray);
         $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
 
         //only show the choice on who did the tillage for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'tillage_userid', 'Who did the tillage', $tillageUsers);
             $form->addRule('tillage_userid', 'Tillage User is required', 'required');
         } else {
@@ -1960,11 +1920,11 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -1981,7 +1941,7 @@ SQL;
        ";
 
         $out[] = ("<h3>Current Seed Inventory</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql, 'order: false'));
         return implode($out);
     }
 
@@ -2003,7 +1963,7 @@ SQL;
 
         $form->addElement('select', 'seed_id', 'Seed', $seedArray);
         $form->addElement('select', 'number_of_bags', 'Number of Bags', $numberOfBagsArray);
-        $form->addElement('date', 'date_bag', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_bag', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
 
         // defaults
         $form->setDefaults(array('date_bag' => 'now')); // set default to today.
@@ -2040,11 +2000,11 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -2085,7 +2045,7 @@ SQL;
             $rowOut['Population'] = ($row['population']);
             $rowOut['Planting Comments'] = ($row['comment']);
             $rowOut['Employee'] = ($row['userid']);
-            $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            $rowOut['Action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 
             $resultsOut[] = $rowOut;
         }
@@ -2094,7 +2054,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Seed Event Log</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -2102,7 +2062,7 @@ SQL;
      * year must be specified
      * 
      */
-    function displayFieldsForCurrentSeasonPlanting($year, $fieldID = null) {
+    public function displayFieldsForCurrentSeasonPlanting($year, $fieldID = null) {
 
         if ((($year > 1975) == false) || (($year < 2050) == false)) {
             throw new Exception("Invalid year ($year) for crop planning.");
@@ -2112,7 +2072,7 @@ SQL;
         //all seeds
         if ($fieldID == null) {
             $sql = <<<SQL
-SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
+SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop, seed_event_scheduled.event_time as seed_event_scheduled_event_time
         FROM cropping.seed_event_scheduled 
         LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
@@ -2123,7 +2083,7 @@ SQL;
         } else {
 
             $sql = <<<SQL
-SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop
+SELECT *,field.id as field_id,seed_event_scheduled.id as seed_event_scheduled_id, seed_event_scheduled.id as delete_table_id, 'seed_event_scheduled' as delete_table_name,round((gis.ST_Area(gis.ST_Transform(geom, 2036))/10000)::numeric,2) as area,datum.id as datum_id,event_time,comment,(Select extract('year' from event_time) FROM cropping.seed_event WHERE id=cropping.rotation_establishment_event (field.id, $year)) as rotation,(Select specific_type FROM cropping.seed_event LEFT JOIN cropping.seed ON seed.id=seed_event.seed_id WHERE seed_event.id=cropping.rotation_establishment_event (field.id, $year)) as rotation_crop, seed_event_scheduled.event_time as seed_event_scheduled_event_time
         FROM cropping.seed_event_scheduled 
         LEFT JOIN cropping.seed ON seed_event_scheduled.seed_id=seed.id
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
@@ -2136,7 +2096,7 @@ SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
@@ -2146,12 +2106,13 @@ SQL;
             $rowOut['General Type'] = ($row['general_type']);
             $rowOut['Specific Type'] = ($row['specific_type']);
             $rowOut['Crop Year'] = JQueryDataTable::formattedDate($row['event_time']);
+            $rowOut['Double Crope'] =  ((date('m',strtotime($row['seed_event_scheduled_event_time']))) >=6) ? 'double' : '';
             $rowOut['Rotation'] = ($row['rotation']);
             $rowOut['Rotation Crop'] = ($row['rotation_crop']);
             $rowOut['Comment'] = ($row['comment']);
             $rowOut['Employee'] = ($row['userid']);
             $rowOut['Completed?'] = $this->printCompleted($row);
-            $rowOut['Action'] = $this->printActionButtons($row, "Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            $rowOut['Action'] = $this->printActionButtons($row, "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
 
             $resultsOut[] = $rowOut;
         }
@@ -2159,8 +2120,7 @@ SQL;
         //output
         $dataArr = $resultsOut;
         //var_dump($dataArr);
-        $out[] = ("Planning List for $year</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Planning List for '.$year, $dataArr, 'paging:false,order: false'));
         return implode($out);
     }
 
@@ -2251,17 +2211,21 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
                 $str = $str . 'Marksman REGISTRATION NO. 19349 ' . $row['sum'] . ' ha. Total Jugs: ' . $numJugsTotal . '. (@ 4.5 l/ha).&nbsp;&nbsp;&nbsp;' . " {$row['completed']} ha done." . ' <br/>';
             }
         }
-        print($str);
+        return($str);
     }
 
     function printFieldArea($record) {
 
         $res = $GLOBALS ['pdo']->query("SELECT datum_id FROM cropping.border_event WHERE field_id={$record['field_id']} AND event_time <='{$record['event_time']}' ORDER BY event_time DESC LIMIT 1");
         $row = $res->fetch(PDO::FETCH_ASSOC);
-        if ($row['datum_id'] != $record['datum_id']) {
-            return "<b id='boldGreen'>Partial {$record['area']}</b>";
+        if (!empty($row)) {
+            if ($row['datum_id'] != $record['datum_id']) {
+                return "<b id='boldGreen'>Partial {$record['area']}</b>";
+            } else {
+                return $record['area'];
+            }
         } else {
-            return $record['area'];
+            return null;
         }
     }
 
@@ -2298,7 +2262,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
         $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
         $form->addElement('hidden', 'tableid', $tableid);
         $form->addElement('hidden', 'tablename', $tablename);
-        $form->addElement('submit', 'btnDelete', 'Delete');
+        $form->addElement('submit', 'btnDelete', 'Delete',array('class'=>'btn btn-warning'));
 
         // Try to validate a form
         if ($form->validate()) {
@@ -2334,7 +2298,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
             header($callBackURL);
@@ -2348,7 +2312,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
 
         $sql = "SELECT seed.id as seed_id,* FROM cropping.seed LEFT JOIN cropping.seed_category ON seed.seed_category_id = seed_category.id WHERE seed.active=true ORDER BY general_type,specific_type,name";
         $out[] = ("<h3>Seed List</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicSql($sql, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicSql('Title BasicSQL CHANGE ME', $sql, 'order: false'));
         return implode($out);
     }
 
@@ -2436,11 +2400,11 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -2454,7 +2418,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
      * @param type $field_id 
      */
     function addNewCornSoybeanSeedingQuickform($type = 'default', $field_id = null) {
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         // select active people in manure group to say who can seed, change in future to a seeder group if necessary
         $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
@@ -2481,12 +2445,12 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
         } else {
             $form->addElement('select', 'field', 'Field', $fieldArray);
         }
-        $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2030, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
         $form->addElement('select', 'seed_type', 'Seed Type', $seedArray);
         $form->addElement('text', 'seed_amount_pop', 'Seed Population (#/HA)');
 
         //only show the choice on who did the seeding for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'seeder_userid', 'Who did the seeding', $seederUsers);
         } else {
             $form->addElement('hidden', 'seeder_userid', $GLOBALS['auth']->getUsername());
@@ -2529,7 +2493,7 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
         $form->addRule('seed_amount_pop', 'Seed Seed Population is required', 'required');
         //
         //fertilizer is optional.
-        $form->setDefaults(array('fertilizer_type' => 6833, 'application_method' => 3832, 'seed_amount_pop' => 81000, 'fertilizer_amount' => 99));
+        $form->setDefaults(array('fertilizer_type' => 8294, 'application_method' => 3832, 'seed_amount_pop' => 81000, 'fertilizer_amount' => 99));
 
 
 
@@ -2587,11 +2551,11 @@ Select distinct(trait_rr),sum(area),sum(completed_area) as completed FROM temp2 
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -2609,7 +2573,7 @@ SELECT seed_event .id as seed_event_id,seed_event.event_time as seed_event_time,
         LEFT JOIN cropping.seed_category ON seed_category.id=seed.seed_category_id
         LEFT JOIN cropping.field ON field.id=seed_event.field_id
         LEFT JOIN cropping.datum ON seed_event.datum_id = datum.id
-        WHERE seed_event.event_time >= (date_part('year', current_date) || '-01-01')::date AND seed_event.event_time < (date_part('year', current_date) || '-12-31 23:59:59')::timestamp AND (seed_category.specific_type = 'Soybean' OR seed_category.specific_type ='Corn')
+        WHERE seed_event.event_time >= (date_part('year', current_date) || '-01-01')::date AND seed_event.event_time < (date_part('year', current_date) || '-12-31 23:59:59')::timestamp AND (seed_category.specific_type = 'Soybean' OR seed_category.specific_type ='Corn' OR seed_category.specific_type ='BMR Corn')
 ORDER BY alpha_numeric_id
 ) SELECT * FROM temp
 SQL;
@@ -2617,7 +2581,7 @@ SQL;
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
 
@@ -2641,7 +2605,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Corn and Soybean Seedings</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -2652,7 +2616,7 @@ SQL;
      */
     function addNewSeedingToAFieldQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         // select active people in manure group to say who can seed, change in future to a seeder group if necessary
         $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
@@ -2690,7 +2654,8 @@ SQL;
             $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
 
             $form = self::quickformLinestringFORM($form);
-            $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+            $form->addElement('html', 'Choose after June 1 for double crop.');
+            $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => date("Y")+1, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
             $form->addElement('hidden', 'seeder_userid', $GLOBALS['auth']->getUsername());
             $form->setDefaults(array('seed_type' => 3713, 'use_current_border_polygon' => '1', 'date_start' => array('d' => '1', 'm' => '1', 'Y' => date('Y', strtotime('now')))));
             $form->addRule('seed_type', 'Seed Type is required', 'required');
@@ -2706,7 +2671,7 @@ SQL;
             } else {
                 $form->addElement('select', 'field', 'Field', $fieldArray);
             }
-            $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+            $form->addElement('date', 'date_start', 'Seeding Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
 
             $seedGroup1 [] = $form->createElement('select', 'seed_type', 'Seed Type', $seedArray);
             $seedGroup1 [] = $form->createElement('text', 'seed_amount_kg', 'Seed Amount kg/ha');
@@ -2749,7 +2714,7 @@ SQL;
 
 
             //only show the choice on who did the seeding for admin users.
-            if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
                 $form->addElement('select', 'seeder_userid', 'Who did the seeding', $seederUsers);
             } else {
                 $form->addElement('hidden', 'seeder_userid', $GLOBALS['auth']->getUsername());
@@ -2859,16 +2824,16 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
         $form->accept($renderer);
-        echo($renderer->toHtml());
+        return ($renderer->toHtml());
     }
 
     /**
@@ -2879,7 +2844,7 @@ SQL;
      */
     function addNewFieldBorderQuickform($type = 'default', $field_id = null) {
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         $form = new HTML_QuickForm("addNewFieldBorderQuickform", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -2891,7 +2856,7 @@ SQL;
         } else {
             $form->addElement('select', 'field', 'Field', $fieldArray);
         }
-        $form->addElement('date', 'border_date_start', 'Border Start Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
+        $form->addElement('date', 'border_date_start', 'Border Start Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2021, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
 
         $form = self::quickformLinestringFORM($form);
 
@@ -2918,7 +2883,7 @@ SQL;
         if ($form->validate()) {
 
             $field_id = $form->exportValue('field');
-            $linestring = CroppingHelper::kmlArrayToLinestringStr(CroppingHelper::convertLineStringORNumNumNum($form->getElementValue('polygon')));
+            $linestring = (new CroppingHelper)->kmlArrayToLinestringStr((new CroppingHelper)->convertLineStringORNumNumNum($form->getElementValue('polygon')));
             $tempArray = $form->getElementValue('border_date_start');
             $event_time = date('Y-m-d', strtotime($tempArray ['Y'] [0] . '-' . $tempArray ['m'] [0] . '-' . $tempArray ['d'] [0]));
 
@@ -2942,11 +2907,11 @@ SQL;
                 $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -3002,7 +2967,7 @@ SQL;
             $query = "INSERT INTO cropping.field (alpha_numeric_id,common_name,major_name) VALUES ('$alpha_numeric_id','$common_name','$major_name')";
             $res = $GLOBALS ['pdo']->exec($query);
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}&field_id={$_REQUEST['field_id']}");
             exit();
         } // end validation
 
@@ -3032,7 +2997,7 @@ SQL;
             $id = $form->exportValue('id');
             $fieldID = $form->getElementValue('fieldID');
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?id={$_REQUEST['id']}&fieldID=$fieldID");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?id={$_REQUEST['id']}&fieldID=$fieldID");
             exit();
         }
         $form->accept($renderer);
@@ -3042,8 +3007,8 @@ SQL;
     function displayAllActiveFieldsList($mode = 'default') {
 
         $sql = <<<SQL
-   SELECT *,id as field_id,cropping.field_border_area_at_timestamp (id, current_date) as area
-FROM cropping.field 
+   SELECT *
+FROM cropping.fieldcurr 
 WHERE active=true ORDER BY alpha_numeric_id
 SQL;
 
@@ -3068,7 +3033,7 @@ SQL;
         $dataArr = $resultsOut;
         //var_dump($dataArr);
         $out[] = ("<h3>Active Field List</h3>");
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order: false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
         return implode($out);
     }
 
@@ -3083,74 +3048,14 @@ SQL;
 
 // end class
 
-Class QF2_SprayEvent extends Quickform2Helper {
+Class QF2_SprayEvent extends QF2_Base {
 
-    function old() {
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
-
-        $sql = "SELECT id,name FROM cropping.spray ORDER BY name";
-        $res = $GLOBALS ['pdo']->query($sql);
-        $typeArray [null] = "Please Select one..."; // dummy value
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $typeArray [$row ['id']] = $row ['name'];
-        }
-
-
-        // select active people in manure group to say who can spray, change in future to a seeder group if necessary
-        $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
-        $res = $GLOBALS ['pdo']->query($sql);
-        $sprayUsers [null] = "Please Select one..."; // dummy value
-        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-            $sprayUsers [$row ['userid']] = $row ['userid'];
-        }
-
-
-        $form = new HTML_QuickForm("addNewSprayEventQuickform", '', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-        $form->addElement('header', 'addNewSprayEventQuickform', 'Add a New spray Event');
-        $form->addElement('select', 'field', 'Field', $fieldArray);
-        $form->addElement('date', 'date_start', 'Date', array('format' => 'Y-m-d', 'minYear' => 1975, 'maxYear' => 2020, 'addEmptyOption' => TRUE, 'emptyOptionText' => array('m' => 'Month', 'd' => 'Day', 'Y' => 'Year')));
-        $form->addElement('select', 'spray_type', 'spray Type', $typeArray);
-        $form->addElement('text', 'spray_amount', 'Chemical Amount (l/hectare)');
-        $form->addElement('textarea', 'comment', 'Comment', array('cols' => 40, 'rows' => 2));
-
-        //only show the choice on who did the spray for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
-            $form->addElement('select', 'spray_userid', 'Who did the spray', $sprayUsers);
-            $form->addRule('spray_userid', 'spray User is required', 'required');
-        } else {
-            $form->addElement('hidden', 'spray_userid', $GLOBALS['auth']->getUsername());
-        }
-
-
-        $form = self::quickformLinestringFORM($form);
-
-        $form->addElement('hidden', 'pageid', $_REQUEST ['pageid']);
-
-        // submit buttons
-        $submitGroup [] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup [] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        // defaults
-        $form->setDefaults(array('date_start' => 'now')); // set default to
-        // today.
-        $form->setDefaults(array('use_current_border_polygon' => '1')); // set
-        // default to
-        // today.
-        // rules
-        $form->addRule('field', 'Field is required', 'required');
-        $form->addRule('date_start', 'Seeding Date Start is required', 'required');
-        $form->addRule('spray_type', 'spray Type is required', 'required');
-        $form->addRule('spray_amount', 'spray Amount is required', 'required');
-        $form->addRule('spray_amount', 'spray Amount must be a number', 'numeric');
-    }
+  
 
     function definition($form) {
 
 
-        $fieldArray = CroppingHelper::allActiveFieldsArray();
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
 
         $sql = "SELECT id,name FROM cropping.spray ORDER BY name";
         $res = $GLOBALS ['pdo']->query($sql);
@@ -3161,15 +3066,14 @@ Class QF2_SprayEvent extends Quickform2Helper {
 
 
         // select active people in manure group to say who can spray, change in future to a seeder group if necessary
-        $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='manure' AND users.active=true";
+        $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE groupid='spray' AND users.active=true";
         $res = $GLOBALS ['pdo']->query($sql);
         $sprayUsers [null] = "Please Select one..."; // dummy value
         while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
             $sprayUsers [$row ['userid']] = $row ['userid'];
         }
 
-
-
+      
 
         ////
 
@@ -3180,21 +3084,24 @@ Class QF2_SprayEvent extends Quickform2Helper {
             $form->addElement('hidden', 'fieldSelected')->setValue($this->param->field_id);
         }
         $date = $form->addElement('date', 'dateEvent', null, array('label' => 'Spray Date', 'format' => 'd-F-Y', 'minYear' => date('Y'), 'maxYear' => 2030));
-        $date->setValue(date('Y-m-d', strtotime('now')));
+       
 
         $form->addElement('select', 'spray_type', null, array('options' => $typeArray, 'label' => 'Spray Type'))->addRule("required", "Please specify your Spray Type");
-        $form->addElement('text', 'spray_amount', null, array('options' => $dateArray, 'label' => 'Chemical Amount (l/hectare)'))->addRule("required", "Please specify your Spray Amount");
+        $form->addElement('text', 'spray_amount', null, array( 'label' => 'Chemical Amount (l/hectare)'))->addRule("required", "Please specify your Spray Amount");
 
         $form->addElement('textarea', 'comment', array('rows' => 2, 'cols' => 20))->setLabel('Comment');
 
         //only show the choice on who did the spray for admin users.
-        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
             $form->addElement('select', 'spray_userid', null, array('options' => $sprayUsers, 'label' => 'Who did the spraying'))->addRule("required", "Please specify who did the srpaying");
         } else {
             $form->addElement('hidden', 'spray_userid')->setValue($GLOBALS['auth']->getUsername());
         }
 
 
+        //default
+          $current_date=$date = strtotime(date('Y-m-d'));
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array( 'dateEvent' => $current_date))); //set default date to today.
 
         return $form; //required   
     }
@@ -3216,8 +3123,10 @@ JSCRIPT;
     function process($value) {
 
 
+
         $value['event_time'] = date('Y-m-d H:i:sO', strtotime($value['dateEvent']['d'] . '-' . $value['dateEvent']['F'] . '-' . $value['dateEvent']['Y']));
         $comment = pg_escape_string(trim($value['comment']));
+
 
 
 
@@ -3263,11 +3172,128 @@ JSCRIPT;
             $GLOBALS['pdo']->commit();
         } catch (Exception $e) {
             $GLOBALS['pdo']->rollBack();
-            echo "Failed: " . $e->getMessage();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
         }
     }
 
 }
 
 //end class   
-?>
+
+
+Class QF2_LimeEvent extends QF2_Base {
+
+    
+      
+    function definition($form) {
+
+
+        $fieldArray = (new CroppingHelper)->allActiveFieldsArray();
+
+       
+        
+          // type of lime
+        $sql = "SELECT id,name FROM cropping.lime ORDER BY name";
+        $res = $GLOBALS ['pdo']->query($sql);
+        $limeType [null] = "Please Select one..."; // dummy value
+        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $limeType [$row ['id']] = $row ['name'];
+        }
+
+
+        // select active people in manure group to say who can lime, change in future to a seeder group if necessary
+        $sql = "Select users_in_groups.userid FROM wcauthentication.users_in_groups Left Join wcauthentication.users ON users.userid=users_in_groups.userid WHERE (groupid='manure' OR groupid='custom_cropping') AND users.active=true";
+        $res = $GLOBALS ['pdo']->query($sql);
+        $limeUsers [null] = "Please Select one..."; // dummy value
+        while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
+            $limeUsers [$row ['userid']] = $row ['userid'];
+        }
+
+          $limeAmount = array(null => 'Please Select one...', '1' => '1', '1.25' => '1.25', '1.5' => '1.5', '1.75' => '1.75', '2' => '2', '2.25' => '2.25', '2.5' => '2.5', '2.75' => '2.75', '3' => '3', '3.25' => '3.25', '3.5' => '3.5', '3.75' => '3.75', '4' => '4', '4.25' => '4.25', '4.5' => '4.5', '4.75' => '4.75', '5' => '5', '5.25' => '5.25', '5.5' => '5.5', '5.75' => '5.75', '6' => '6', '6.25' => '6.25', '6.5' => '6.5', '6.75' => '6.75', '7' => '7','8' => '8','9' => '9','10' => '10');
+
+        
+        
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        if ($this->mode == 'group') {
+            $form->addSelect('fieldSelected', array('multiple' => 'multiple', 'id' => 'selectEventsLime'))->loadOptions($fieldArray);
+        } else {
+            $form->addElement('hidden', 'fieldSelected')->setValue($this->param->field_id);
+        }
+        $date = $form->addElement('date', 'dateEvent', null, array('label' => 'Lime Date', 'format' => 'd-F-Y', 'minYear' => date('Y'), 'maxYear' => 2030));
+        $date->setValue(date('Y-m-d', strtotime('now')));
+
+        $form->addElement('select', 'lime_type', null, array('options' => $limeType, 'label' => 'Lime Type'))->addRule("required", "Please specify your Lime Type");
+        $form->addElement('select', 'lime_amount', null, array('options' => $limeAmount, 'label' => 'Amount (tonne/hectare)'))->addRule("required", "Please specify your Lime Amount");
+
+        $form->addElement('textarea', 'comment', array('rows' => 2, 'cols' => 20))->setLabel('Comment');
+
+        //only show the choice on who did the lime for admin users.
+       if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+            $form->addElement('select', 'lime_userid', null, array('options' => $limeUsers, 'label' => 'Who did the limeing'))->addRule("required", "Please specify who did the limeing.");
+        } else {
+            $form->addElement('hidden', 'lime_userid')->setValue($GLOBALS['auth']->getUsername());
+        }
+
+
+
+        return $form; //required   
+    }
+
+    //select2 javascript needed for form
+    function formJS() {
+        $jscript = <<<JSCRIPT
+ <script>           
+var s55 = $("#selectEventsLime").select2({
+    placeholder: "Choose Field(s)",
+    tags: false
+});   
+      </script>      
+JSCRIPT;
+
+        return $jscript;
+    }
+
+    function process($value) {
+
+
+        $value['event_time'] = date('Y-m-d H:i:sO', strtotime($value['dateEvent']['d'] . '-' . $value['dateEvent']['F'] . '-' . $value['dateEvent']['Y']));
+        $comment = pg_escape_string(trim($value['comment']));
+
+        if ($comment == '') {
+            $comment = null;
+        }
+
+        // Open a transaction
+        try {
+            $res = $GLOBALS ['pdo']->beginTransaction();
+
+
+            if (is_array($value['fieldSelected'])) {
+                //group
+                foreach ($value['fieldSelected'] as $k => $v) {
+
+                    $field_id = $v;
+ $sql = <<<SQL
+INSERT INTO cropping.lime_event (field_id,datum_id,event_time,lime_id,userid,comment,spreader_userid,lime_amount) 
+    VALUES ($field_id, cropping.field_border_at_timestamp($field_id, '{$value['event_time']}'),'{$value['event_time']}',{$value['lime_type']},'{$value['lime_userid']}','$comment','{$value['lime_userid']}',{$value['lime_amount']})
+SQL;                   
+               
+                    $res = $GLOBALS ['pdo']->exec($sql);
+                }
+            }
+            //individual case
+            else {
+               throw new Exception("Individual case not supported yet.");
+            }
+
+            // determine if the commit or rollback
+            $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
+        }
+    }
+
+}
+
+//end class   

@@ -20,37 +20,62 @@ class BovineQueryBreedingChoice {
     }
 
     public function main() {
+        
+        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/bovineManagement/customComment.inc');
+        /* XXX */
+        $paramTrait= new stdClass();
+        $paramTrait->type= 'trait';
+        $paramTrait->bovineID= $this->bovine_id;
+        $paramTrait->aniNumber= null;
+        $commentTraitQF2=new QF2_CustomComment((object) array('forwardURLArr'=>(new Quickform2Misc)->forwardURLDefaults()),'individual',$paramTrait);        
+        
+        $displayCcmment=(new CustomComment)->displayCustomComment('individual', $this->bovine_id, 'trait');
 
-        print ('<div class="row">');
-        print('<div class="col-xs-8">');
-        $this->displaySireInfoAsItRelatesToChosenCow($this->bovine_id);
-        print('</div>');
-        print('<div class="col-xs-4">');
-         $this->showIframeCDN($this->bovine_id);
+        
+        
+        $left = <<<HTML
+                {$this->checkIfProDollIsToLow($this->bovine_id)}
+           {$this->displaySireInfoAsItRelatesToChosenCow($this->bovine_id)}
+        HTML; 
+            
+        $right = <<<HTML
+              {$this->showIframeCDN($this->bovine_id)}
+        HTML; 
+                
+        $out[]=(new Bootstrap)->oneThirdTwoThirds($left,$right);            
+        
+        ///
        
-        print('</div>');
-        print('</div>');
+        $left = <<<HTML
+              {$this->displayBreedingChoicesHistorical($this->bovine_id)}
+        HTML; 
+            
+        $right = <<<HTML
+                 
+                 {$this->nextSireToUse($this->bovine_id)}
+                {$this->showHaplotypeInfo($this->bovine_id)}
+                    {$displayCcmment}
+                     {$commentTraitQF2->renderBox('QF2_Comment_Trait','Breeding Trait Comment')}
+                      
+                         
+                           {$this->breedingChoiceQuickForm()}
+             
+        HTML; 
+                
+        $out[]=(new Bootstrap)->oneThirdTwoThirds($left,$right);            
         
-        print ('<div class="row">');
-        print('<div class="col-md-5">');
-      
-        CustomComment::newCustomCommentQuickForm(null, $this->bovine_id, 'trait');
-        CustomComment::displayCustomComment('individual', $this->bovine_id, 'trait');
-        print('</div>');
-        print('<div class="col-md-5">');
-        $this->breedingChoiceQuickForm();
-        $this->showHaplotypeInfo($this->bovine_id);
-        print('</div>');
-        print('</div>');
         
-        print ('<div class="row">');
-        $this->displayBreedingChoicesHistorical($this->bovine_id);
-        print('</div>');
+    
+
+   
+       
+       
+        return(implode($out));
     }
 
 //end main
 
-    public function showHaplotypeInfo($bovine_id) {
+    public static function showHaplotypeInfo($bovine_id) {
         $sql = "SELECT hh1,hh2,hh3,hh4,hh5,hcd1 FROM batch.aggregate_view_curr 
         LEFT JOIN bovinemanagement.bovine ON aggregate_view_curr.full_reg_number=bovine.full_reg_number
         WHERE id=$bovine_id LIMIT 1";
@@ -63,7 +88,7 @@ class BovineQueryBreedingChoice {
              $out[]=("<li>HH1: {$row['hh1']}% </li><li> HH2: {$row['hh2']}% </li><li> HH3: {$row['hh3']}% </li><li> HH4: {$row['hh4']}% </li><li> HH5: {$row['hh5']}% </li><li> HCD1: {$row['hcd1']}%");
         }
         
-         return (new BootStrap())->plainBox('Haplotypes',implode($out));
+         return (new BootStrap())->plainCard('Haplotypes',implode($out));
     }
 
     /** show iframe of cow's CDN page */
@@ -75,7 +100,7 @@ class BovineQueryBreedingChoice {
       
         $a = new CDNPageParser();
         $out = $a->generateIframe($row['full_reg_number']);
-        print($out);
+        return ($out);
     }
 
     /**
@@ -144,6 +169,10 @@ ORDER BY od ASC
             throw new Exception('Number of Breedings out of range.');
         }
 
+       
+        
+        $ret['number_of_breedings'] = $row['number_of_breedings'];
+        
         return $ret;
     }
 
@@ -159,19 +188,25 @@ ORDER BY od ASC
         // check to see if the cow is already in the DB and if it is, use the
         // default values already in.
         $row = null;
-        $sql = "SELECT local_number,bovine.full_name,service_picks_curr.create_time,service_picks_curr.update_time,recipient,donotbreed,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.primary_one)) as p1_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.primary_one limit 1) as p1_avail,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.primary_two)) as p2_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.primary_two limit 1) as p2_avail,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.primary_three)) as p3_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.primary_three limit 1)as p3_avail,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.secondary_one)) as s1_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.secondary_one limit 1)as s1_avail,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.secondary_two)) as s2_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.secondary_two limit 1) as s2_avail,
-(SELECT short_name FROM bovinemanagement.sire WHERE full_reg_number=(SELECT sire_full_reg_number FROM bovinemanagement.sire_semen_code WHERE semen_code=service_picks_curr.secondary_three)) as s3_name,(SELECT true from bovinemanagement.semen_straw_curr_summary_available WHERE semen_code = service_picks_curr.secondary_three limit 1) as s3_avail,
-		service_picks_curr.userid
+        
+$sql = <<<SQL
+SELECT id,bovine_id,update_time,event_time,recipient,donotbreed,donor,
+bovinemanagement.semen_code_to_short_name(primary_one) as p1_name,
+bovinemanagement.semen_code_to_current_inventory(primary_one) as p1_avail,
+bovinemanagement.semen_code_to_short_name(primary_two) as p2_name,
+bovinemanagement.semen_code_to_current_inventory(primary_two) as p2_avail,
+bovinemanagement.semen_code_to_short_name(primary_three) as p3_name,
+bovinemanagement.semen_code_to_current_inventory(primary_three) as p3_avail,
+bovinemanagement.semen_code_to_short_name(secondary_one) as s1_name,
+bovinemanagement.semen_code_to_current_inventory(secondary_one) as s1_avail,
+bovinemanagement.semen_code_to_short_name(secondary_two) as s2_name,
+bovinemanagement.semen_code_to_current_inventory(secondary_two) as s2_avail,
+bovinemanagement.semen_code_to_short_name(secondary_three) as s3_name,
+bovinemanagement.semen_code_to_current_inventory(secondary_three) as s3_avail,
+userid 
 FROM bovinemanagement.service_picks_curr 
-LEFT JOIN bovinemanagement.bovine ON service_picks_curr.bovine_id =bovine.id
-WHERE bovine.id={$bovine_id}
- ORDER BY event_time DESC LIMIT 1;
-";
+WHERE bovine_id={$bovine_id}
+SQL;
 
         $res = $GLOBALS ['pdo']->query($sql);
         $row = $res->fetch(PDO::FETCH_ASSOC);
@@ -186,18 +221,36 @@ WHERE bovine.id={$bovine_id}
         }
 
         // show if they are recipient
+        if (!empty($row['recipient'])) {
         if ($row ['recipient'] == 't') {
             if ($ret['number_of_embryo_implants'] > 0) {
                 $nextActionTxt = "<b>RECIPIENT (implanted {$ret['number_of_embryo_implants']}X already)</b>";
             } else {
                 $nextActionTxt = "<b>RECIPIENT</b>";
             }
-        }
+        }}
 
+        
+        
+        
+        
+         //check if breedings are banned. 
+        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/reproduction/estrusBreedings.inc');
+        $out=QF2_BreedingBan::isAnimalBreedingBanned($bovine_id);
+        
+        if (!empty($out)) {
+              $nextActionTxt =  'Breeding Banned until '.$out.'.';
+             $nextActionTxt=$nextActionTxt.'<div class="ribbon bg-danger text-xl">
+                          Banned
+                        </div>';
+        }
+        
+        
         // show if do not breed (OVERRIDES ALL)
+         if (!empty($row['donotbreed'])) {
         if ($row ['donotbreed'] == 't') {
             $nextActionTxt = " <b>DO NOT BREED</b>";
-        }
+         }}
 
         $arr['nextActionTxt'] = $nextActionTxt;
         $arr['row'] = $row;
@@ -269,17 +322,28 @@ ORDER BY type DESC,short_name ASC;";
     function nextSireToUse($bovine_id)
     {
          $ret = $this->testBullOrProvenAlgorithm($bovine_id);
-
+          $status=0;
+         
         if (isset($ret['text'])) {
+            //no error text, thus show bull.
             if ($ret['text'] == null) {
-                $sireToUse = $ret['short_name'];
+                $sireToUse = "Sire To Use for next breeding: :".$ret['short_name'];
+                 $status=1;
+            //error text    
             } else {
                 $sireToUse = $ret['text'];
+                 $status=0;
             }
         } else {
+            //error text
             $sireToUse = '(Error: no proper sire picked).';
+            $status=0;
         }
-        return("<h4>Sire To Use for next breeding: $sireToUse</h4><br>");
+        
+        
+        ( $status==1) ? $colour = 'green' : $colour = 'yellow';
+        
+            return((new BootStrap)->bootstrapSmallBox('Current Sire Choice', $sireToUse, null, $colour, 'fas fa-check-double'));
     }
     
     
@@ -287,8 +351,6 @@ ORDER BY type DESC,short_name ASC;";
        
 
         $sireArray=$this->siresOldAndCurrentSeperate();
-
-       print($this->nextSireToUse($this->bovine_id));
 
         $form = new HTML_QuickForm("breedingChoiceQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true); 
         $renderer = new HTML_QuickForm_Renderer_Tableless();
@@ -345,7 +407,7 @@ ORDER BY type DESC,short_name ASC;";
 
         // Try to validate a form
         if ($form->validate()) {
-print("submitted!<br>");
+
             //get values
             $bovine_id = $form->exportValue('bovine_id');
             $donotbreed = $form->exportValue('donotbreed');
@@ -383,15 +445,15 @@ print("submitted!<br>");
                 $res->bindValue(':userid', $userid, PDO::PARAM_STR);
 
                 $res->execute();
-                var_dump($bovine_id, $donotbreed,$donor,$recipient,$primary_one,$primary_two,$primary_three,$secondary_one,$secondary_two,$secondary_three); 
+                //var_dump($bovine_id, $donotbreed,$donor,$recipient,$primary_one,$primary_two,$primary_three,$secondary_one,$secondary_two,$secondary_three); 
 
             $host = $_SERVER['HTTP_HOST'];
-          header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id={$this->bovine_id}");
+          header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id={$this->bovine_id}");
             exit();
         } //end validation
         $form->removeAttribute('name');
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     /*
@@ -455,8 +517,26 @@ print("submitted!<br>");
         return $returnStatement;
     }
 
-   
-
+    /*
+     * if pro$ is too low, then throw a notification to use beef semen.
+     * 
+     */
+    public function checkIfProDollIsToLow($bovine_id) {
+    $sql=<<<SQL
+    SELECT max(prodoll) as prodoll
+ FROM batch.cdn_progeny_potential_genetics 
+LEFT JOIN bovinemanagement.bovinecurr ON bovinecurr.full_reg_number = cdn_progeny_potential_genetics.dam_full_reg_number
+WHERE bovinecurr.id =$bovine_id limit 1
+SQL;
+    $res = $GLOBALS['pdo']->query($sql);
+    $row = $res->fetch(PDO::FETCH_ASSOC);
+    
+    if ($row['prodoll']<2500) {
+        return (new BootStrap)->warningNotify('Note: Use Beef Semen, offspring will have less than 2500 Pro$');
+    } else  {
+        return '';
+    }
+    }
  
      public function progenyBreedingChoiceForBovine($request) {
           if (!empty($request['item'])) {
@@ -473,7 +553,7 @@ print("submitted!<br>");
 SELECT bovinecurr.id as bovine_id,bovinecurr.local_number,bovinecurr.full_name,bovinecurr.full_reg_number as potential_dam_full_reg_number,
 sire.full_name as sire_full_name,sire.short_name as sire_short_name,
 cdn_progeny_potential_genetics.sire_full_reg_number,
-lpi_code,cdn_progeny_potential_genetics.lpi,cdn_progeny_potential_genetics.prodoll,percent_inbreeding,milk,fat,protein,percent_fat,percent_protein,scs,conf,ms,f_and_l,ds,rp,cdn_progeny_potential_genetics.update_time,
+lpi_code,cdn_progeny_potential_genetics.lpi,cdn_progeny_potential_genetics.prodoll,percent_inbreeding,milk,fat,protein,fat+protein as fat_prot,percent_fat,percent_protein,scs,conf,ms,f_and_l,ds,rp,cdn_progeny_potential_genetics.update_time,
 aggregate_view_all.reliability as reliability_percent,
 (SELECT count(id) FROM bovinemanagement.semen_straw LEFT JOIN bovinemanagement.sire_semen_code ON sire_semen_code.semen_code = semen_straw.semen_code WHERE semen_straw.breeding_event_id IS NULL AND semen_straw.discarded IS FALSE AND sire_semen_code.sire_full_reg_number=cdn_progeny_potential_genetics.sire_full_reg_number) as straw_count
  FROM batch.cdn_progeny_potential_genetics 
@@ -542,8 +622,8 @@ ORDER by prodoll DESC
 
          $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.bovine WHERE id=$bovine_id AND (birth_date + interval '8 months') < current_date LIMIT 1");
         if ($res->rowCount() == 0) {
-          print("<h3>Note: Under 8 Months of age, no inbreeding data will be caluclated.<h3>");
-          return;
+          return("<h3>Note: Under 8 Months of age, no inbreeding data will be caluclated.<h3>");
+  
         }
         else {
              
@@ -577,21 +657,10 @@ $columnsStr= <<<EX
         },
         
         {
-                data: "fat",
-                title: "Fat (kg)"
+                data: "fat_prot",
+                title: "Fat + Prot (kg)"
         },
-        {
-                data: "protein",
-                title: "Prot (kg)"
-        },
-        {
-                data: "percent_fat",
-                title: "Fat (%)"
-        },
-        {
-                data: "percent_protein",
-                title: "Prot (%)"
-        },
+        
         {
                 data: "scs",
                 title: "SCS"
@@ -622,13 +691,9 @@ $columnsStr= <<<EX
         }
            
 EX;
-   print("<h3>Potential Progeny's PA Genetics</h3>");
-    print($dt->startCustom(6,'progenyBreedingChoiceForBovine',$bovine_id,$columnsStr,'highlight_important'));     
-        
    
+    return ($dt->startCustom('Potential Progeny\'s PA Genetics', 6,'progenyBreedingChoiceForBovine',$bovine_id,$columnsStr,'highlight_important'));     
       
-
-       
     }
 
 
@@ -754,8 +819,8 @@ $columnsStr= <<<EX
         }
            
 EX;
-   print("<h3>Historical Breeding Choices</h3>");
-    print($dt->startCustom(6,'breedingChoicesHistorical',$bovine_id,$columnsStr));     
+
+    return ($dt->startCustom('Historical Breeding Choices', 6,'breedingChoicesHistorical',$bovine_id,$columnsStr));     
         
      
 }}

@@ -133,7 +133,7 @@ $areaHa2=$line['areaha']; //probbaly wrong.
 $areaHa=($line['area']);
 
 $style="{$line['google_polygon_fill_colour']}{$line['google_polygon_outline_colour']}";
-$extra=(CroppingHelper::displayFieldInfo($line['field_id'])); //new description from field query
+$extra=((new CroppingHelper)->displayFieldInfo($line['field_id'])); //new description from field query
 $oldDescription="{$line['common_name']} <br/> Field ID: {$line['field_id']} <br/> Crop: {$line['general_type']} <br/> Subtype: {$line['specific_type']} <br/> Land Size $areaHa (ha) or $areaHa2<br/>Tillable Size $areaHa (ha)<br/>";
 $descriptionHTMLStr=$extra;
 
@@ -243,23 +243,23 @@ $out[2]['icon']='http://maps.google.com/mapfiles/kml/paddle/red-stars-lv.png';
 $out[2]['scale']=0.8;
 //
 $out[3]['number']=3;  
-$out[3]['icon']='http://int.littleriver.ca/images/googlemaps/plant.png';
+$out[3]['icon']=$GLOBALS['config']['HTTP']['URL'].'/images/googlemaps/plant.png';
 $out[3]['scale']=0.8;
 //
 $out[4]['number']=4;  
-$out[4]['icon']='http://int.littleriver.ca/images/googlemaps/calendar.png';
+$out[4]['icon']=$GLOBALS['config']['HTTP']['URL'].'/images/googlemaps/calendar.png';
 $out[4]['scale']=0.8;
 //
 $out[5]['number']=5;  
-$out[5]['icon']='http://int.littleriver.ca/images/googlemaps/manure.png';
+$out[5]['icon']=$GLOBALS['config']['HTTP']['URL'].'/images/googlemaps/manure.png';
 $out[5]['scale']=0.8;
 //
 $out[6]['number']=6;  
-$out[6]['icon']='http://int.littleriver.ca/images/googlemaps/spray.png';
+$out[6]['icon']=$GLOBALS['config']['HTTP']['URL'].'/images/googlemaps/spray.png';
 $out[6]['scale']=0.8;
 //
 $out[7]['number']=7;  
-$out[7]['icon']='http://int.littleriver.ca/images/googlemaps/tillage.png';
+$out[7]['icon']=$GLOBALS['config']['HTTP']['URL'].'/images/googlemaps/tillage.png';
 $out[7]['scale']=0.8;
 //
 $out[8]['number']=8;  

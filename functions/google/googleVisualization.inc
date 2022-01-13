@@ -45,8 +45,12 @@ class GoogleVisualization {
      * @param type $dimArray4
      * @return string 
      */
-    public function main($chartType, $options = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
+    public function main($chartType, $objOptions=null, $chartOptions = null, $headerStrArr, $dimArray, $dimArray2 = null, $dimArray3 = null, $dimArray4 = null) {
 
+               
+        //configuration paramaters
+        //if (isset($objOptions->xxx)) { }//if object is set, pass along.     
+        
         $dataArr = array();
         //throw arrays at it, with key values being the x-axis.
         $dataArr[] = $dimArray;
@@ -70,7 +74,7 @@ class GoogleVisualization {
 
         $str = $str . $this->data($dataArr);
 
-        $str = $str . $this->options($options, $chartType);
+        $str = $str . $this->options($chartOptions, $chartType);
 
         $str = $str . $this->htmlDiv(1400, 300);
 
@@ -123,7 +127,7 @@ class GoogleVisualization {
     /**
      * data for graph 
      */
-    public function data(array $dataArr, array $dataArr2=null) {
+    public function data(array $dataArr) {
         $str = '';
 
         if (count($dataArr[0]) > 0) {
@@ -162,7 +166,9 @@ class GoogleVisualization {
                     if ($x == 0) {
                         //see if the x axis is date format and if so, process it.
                         if (reset($this->headerStrArr) == 'date') {
-                            $dataStr = $dataStr . "new Date('" . date('m/d/Y', $key) . "'),";
+                            
+                            $dataStr = $dataStr . 'new Date("'. date('c', $key) . '"),'; //this takes care of JS months starting at zero.
+                                                 
                         } elseif (reset($this->headerStrArr) == 'string') {
                             $dataStr = $dataStr . "'$key'" . ',';
                         } else {
@@ -208,8 +214,11 @@ class GoogleVisualization {
             case 'pie':
                 $type = 'PieChart';
                 break;
+            case 'combo':
+                $type = 'ComboChart';
+                break;
             default:
-                throw new Exception("Google Vis Chart: {$this->uuid} must have type.<br />");
+                throw new Exception("Google Vis Chart: {$this->uuid} must have type, line, bar, etc.<br />");
                 break;
         }
 
@@ -249,25 +258,9 @@ class GoogleVisualization {
 
     public function htmlDiv($width = '200', $height = '200') {
         $str = '';
-        $str = $str . "<div id='visualization_{$this->uuid}' style='width: $width px; height: $height px;' ></div>   " . "\n\r" . "\n\r";
+        $str = $str . "<div id='visualization_{$this->uuid}' class='googleVis' style='width: 100%; height: $height px;' ></div>   " . "\n\r" . "\n\r";
 
         return $str;
     }
 
-}
-
-//end class
-
-
-
-
-
-
-
-
-
-
-
-
-
-?>
+}//end class

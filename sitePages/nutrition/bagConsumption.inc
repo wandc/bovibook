@@ -1,12 +1,4 @@
 <?php
-
-//Lists straws of semen in our inventory
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/drawSVGBags.inc');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-
 class BagConsumption extends TabPage {
 
     private $page_id;
@@ -32,17 +24,25 @@ class BagConsumption extends TabPage {
     }
 
     protected function tab1() {
-        //draw bag picture
-        $DrawSVGBags = new DrawSVGBags(date('Y-m-d', strtotime("now") + 86400)); //use one day in the future to get around times of midnight vs some point in the day.
-        $DrawSVGBags->main();
-        print('<br/>');
-        print('<br/>');
+        
+       
+$entry = '';
         if (in_array('nutritionist', $GLOBALS['auth']->getAuthData('groups')) == FALSE) { //don't allow nutrtionist to edit anything.
-            $this->addBagConsumptionQuickform();
-            print($this->displayBagConsumptionLog());
+            $this->param = new stdClass();
+            $a = new QF2_SilageBagConsumptionEvent((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'list', $this->param); //group
+
+
+            $entry = ($a->renderBox('QF2_SilageBagConsumptionEvent', 'Add Consumption Note About Ag Bag'));
         }
-        $this->displayBagConsumptionProjection();
-        print("<img src='images/sop/relative_forage_quality_RFQ.jpg'/>"); // source: http://extension.uga.edu/publications/detail.cfm?number=B1425
+
+        $rfq = ("<img src='images/sop/relative_forage_quality_RFQ.jpg'/>"); // source: http://extension.uga.edu/publications/detail.cfm?number=B1425
+
+
+        $left = $this->displayBagConsumptionLog() . $rfq ;
+        $right = $entry.$this->displayBagConsumptionProjection();
+        print (new Bootstrap)->oneThirdTwoThirds($left, $right);
+
+       
     }
 
     protected function tab2() {
@@ -52,7 +52,7 @@ class BagConsumption extends TabPage {
             $a = date('Y-m-d', ($this->date_of_interest));
 
             $DrawSVGBags = new DrawSVGBags(date('Y-m-d', ($this->date_of_interest)));
-            $DrawSVGBags->main();
+            print($DrawSVGBags->main());
         }
         //when they are not set, show field select list.
         else {
@@ -99,8 +99,8 @@ SQL;
 
         $out[] = ('<h3>Amount of Feed in Bags Over Time</h3>');
          $out[] = ('<h3>FIXME: Data looks incorrect.</h3>');
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order:false'));
-        print implode($out);
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order:false'));
+        return implode($out);
       
     }
 
@@ -142,87 +142,12 @@ SQL;
         echo $renderer->toHtml();
     }
 
-    function addBagConsumptionQuickform() {
-
-        //daily dates rray, with unix timestamp as index.
-        $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays();
-
-
-        //get open bags with footages availble in bag.
-        $retArr = $this->openBagsWithValidFootages(true);
-        $listOfBags = $retArr[0];
-        $listOfFootages = $retArr[1];
-
-
-        $form = new HTML_QuickForm("addBagConsumptionQuickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
-        $renderer = new HTML_QuickForm_Renderer_Tableless();
-        $form->addElement('header', 'hdrQuickform', 'Add Consumption Note About Ag Bag');
-        //Hierarchical select list
-        $opts[] = $listOfBags;
-        $opts[] = $listOfFootages;
-        $hs = $form->addElement('hierselect', 'whichBag', 'Bag & Footage');
-        $hs->setOptions($opts);
-
-        $form->addElement('select', 'direction', 'which end open', array('forward' => 'forward', 'reverse' => 'reverse'));
-        $form->addElement('select', 'dateEvent', 'Date of Check', $dateArray);
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-
-        //submit buttons
-        $submitGroup[] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup[] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        //defaults
-        $form->setDefaults(array('whichBag' => 0)); //set default to no variety.
-        $form->setDefaults(array('dateEvent' => 0));
-        $form->setDefaults(array('direction' => 'forward'));
-
-
-        //rules
-        $form->addRule('direction', 'Direction is required', 'required');
-        $form->addRule('whichBag', 'Bag is required', 'required');
-        $form->addRule('dateEvent', 'Date is required', 'required');
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            //hierslect
-            $bagAndFootage = $form->exportValue('whichBag');
-            $bag = $bagAndFootage[0];
-            $footage = $bagAndFootage[1];
-            //
-            //break out the id.
-            $bagArr = explode("|", $bag);
-            $bag = $bagArr[0];
-            $tempArray = $form->getElementValue('dateEvent');
-            ;
-            $event_date = date('Y-m-d H:i:sO', $tempArray[0]);
-            //
-            $pageid = $form->exportValue('pageid');
-            //
-            $direction = $form->exportValue('direction');
-
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO nutrition.bag_consumption (bag_id,footage,event_time,userid,direction) VALUES ($bag,$footage,'$event_date','{$GLOBALS['auth']->getUsername()}','$direction')";
-
-            $res = $GLOBALS['pdo']->exec($query); {
-                print_r($res);
-            }
-
-            $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
-            exit();
-        } //end validation
-
-        $form->accept($renderer);
-        echo $renderer->toHtml();
-    }
+    
 
     function displayBagConsumptionLog() {
 
         $sql = <<<SQL
-SELECT bag_id,bag_consumption.footage,bag_consumption.event_time,location,slot,current_feed,bag_consumption.userid,direction
+SELECT bag_id,bag_consumption.footage,bag_consumption.event_time,location,slot,current_feed,bag_consumption.userid,direction,substring(location from 1 for 1)|| slot as location_slot,bag_consumption.id
 		FROM nutrition.bag_consumption
                 LEFT JOIN nutrition.bag_with_current_feed ON bag_with_current_feed.id = bag_consumption.bag_id ORDER BY event_time DESC,bag_id
 SQL;
@@ -231,24 +156,28 @@ SQL;
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+         $delButton = new QF2_DeleteButtonDecider('anyuser_timeLimit', (object) array('dateTimePeriodDays' => '4', 'schemaTable' => 'nutrition.bag_consumption'));
+        
+        
         //change presentation
         foreach ($results as &$row) {
 
             $rowOut['Date'] = JQueryDataTable::formattedDate($row['event_time']);
-            $rowOut['Bag #'] = ($row['slot']);
+            $rowOut['Bag #'] = ($row['location_slot']);
             $rowOut['Feed'] = ($row['current_feed']);
             $rowOut['Footage'] = ($row['footage']);
             $rowOut['Direction'] = ($row['direction']);
             $rowOut['Employee'] = ($row['userid']);
-
+            $rowOut['Action'] = $delButton->output($row['id']);
+            
+            
             $resultsOut[] = $rowOut;
         }
 
         //output
         $dataArr = $resultsOut;
 
-        $out[] = ('<h3>Consumption of Feed in Ag Bags</h3>');
-        $out[] = ( (new JQueryDataTable)->startBasicArray($dataArr, 'order:false'));
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Consumption of Feed in Ag Bags', $dataArr, 'order:false'));
         return implode($out);
     }
 
@@ -272,7 +201,7 @@ SQL;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
 
             $listOfBags[$row['id2']] = 'Bag: ' . $row['location'] . ' ' . $row['slot'] . ' | ' . $row['direction'] . ' - ' . $row['current_feed'] . ' - ' . date('M j/y', strtotime($row['event_time']));
-
+            $listOfBagsBasic[$row['id']]  = 'Bag: ' . $row['location'] . ' ' . $row['slot'] . ' | ' . $row['direction'] . ' - ' . $row['current_feed'] . ' - ' . date('M j/y', strtotime($row['event_time']));
 
             // has to be done this way because of hierselect.
 
@@ -477,13 +406,14 @@ SELECT min(min_consumption_footage) as min_consumption_footage FROM tt
 
         $retArray[] = $listOfBags;
         $retArray[] = $listOfFootages;
+        $retArray[] = $listOfBagsBasic; //just has bag id, no direction.
         return $retArray;
     }
 
     /* predict when currently open bags will run out of feed at current feeding rates. Very simplistic. */
 
     function displayBagConsumptionProjection() {
-        Print("<br><h3>Cosumption Projection (assuming forward only, whole bag)</h3>");
+        $arr=array();
 
 //find bags that are open.
         $sql = "SELECT bag_current_open.id,bag_current_open.slot,bag_with_current_feed.location,bag_with_current_feed.current_feed FROM nutrition.bag_current_open 
@@ -524,10 +454,140 @@ SELECT (time/footage)  as average FROM t3";
 
             $footageLeft = $row2['endfootage'] - $row3['currentfootage'];
             $days = round($footageLeft * $average / 86400, 1);
-            print("Slot {$row1['slot']}  {$row1['current_feed']} : $days days <br>");
+              $arr[]=("Slot {$row1['slot']}  {$row1['current_feed']} : $days days <br>");
         }
+        
+         $header=("<br><h3>Cosumption Projection (assuming forward only, whole bag)</h3>");
+        
+         return (new BootStrap)->plainCard($header, implode($arr));
+  
+        
+        
     }
 
-}
+    
+   
+    
+}//end class
 
-//end class
+Class QF2_SilageBagConsumptionEvent extends QF2_Base {
+
+    function definition($form) {
+
+ //
+        
+        
+          //daily dates rray, with unix timestamp as index.
+        $dateArray = $GLOBALS['MiscObj']->createDailyDatesAtDailyIntervalsForLastSevenDays();
+
+
+        //get open bags with footages availble in bag.
+        $retArr = (new BagConsumption)->openBagsWithValidFootages(true);
+      
+        $listOfBags = $retArr[2]; //NOTE: just bag id, not bag|direction
+        $listOfFootages = $retArr[1];
+
+        //__autoload('AgBagAdmin');
+       // include 'agbagdmin.inc';
+        require_once ($_SERVER ['DOCUMENT_ROOT'] . 'sitePages/nutrition/agbagadmin.inc');
+        $listOfFootagesGeneric=(new AgBagAdmin)->listOfFootages();
+        
+        
+            $form->addElement('select', 'direction', null, array('options' => array('forward' => 'forward', 'reverse' => 'reverse'), 'label' => 'Which end open'))->addRule("required", "Direction is required");
+   
+            $form->addElement('select', 'bagNumber', null, array('options' => $listOfBags, 'label' => 'Bag'))->addRule("required", "Bag is required");
+   
+            $footage=$form->addElement('select', 'footage', null, array('options' =>$listOfFootagesGeneric, 'label' => 'Footage'));
+            $footage->addRule("required", "Footage is required.");
+           // $form->addRule('callback', 'ERROR: Footage is out of bag range.', array('callback' => array($this, 'checkFootageValid'), 'arguments' => array()));
+            
+           //FIXME: This should be a hier selct, but it is broken with bootstrap. 
+           
+           $form->addElement('select', 'eventTime', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time");
+           
+         //   $form->addElement('hierselect', 'bag',null,array('options' =>   array($listOfBags,  $listOfFootages), 'label' => 'Bag', 'XXXclass'=>'foobar')  )->addRule("required", "Bag is required");
+      //   $sel = $form->addElement('hierselect', 'cds')->setLabel('Choose CD:');
+       //  $sel->loadOptions(array($listOfBags, $listOfFootages));
+ 
+      /*   
+         // first select
+
+ $select1[0] = 'Pop';
+
+ $select1[1] = 'Classical';
+
+ $select1[2] = 'Funeral doom';
+
+ 
+
+ // second select
+
+ $select2[0][0] = 'Red Hot Chilly Peppers';
+
+ $select2[0][1] = 'The Pixies';
+
+ $select2[1][0] = 'Wagner';
+
+ $select2[1][1] = 'Strauss';
+
+ $select2[2][0] = 'Pantheist';
+
+ $select2[2][1] = 'Skepticism';
+*/
+ 
+
+ // Two selects
+/*
+ $sel = $form->addElement('hierselect', 'cds')->setLabel('Choose CD:');
+
+ $sel->loadOptions(array($select1, $select2));
+  */       
+           
+   
+        //defaults
+         $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('direction' => 'forward','bag' => 0,'eventTime' => 0)));
+        
+        
+        return $form; //required       
+    }
+
+    function process($value) {
+        $value['event_time'] = date('Y-m-d H:i:sO', $value['eventTime']);
+        
+        /*
+        //breakup hirselect
+        $bagArr = explode("|", $value['bag'][0]);
+        $bag_id=$bagArr[0];
+        $bag_footage=$value['bag'][1];
+        */
+        
+        //using standard selects
+        $bag_id=$value['bagNumber'];
+        $bag_footage=$value['footage'];
+        
+       
+              //don't put id value, uses next one in DB.
+            $query = "INSERT INTO nutrition.bag_consumption (bag_id,footage,event_time,userid,direction) VALUES ($bag_id,$bag_footage,'{$value['event_time']}','{$GLOBALS['auth']->getUsername()}','{$value['direction']}')";
+    
+            $res = $GLOBALS['pdo']->exec($query);
+    }
+    
+     //basic check, DOES NOT TAKE WHAT FEED IS CONSUMED INTO ACCOUNT. 
+    function checkFootageValid($value) {
+
+        $bag_id = $value['bagNumber'];
+        $footage= $value['footage'];
+
+        $res = $GLOBALS['pdo']->query("SELECT * FROM nutrition.bag_current_open LEFT JOIN nutrition.bag_feed ON bag_id=bag_current_open.id WHERE bag_id=$bag_id AND footage_start>=$footage AND footage_finish<=$footage ");
+        
+        if ($res->rowCount() >= 1) {
+            $returnStatement = true; //means footage is valid
+        } else {
+            $returnStatement = false; //means footage is not valid
+        }
+
+        return $returnStatement;
+    }
+
+
+}//end class

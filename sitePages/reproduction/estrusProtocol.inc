@@ -1,118 +1,96 @@
 <?php 
 
+ require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/bovineManagement/movementSortGate.inc'); //needed for 
 
 class EstrusProtocol extends BasePage {
 
     
 
     public function defaultDisplay() {
-         print("<div class='row'>"."\n\r");
-       
-        print("<div class='col-sm-4 col-sm-push-8'>"."\n\r");
-      //   $this->protocolEventQuickForm('reproductive');
-       //   $this->protocolEventQuickForm('medical');
-        
         
         $paramRepro= new stdClass();
         $paramRepro->type= 'reproductive';
-        $a=new QF2_Protocol((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'],'bovine_id'=>$_REQUEST['bovine_id'])),'group',$paramRepro);
-        print($a->renderBox('QF2_Protocol_Repro',null));    
+        $paramRepro->bovineID= null;
+        $paramRepro->aniNumber = null;
+        $a=new QF2_Protocol((object) array('forwardURLArr'=>(new Quickform2Misc)->forwardURLDefaults()),'group',$paramRepro);
         
- 
-        print("</div>"."\n\r");
-         print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-        $this->displayProtocolEvents();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");
-        
-
-        print("<br/>");
-        print("<br/>");
-        print("<hr/>");
-        print("<br/>");
-        print("<h3> Protocol Explanation</h3>");
-        $this->listDifferentTypesOfProtocols();
-    }
-
-    function customJavascript() {
+        $left = <<<HTML
+            {$this->displayProtocolEvents('default','reproductive')}
+        HTML; 
+            
+        $right = <<<HTML
+            {$a->renderBox('QF2_Protocol_Repro','Record Protocol Event(s)')}   
+        HTML; 
+                
+        $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);                
+        print($content.$this->listDifferentTypesOfProtocols());
         
     }
-    
-    
-     function displayProtocolEvents($mode = 'default') {
-           $dt=new JQueryDataTable();
-$columnsStr= <<<EX
-            {
-                 data: "event_time_raw",
-                 "visible": false,
-                "searchable": false
-            }, 
-            {
-                data: "local_number",
-                title: "Animal",
-                type: "num-html"
-            },
-            {
-                data: "location_name",
-                title: "Current Location"
-            },
-            {
-                data: "event_time",
-                title: "Scheduled Start Time",
-                type: "date",
-            },
-     
-            {
-                data: "name",
-                title: "Protocol"
-            },
-            {
-                data: "userid",
-                title: "Employee"
-            },
-            {
-                data: "action",
-                title: "Action"
-            }
-EX;
-    print($dt->start($this->pageid,'protocolEvents',null,$columnsStr,'highlight_important'));     
-}  
 
-    function protocolEvents($mode = 'default') {
+   
+    
+    function displayProtocolEvents($mode = 'default',$item='reproductive') {
 
+         //must specify what type of protocol to display.
+       
+        switch ($item) {
+            case "reproductive":
+                $type = 'reproductive';
+                break;
+            case "medical":
+                $type = 'medical';
+                break;
+            case "calf":
+                $type = 'calf';
+                break;
+            default:
+            throw new Exception("No Prorotocol type, ie calf specified.");
+        }
 
         $sql = "SELECT *,date_start as event_time,protocol_event.id as id FROM bovinemanagement.protocol_event 
         LEFT JOIN bovinemanagement.protocol_type ON protocol_type.id=protocol_event.protocol_type_id 
         LEFT JOIN bovinemanagement.bovineall ON bovineall.id=protocol_event.bovine_id
+        WHERE type='$type'
         ORDER by date_start DESC";
 
-        
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-
-                
+    
         //change presentation
         foreach ($results as &$row) {
-            $row['event_time_raw'] = strtotime($row['event_time']);     
-            $row['local_number'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']);   
-            $row['event_time'] = date("l M d, Y", strtotime($row['event_time'])); 
-   
-           if (strtotime($row['create_time']) >= strtotime('-1 week')) {
+  
+              $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],$row['full_name']); 
+              $rowOut['Location'] = ($row['location_name']);
+              $rowOut['Scheduled Start Time'] = JQueryDataTable::formattedDate($row['event_time']);
+              $rowOut['Protocol'] = ($row['name']);
+              $rowOut['Employee'] = ($row['userid']);
+              if ($GLOBALS['auth']->getAdminMode() == 1) {
+                   $rowOut['UUID'] = ($row['protocol_uuid']);
+              }          
+            
+              
+            if ((strtotime($row['create_time']) >= strtotime('-1 week')) OR ($GLOBALS['auth']->getAdminMode() == 1)) {
                 $callBackURL = "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}";
                   $deleteButtonAsString =$this->printActionButtons($row,$callBackURL);
             } else {
                 $deleteButtonAsString = '';
             }
-            $row['action'] = $deleteButtonAsString;
-
+            $rowOut['Action'] = $deleteButtonAsString;
+              
+            $resultsOut[] = $rowOut;
         }
 
         //output
-        $output['data'] = $results;
-        return ($output);
-
+        $dataArr = $resultsOut;
+         //var_dump($dataArr);
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Protocol Events', $dataArr,'order: false')); 
+         return implode($out); 
+        
+        
     }
+    
+     
 
     /**     * *****************************************
      * Show Delete Button.
@@ -130,6 +108,8 @@ EX;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
             if (($record['id'] == $row['id'])) { //FIXME, should we only show delete button if none of the medicines has been admnistered?
                 $returnButtonsAsString = self::deleteQuickForm($row['id'], $row['protocol_uuid'],$callBackURL); //show delete button, with Breeding table id as index for delete.
+            }elseif ($GLOBALS['auth']->getAdminMode() == 1) {
+                $returnButtonsAsString = self::deleteQuickForm($record['id'], $record['protocol_uuid'],$callBackURL); //show delete button, with Breeding table id as index for delete.
             }
         }
 
@@ -142,11 +122,11 @@ EX;
      * ******************************************** */
     function deleteQuickForm($tableid, $uuid,$callBackURL) {
 
-        $form = new HTML_QuickForm("breedingProtocolDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("breedingProtocolDeleteButton_$uuid", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
         $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
         $form->addElement('hidden', 'tableid', $tableid);
         $form->addElement('hidden', 'uuid', $uuid);
-        $form->addElement('submit', 'btnDelete', 'Delete', array('id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete?')")); //call javascript to confirm delete.
+        $form->addElement('submit', 'btnDelete', 'Delete', array('class'=>'btn btn-warning','id' => 'deleteSubmit', 'onclick' => "return confirm('Are you sure you want to delete?')")); //call javascript to confirm delete.
         // Try to validate a form
         if ($form->validate()) {
 
@@ -183,7 +163,7 @@ EX;
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
 
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
 
 
@@ -206,8 +186,9 @@ EX;
         $accordionArray[4]['name'] = 'OVSYNCH-56';
         $accordionArray[5]['name'] = 'Prostaglandin';
         $accordionArray[6]['name'] = 'Retained Placenta';
+        $accordionArray[7]['name'] = 'Metritis Cleanup (half ovysync)';
         $accordion = new AccordionImplementationReproProtocols();
-        $accordion->render($accordionArray);
+        return($accordion->render($accordionArray));
     }
 
    
@@ -216,22 +197,22 @@ EX;
 }//end class
 
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_Protocol extends Quickform2Helper {
+      
+Class QF2_Protocol extends QF2_Base {
 
     function definition($form) {
 
-        
+
         
          switch ($this->param->type) {
             case "reproductive":
-                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCowsFemale();
+                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovinesFemale();
                 $dateArray = $GLOBALS['MiscObj']->createDailyDatesForPast7Next14DaysAtNoon(); //dates
                 $form->addFieldset('header')->setLabel('Record Breeding Protocol Event');
                 $sql = "SELECT id,name FROM bovinemanagement.protocol_type WHERE active=true AND type='reproductive' ORDER BY name";
                 break;
             case "medical":
-                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCows();
+                $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovines();
                  $dateArray =$GLOBALS['MiscObj']->createDailyDatesForLastandNextFewDays();
                 $form->addFieldset('header')->setLabel('Record Medical Protocol Event');
                 $sql = "SELECT id,name FROM bovinemanagement.protocol_type WHERE active=true AND type='medical' ORDER BY name";
@@ -251,40 +232,51 @@ Class QF2_Protocol extends Quickform2Helper {
         while (($row = $res->fetch())) {
             $protocolEventsArray[$row[0]] = $row[1];
         }
-       
+
         $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
-        if ($this->mode == 'group') {
-            $form->addElement('select', 'bovine_id', null, array('options' => $aniNumber, 'label' => 'Animal'))->addRule("required", "Please specify your animal #.");
-            
-        } else {
-            $form->addElement('hidden', 'bovine_id')->setValue($this->param->bovine_id);
-        }
+        $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalAll($form,$this->param->aniNumber,$this->mode); 
         
-        $form->addElement('select', 'dateEvent', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time of evebt.");
+        $form->addElement('select', 'dateEvent', null, array('options' => $dateArray, 'label' => 'Time of Event'))->addRule("required", "Please specify your time of event.");
         $form->addElement('select', 'protocol_type_id', null, array('options' => $protocolEventsArray, 'label' => 'Type of Protocol Event'))->addRule("required", "Please specify your type of protocol.");
+        
+        $current_date=$date = strtotime(date('Y-m-d 00:00'));
+
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array( 'dateEvent' => $current_date))); //set default date to today.
         
         return $form; //required       
     }
 
     function process($value) {
+           
         
-           $uuid = $GLOBALS['MiscObj']->uuid_create();  //create a uuid for this transacation.
-        
-           $bovine_id = $value['bovine_id'];
            $date_start = date('Y-m-d H:i:sO', $value['dateEvent']);
              //get name for protocol
             $res = $GLOBALS['pdo']->query("SELECT id,name FROM bovinemanagement.protocol_type WHERE id={$value['protocol_type_id']} limit 1"); 
             $row = $res->fetch(PDO::FETCH_ASSOC);
             $protocol_type_name = $row['name'];
-           
+            $protocol_type_id=$value['protocol_type_id'];
             
-            //do insert into protocol table
+            //loop over animals
+          $bovineIdArr=(new Quickform2_GroupSelect)->processAnimalsGroupIndividiual($value['animalSelected']);
+          foreach ($bovineIdArr as $key => $bovine_id) {
+              
+               $uuid = $GLOBALS['MiscObj']->uuid_create();  //create a uuid for this transacation.
+        
+               $this->addProtocoltoDB($protocol_type_id, $protocol_type_name, $bovine_id, $date_start, $uuid);
+            
+    }//end loop
+    
+    }
+    
+    /*
+     * meat and potaoes of protocol insert. 
+     */
+    public function addProtocoltoDB($protocol_type_id, $protocol_type_name, $bovine_id, $date_start, $uuid) {
+         //do insert into protocol table
             $query = "INSERT INTO bovinemanagement.protocol_event  (bovine_id,protocol_type_id,date_start,protocol_uuid,userid)
-          VALUES ($bovine_id,{$value['protocol_type_id']},'$date_start','$uuid','{$GLOBALS['auth']->getUsername()}')";
+          VALUES ($bovine_id,$protocol_type_id,'$date_start','$uuid','{$GLOBALS['auth']->getUsername()}')";
             $res99 = $GLOBALS['pdo']->exec($query);
-            
-            
-            
+                       
           switch ($this->param->type) {
             case "reproductive":
                 $this->reproductiveProtocolDecider($protocol_type_name, $bovine_id, $date_start, $uuid);
@@ -299,7 +291,10 @@ Class QF2_Protocol extends Quickform2Helper {
                 throw new EXCEPTION("ERROR: No type of protocol selected.");
         }
         
- 
+        
+    
+    
+    
     }
     
     
@@ -319,20 +314,32 @@ Class QF2_Protocol extends Quickform2Helper {
             case "Retained Placenta":
                 return $obj->protocol_retainedPlacenta($bovine_id, $date_start, $uuid);
                 break;
+            case "Metritis Cleanup":
+                return $obj->protocol_metritisCleanup($bovine_id, $date_start, $uuid);
+                break;
             case "Ovsynch 56h":
                 return $obj->protocol_OVSYNCH56h($bovine_id, $date_start, $uuid);
                 break;
             case "CIDR Sync 56h":
                 return $obj->protocol_CIDRSYNC56h($bovine_id, $date_start, $uuid);
                 break;
+            case "CIDR Sync 56h Heifer":
+                return $obj->protocol_CIDRSYNC56h_Heifer($bovine_id, $date_start, $uuid);
+                break;      
             case "Ovsynch 56h 8 Day":
                 return $obj->protocol_OVSYNCH56h_8day($bovine_id, $date_start, $uuid);
                 break;
             case "CIDR Sync 56h 8 Day":
                 return $obj->protocol_CIDRSYNC56h_8day($bovine_id, $date_start, $uuid);
                 break;
-            case "CIDR Sync 56h Heifer":
-                return $obj->protocol_CIDRSYNC56h_Heifer($bovine_id, $date_start, $uuid);
+            case "Pg Kamar":
+                return $obj->protocol_pg_kamar($bovine_id, $date_start, $uuid);
+                break;
+            case "Watch Kamar":
+                return $obj->protocol_watch_kamar($bovine_id, $date_start, $uuid);
+                break;
+            case "Ovsynch 56h w/ DNB":
+                return $obj->protocol_OVSYNCH56h_DNB($bovine_id, $date_start, $uuid);
                 break;
             case "Flush (Modified)":
                 return $obj->protocol_FlushModified($bovine_id, $date_start, $uuid);
@@ -352,6 +359,19 @@ Class QF2_Protocol extends Quickform2Helper {
             case "Ketosis 1.3 to 2.4 mmol":
                 return $obj->protocol_ketosis1_3to2_4($bovine_id, $date_start, $uuid);
                 break;
+            case "Ketosis 2.5 to 3.5 mmol":
+                return $obj->protocol_ketosis2_5to3_5($bovine_id, $date_start, $uuid);
+                break;
+             case "Toxic Mastitis":
+                return $obj->protocol_toxic_mastitis($bovine_id, $date_start, $uuid);
+                break;         
+            case "Pneumonia (cow)":
+                 return $obj->protocol_pneumonia_cow($bovine_id, $date_start, $uuid);
+                break;
+            case "DA (post surgery)":
+                 return $obj->protocol_post_da($bovine_id, $date_start, $uuid);
+                break;
+            
             default:
                 throw new EXCEPTION("ERROR: No protocol with give name");
                 return null;
@@ -364,9 +384,31 @@ Class QF2_Protocol extends Quickform2Helper {
         
         switch ($calf_protocol_type_name) {
 
-            case "Scours /w Temp":
+            case "Temp only (no scours)":
+                return $obj->protocol_HighTemp($bovine_id, $date_start, $uuid);
+                break;
+            
+            case "Scours Minor":
+                return $obj->protocol_ScoursWithNoTempMinor($bovine_id, $date_start, $uuid);
+                break;
+            
+            
+            case "Scours + Temp":
+                return $obj->protocol_ScoursWithTemp($bovine_id, $date_start, $uuid);
+                break;
+            
+            case "Scours Only (no temp)":
                 return $obj->protocol_ScoursWithNoTemp($bovine_id, $date_start, $uuid);
                 break;
+            
+            case "Pneumonia":
+                return $obj->protocol_Pneumonia($bovine_id, $date_start, $uuid);
+                break;
+            
+            case "Cryptosporidiosis Prevention":
+                return $obj->protocol_CryptosporidiosisPrevention($bovine_id, $date_start, $uuid);
+                break;
+            
             default:
                 throw new EXCEPTION("ERROR: No protocol with give name");
                 return null;
@@ -387,6 +429,9 @@ class CalfProtocolAction {
     private $dexamethasone;
     private $muse;
     private $newcells;
+    private $trimidox;
+    private $resflor;
+    private $scourBolus;
     
     public function __construct() {
       
@@ -396,40 +441,174 @@ class CalfProtocolAction {
         $this->electrolyte = 50;
         $this->oxymycine = 77;
         $this->penicillin = 13;
+        $this->penicillin_la = 16;
         $this->dexamethasone = 30;
         $this->muse = 35;
         $this->newcells = 31;
+        $this->trimidox=33;
+        $this->resflor=69;
+        $this->scourBolus=19;
     }
     
     
-   /**
-     * Do db insert OVSYNCH48h protocol
-     */
-    function protocol_ScoursWithNoTemp($bovine_id, $date, $uuid) {
-        //start at 4pm.
+     //SCOURS NO TEMP
+    function protocol_ScoursWithNoTempMinor($bovine_id, $date, $uuid) {
         $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
         /*
-          DAY 0: Inject GnRH to ovulate follicle and start a new follicular wave (ie: 3-5 pm)
-          DAY 7: Inject PGF2α to regress CL (ie: 3-5 pm)
-          DAY 9: Inject GnRH to ovulate follicle (ie: 3-5 pm)
-          DAY 10: Timed AI 12-16 hours after second GnRH - (ie: 7-9 am)
+          DAY 0: metacam 
+          Day 0: vitamins_ad_500
+          Vet: David March 2021.
+         
          */
         //do meds
         $c = new MedicineScheduled();
+        //day 0
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), 34575, $uuid); // take temp
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->scourBolus, $uuid);
+        //day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->scourBolus, $uuid);
+        //day 2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->scourBolus, $uuid);
+        //day 3
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->scourBolus, $uuid);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), 34575, $uuid); // take temp
+
+    }
+    
+    
+    
+    //SCOURS NO TEMP
+    function protocol_ScoursWithNoTemp($bovine_id, $date, $uuid) {
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          DAY 0: metacam 
+          Day 0: vitamins_ad_500
+          DAY 0: Electrolyte 2x for 3 days 12pm and 8pm.
+          Vet: Paige Feb 2021.
+         
+         */
+        //do meds
+        $c = new MedicineScheduled();
+        //day 0
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->metacam, $uuid);
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->vitamins_ad_500, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->penicillin, $uuid,5);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->penicillin, $uuid,5);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 60 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 84 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->penicillin, $uuid);   
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 108 hours"), $this->penicillin, $uuid);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 120 hours"), $this->penicillin, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->scourBolus, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 4 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->electrolyte, $uuid,null,2);
+        //day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->scourBolus, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 28 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->electrolyte, $uuid,null,2);
+        //day 2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->scourBolus, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 52 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 60 hours"), $this->electrolyte, $uuid,null,2);
+        //day 3
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->scourBolus, $uuid);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), 34575, $uuid); // take temp
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 76 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 84 hours"), $this->electrolyte, $uuid,null,2);
+
     }
+    
+    //SCOURS WITH TEMP
+    function protocol_ScoursWithTemp($bovine_id, $date, $uuid) {
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          DAY 0: metacam 
+          Day 0: vitamins_ad_500
+          DAY 0: Electrolyte 2x for 3 days 12pm and 8pm.
+          Day 0: Trimidox 1x for 4 days
+          Vet: Paige Feb 2021.
+         
+         */
+        //do meds
+        $c = new MedicineScheduled();
+        //day 0
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->metacam, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->vitamins_ad_500, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 4 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->electrolyte, $uuid,null,2);
+        //day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 28 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->electrolyte, $uuid,null,2);
+        //day 2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 52 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 60 hours"), $this->electrolyte, $uuid,null,2);
+        //day 3
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), 34575, $uuid); // take temp
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 76 hours"), $this->electrolyte, $uuid,null,2);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 84 hours"), $this->electrolyte, $uuid,null,2);
+
+    }
+    
+    //HIGH TEMP ONLY
+    function protocol_HighTemp($bovine_id, $date, $uuid) {
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+         * 
+          DAY 0: Metacam
+          DAY 0: Trimidox
+          DAY +1: Trimidox
+          DAY +2: Trimidox
+          DAY +3: Trimidox 
+          Vet: Paige Feb 2021.
+        */
+        $c = new MedicineScheduled();
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->metacam, $uuid); 
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), 34575, $uuid); // take temp
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->trimidox, $uuid,null,5);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), 34575, $uuid); // take temp
+
+
+    }
+    
+    
+    //PNEUMONIA
+    function protocol_Pneumonia($bovine_id, $date, $uuid) {
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+         * 
+          DAY 0: Resflor subQ
+          Day 2: Resflor subQ
+          Vet: Paige Feb 2021.
+        */
+        $c = new MedicineScheduled();
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"),  $this->resflor, $uuid,null,8);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->resflor, $uuid,null,8);
+        $c->protocolMedicalActionDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), 34575, $uuid); // take temp
+
+
+    }
+    
+    
+    //CRYPTO
+     function protocol_CryptosporidiosisPrevention($bovine_id, $date, $uuid) {
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          7 days halocur 1x per day morning
+         */
+        //do meds
+        $c = new MedicineScheduled();
+
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->muse, $uuid,null,0.5); //Mu-Se givien now because it fits calf mamangement, no related to halocur. 
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->halocur, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->halocur, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->halocur, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->halocur, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->halocur, $uuid);      
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 120 hours"), $this->halocur, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 144 hours"), $this->halocur, $uuid);
+       
+    }
+    
 }//end class
 
 /*
@@ -443,13 +622,39 @@ class MedicalProtocolAction {
      //medicine id's for current;y used hormones, these could change in future when we use a new drug.
     private $glycol_id;
     private $newcells_id;
+    private $flunixin;
+    private $trimidox;
+    private $penicillin;
+    private $sortCls;
 
 
     public function __construct() {
         $this->glycol_id = 49;
         $this->newcells_id = 31;
+        //
+        $this->flunixin = 15;
+        $this->trimidox = 33;
+        $this->penicillin = 13;
+        
+        //setup sort gate to use in this class
+        (new MovementSortGate);//hack for class load
+        $this->sortCls = new QF2_SortGate((object) array('forwardURLArr' => array()), 'individual'); //just so we can call sortAnimal. bit messy.
+        
+        
     }
 
+    
+    
+    public function protocol_pneumonia($bovine_id, $date, $uuid) {
+        /*
+        5 days 50cc trimidox 1x
+        3 days dexamathodone 1x
+        3 days flunixin 1x
+        */
+        
+        
+    }
+    
     
     /**
      * Do db insert for ketosis mild protocol
@@ -495,6 +700,133 @@ class MedicalProtocolAction {
         //   
     }
     
+    /**
+     * Do db insert for ketosis medium protocol
+     */
+    public function protocol_ketosis2_5to3_5($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Day 0: drench cow with electrolytes
+          Day 0: 10 ml vitamin B  8am. newcells
+          Day 0: 250 ml propylene glycol 8am.
+          Day 0: 250 ml propylene glycol 4pm.
+          Day 1: 250 ml propylene glycol 8am.
+          Day 1: 250 ml propylene glycol 4pm.
+          Day 2: 250 ml propylene glycol 8am.
+          Day 2: 250 ml propylene glycol 4pm.
+          Day 3: 250 ml propylene glycol 8am.
+          Day 3: 250 ml propylene glycol 4pm.
+          Day 4: 250 ml propylene glycol 8am.
+          Day 4: 250 ml propylene glycol 4pm.
+          Day 5: 250 ml propylene glycol 8am.
+          Day 5: 250 ml propylene glycol 4pm.
+         
+         */
+        //do meds
+        //day 0
+        $c = new MedicineScheduled();
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->newcells_id, $uuid);     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->glycol_id, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->glycol_id, $uuid);
+        //day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->glycol_id, $uuid);     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->glycol_id, $uuid);  
+        //day 2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->glycol_id, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 60 hours"), $this->glycol_id, $uuid);
+        //day 3       
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->glycol_id, $uuid);      
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 84 hours"), $this->glycol_id, $uuid);
+        //day 4
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->glycol_id, $uuid);      
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 108 hours"), $this->glycol_id, $uuid);
+        //   
+    }
+    
+    /**
+     * Do db insert for toxic mastitis. 
+     */
+    public function protocol_toxic_mastitis($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Day 0: saline solution IV and have cow drink water (pump).
+          Day 1: 40 ml trimidox 8am.
+          Day 2: 40 ml trimidox 8am.
+          Day 3: 40 ml trimidox 8am.
+          Day 1: 32 ml Flunixin 8am.
+          Day 2: 32 ml Flunixin 8am.
+          Day 3: 32 ml Flunixin 8am. ($bovine_id, $event_time, $medicine_id, $protocol_uuid, $transaction_uuid = null, $dosage_overide = null, $location_overide = null
+    
+         */
+        //do meds
+        //day 0
+        $c = new MedicineScheduled();
+        // Day 0
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->flunixin, $uuid,null,32);     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->trimidox, $uuid);
+        // Day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->flunixin, $uuid,null,32);     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->trimidox, $uuid);
+        // Day2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->flunixin, $uuid,null,32);     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->trimidox, $uuid);
+        
+    }
+    
+    
+     public function protocol_pneumonia_cow($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Trimidox 50cc 1X for 5 days.
+          Flunixin 25cc 1x for 3 days
+          Vet: Paige Feb 2021
+         */
+        //do meds
+        //day 0
+        $c = new MedicineScheduled();
+        // Day 0
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->flunixin, $uuid,null,25,'intramuscular');     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->trimidox, $uuid,null,50);
+        // Day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->flunixin, $uuid,null,25,'intramuscular');     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->trimidox, $uuid,null,50);
+        // Day2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->flunixin, $uuid,null,25,'intramuscular');     
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->trimidox, $uuid,null,50);
+        // Day3  
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->trimidox, $uuid,null,50);
+        // Day4  
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->trimidox, $uuid,null,50);
+        
+    }
+    
+    /*
+     * after DA surgery.
+     */
+     public function protocol_post_da($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          penicillin 
+         */
+        //do meds
+        //day 0
+        $c = new MedicineScheduled();
+        // Day 0
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->penicillin, $uuid,null,40);
+        // Day 1
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->penicillin, $uuid,null,40);
+        // Day2
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->penicillin, $uuid,null,40);
+        // Day3  
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->penicillin, $uuid,null,40);
+        // Day4  
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->penicillin, $uuid,null,40);
+        
+    }
     
     
 }//end class
@@ -506,6 +838,8 @@ class ReproductionProtocolAction {
     private $gnrh_id;
     private $cidr_id;
     private $folltropin_id;
+    private $protocol_watch_id;
+    private $sortCls;
 
     public function __construct() {
       
@@ -513,6 +847,13 @@ class ReproductionProtocolAction {
         $this->gnrh_id = $GLOBALS['config']['MEDICAL']['gnrh_id'];
         $this->cidr_id = $GLOBALS['config']['MEDICAL']['cidr_id'];
         $this->folltropin_id = $GLOBALS['config']['MEDICAL']['folltropin_id'];
+        $this->protocol_watch_id = $GLOBALS['config']['ESTRUS']['protocol_watch_id'];
+        
+         //setup sort gate to use in this class
+        (new MovementSortGate);//hack for class load
+        $this->sortCls = new QF2_SortGate((object) array('forwardURLArr' => array()), 'individual'); //just so we can call sortAnimal. bit messy.
+        
+        
     }
     
     
@@ -553,9 +894,34 @@ class ReproductionProtocolAction {
         $c = new MedicineScheduled();
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->gnrh_id, $uuid);
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 168 hours"), $this->prostaglandin_id, $uuid);
+        $this->sortCls->sortAnimal($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 168 hours"),$uuid); //sort in am
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 224 hours"), $this->gnrh_id, $uuid); // day 9
         //insert breeding.
         EstrusBreedings::insertCowToBeBred($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 240 hours"), $uuid);
+        $this->sortCls->sortAnimal($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 240 hours"),$uuid); //sort in am
+       
+      
+    }
+    
+    
+    /**
+     * Do db insert OVSYNCH 56h protocol where we DNB at end.
+     */
+    function protocol_OVSYNCH56h_DNB($bovine_id, $date, $uuid) {
+        //start at 4pm.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          DAY 0: Inject GnRH (ie: 6-8 am)
+          DAY 7: Inject PGF2α + remove CIDR (ie: 6-8 am)
+          DAY 9: Inject GnRH to ovulate follicle (ie: 2-4 pm)
+          DAY 10: Timed AI 12-16 hours after second GnRH - (ie: 6-8 am)
+         */
+        //do meds
+        $c = new MedicineScheduled();
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->gnrh_id, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 168 hours"), $this->prostaglandin_id, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 224 hours"), $this->gnrh_id, $uuid); // day 9
+       
     }
     
     /**
@@ -671,6 +1037,77 @@ class ReproductionProtocolAction {
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->gnrh_id, $uuid);
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 336 hours"), $this->prostaglandin_id, $uuid);
     }
+    
+    
+    /**
+     * Do db insert Metritis Cleanup protocol
+     */
+    function protocol_metritisCleanup($bovine_id, $date, $uuid) {
+        //start at 4pm.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Day 0: Inject GnRH 8am.
+          Day 7: Inject PGF2α 4pm.
+          Have vet check.
+         */
+        //do meds
+        $c = new MedicineScheduled();
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->gnrh_id, $uuid);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 168 hours"), $this->prostaglandin_id, $uuid);
+    }
+    
+    
+     /**
+     * Do db insert pg kamar
+     */
+     function protocol_pg_kamar($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Day 0: Inject PGF2α 8am.
+          Day 0: Kamar on 8am.
+          Day 3: Watch for heat.
+         */
+        //do meds
+        $c = new MedicineScheduled();
+        $e = new EstrusHeats();
+        $k = new EstrusKamar();
+
+            //this really should be in a PDO transcation, but protocolMedicineDefaultInsert needs to be atomic for sure. not sure how to do this correctly without a pile of code. 
+        try {
+            $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->prostaglandin_id, $uuid);
+            $e->protocolEstrusDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->protocol_watch_id, $uuid);
+            $k->protocolKamarDefaultScheduleInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), 'on', $uuid);
+        }
+        catch (PDOException $e) {
+            //run delete button
+            //FIXME.
+        }
+        
+    }
+
+    /**
+     *  insert watch kamar 
+     */
+    function protocol_watch_kamar($bovine_id, $date, $uuid) {
+        //start at 8am.
+        $start_time = (date('Y-m-d', strtotime($date)) . ' ' . '08:00:00');
+        /*
+          Day 0: Kamar on 8am.
+          Day 3: Watch for heat.
+         */
+        
+        //do schedules
+        $e= new EstrusHeats();
+        $k = new EstrusKamar();
+         
+        $e->protocolEstrusDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->protocol_watch_id, $uuid);   
+        $k->protocolKamarDefaultScheduleInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), 'on', $uuid);
+    }
+    
+      
+    
+    
 
     /**
      * Do db insert FLUSH protocol
@@ -712,11 +1149,11 @@ class ReproductionProtocolAction {
         $c = new MedicineScheduled();
 
         //day 1
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->folltropin_id, $uuid, 3);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->folltropin_id, $uuid, 3);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 0 hours"), $this->folltropin_id, $uuid, null,3);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 12 hours"), $this->folltropin_id, $uuid,null, 3);
         //day 2 
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->folltropin_id, $uuid, 3);
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->folltropin_id, $uuid, 3);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 24 hours"), $this->folltropin_id, $uuid,null, 3);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 36 hours"), $this->folltropin_id, $uuid,null,3);
         //needle resipients here
         //day 3
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 48 hours"), $this->folltropin_id, $uuid);
@@ -727,7 +1164,7 @@ class ReproductionProtocolAction {
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 72 hours"), $this->folltropin_id, $uuid);
         $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 84 hours"), $this->folltropin_id, $uuid);
         //day 5
-        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->gnrh_id, $uuid, 3);
+        $c->protocolMedicineDefaultInsert($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 96 hours"), $this->gnrh_id, $uuid,null, 3);
         EstrusBreedings::insertCowToBeBred($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 108 hours"), $uuid);
         //day 6
         EstrusBreedings::insertCowToBeBred($bovine_id, $GLOBALS['MiscObj']->timeOffset($start_time, " + 120 hours"), $uuid);
@@ -744,7 +1181,7 @@ class ReproductionProtocolAction {
 class AccordionImplementationReproProtocols extends AccordionSub {
 
     function tab1() {
-        print('
+        return('
 <div>
 <p>
 OvSynch uses PGF2α and GnRH to synchronize ovulation in lactating dairy cows. OvSynch was the first synchronization protocol developed that allowed for timed AI (TAI) resulting in conception rates similar to that of A.I. after a detected estrus_event.
@@ -771,7 +1208,7 @@ OvSynch uses PGF2α and GnRH to synchronize ovulation in lactating dairy cows. O
     }
 
     function tab2() {
-        print('
+        return('
 <div>
 <p>
 PreSynch is a modification of OvSynch in which two PGF2α injections 14 days apart are administered, with the second PGF injection 12 days before initiation of the first GnRH injection of OvSynch. PreSynch improves first service conception rate compared to OvSynch and is a good strategy for programming cows to receive their first postpartum timed A.I. Some people prefer to keep using 14 days between the second PGF and the initiation of Ovsynch, but the need to be aware of a small decrease in fertility compared to the 12 day interval.
@@ -799,7 +1236,7 @@ PreSynch is a modification of OvSynch in which two PGF2α injections 14 days apa
     }
 
     function tab3() {
-        print('
+        return('
 <div>
 <p>
 CIDR Synch is an OvSynch program with the addition of a CIDR inserted for 7 days (inserted at the time of first GnRH and removed at the time of PGF2α injection). When using this program in Dairy or Beef heifers, the first GnRH shot may not be given, achieving similar results. Two days after CIDR removal and PGF2α, administer GnRH and TAI 16 hours later.
@@ -827,7 +1264,7 @@ CIDR Synch is an OvSynch program with the addition of a CIDR inserted for 7 days
     }
 
     function tab4() {
-        print('
+        return('
 <div>
 <p>
 OvSynch-56 is a new modification of the original protocol that gives the second GnRH injection 56 hours after PGF2α and TAI 16 hours later (72 hours after the PGF2α. OvSynch-56 improved conception rates in almost 10 percent compared to OVSynch.
@@ -857,7 +1294,7 @@ OvSynch-56 is a new modification of the original protocol that gives the second 
     }
 
     function tab5() {
-        print('
+        return('
 <div>
 <p>
 An injection of prostaglandin F2a (PGF2α) is given at a random stage of the cycle. Animals with an active corpus luteum (CL) will undergo CL regression after the PGF2α challenge and will come into heat between 2-7 days after the shot. Animals detected in estrus can be bred. Only those animals not showing heat (and not bred) after the first shot, will receive a second PGF2α injection 11-14 days after the first PGF2α and should be bred accordingly. It is not recommended to conduct TAI after a PGF2α synchronization program, since the follicular wave was not synchronized and the stage of follicular maturation is uncertain.
@@ -876,7 +1313,7 @@ An injection of prostaglandin F2a (PGF2α) is given at a random stage of the cyc
     }
 
     function tab6() {
-        print('
+        return('
         
 <div>
 <p>Start protocol 8 days after calving for any cow who had a retained placenta.</p>
@@ -892,6 +1329,21 @@ An injection of prostaglandin F2a (PGF2α) is given at a random stage of the cyc
     }
 
 }
+
+ function tab7() {
+        return('
+        
+<div>
+<p>Used to clean up cows with metritis</p>
+
+<h4>PROTOCOL:</h4>
+<ul>
+<li>Day 0:   Inject GnRH 8am.</li>
+<li>Day 7:   Inject PGF2α 8am.</li>
+<li>Have vet check next time.</li>
+
+</div>');
+    }
 
 
 ?>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /*
  * The only way to get a refresh token is through: "Authorizaton Code or User Credentials grant types".
@@ -16,24 +16,22 @@
 class Oauth2Local {
 
     public $gClient;
-
-  
-    private  $google_client_id;
-    private  $google_client_secret;
-    private  $google_redirect_url;
-    private  $google_developer_key;
+    private $google_client_id;
+    private $google_client_secret;
+    private $google_redirect_url;
+    private $google_developer_key;
     private static $google_scopes = array('basic');
 
     //called on class initiation (start of scope)
     public function __construct() {
 
-        $this->google_client_id=$GLOBALS['config']['OAUTH2_LOCAL']['google_client_id'];
-        $this->google_client_secret=$GLOBALS['config']['OAUTH2_LOCAL']['google_client_secret'];
-        $this->google_redirect_url=$GLOBALS['config']['OAUTH2_LOCAL']['google_redirect_url'];
-        $this->google_developer_key=$GLOBALS['config']['OAUTH2_LOCAL']['google_developer_key'];
-        
+        $this->google_client_id = $GLOBALS['config']['OAUTH2_LOCAL']['google_client_id'];
+        $this->google_client_secret = $GLOBALS['config']['OAUTH2_LOCAL']['google_client_secret'];
+        $this->google_redirect_url = $GLOBALS['config']['OAUTH2_LOCAL']['google_redirect_url'];
+        $this->google_developer_key = $GLOBALS['config']['OAUTH2_LOCAL']['google_developer_key'];
+
         $this->gClient = new Google_Client();
-        $this->gClient->setApplicationName('Login to '.$GLOBALS['config']['HTTP']['URL']);
+        $this->gClient->setApplicationName('Login to ' . $GLOBALS['config']['HTTP']['URL']);
         $this->gClient->setClientId($this->google_client_id);
         $this->gClient->setClientSecret($this->google_client_secret);
         $this->gClient->setRedirectUri($this->google_redirect_url);
@@ -53,38 +51,34 @@ class Oauth2Local {
         return (json_last_error() == JSON_ERROR_NONE);
     }
 
-    
-    
     public function main() {
 
-        
-            
-    
-  //does not currently work with fastcgi in 2017, this can probbaly be removed in future.  
-if (!function_exists('getallheaders')) 
-{ 
-    function getallheaders() 
-    { 
-           $headers = ''; 
-       foreach ($_SERVER as $name => $value) 
-       { 
-           if (substr($name, 0, 5) == 'HTTP_') 
-           { 
-               $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value; 
-           } 
-       } 
-       return $headers; 
-    } 
-}
-        
-        
+
+
+
+        //does not currently work with fastcgi in 2017, this can probbaly be removed in future.  
+        if (!function_exists('getallheaders')) {
+
+            function getallheaders() {
+                $headers = '';
+                foreach ($_SERVER as $name => $value) {
+                    if (substr($name, 0, 5) == 'HTTP_') {
+                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                    }
+                }
+                return $headers;
+            }
+
+        }
+
+
         //start session if not started.
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
             //this is for ios, because it tends to lose things when page reloaded.
             // Extend cookie life time by an amount of your liking
-$cookieLifetime = 365 * 24 * 60 * 60; // A year in seconds
-setcookie(session_name(),session_id(),time()+$cookieLifetime);
+            $cookieLifetime = 365 * 24 * 60 * 60; // A year in seconds
+            setcookie(session_name(), session_id(), time() + $cookieLifetime);
         }
 
 
@@ -123,17 +117,17 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
             if ((isset($_REQUEST['username'])) AND ( isset($_REQUEST['password']))) {
 
                 //put code to detect mobile devices here. If it is a phone, then allow long tokens.
-               $extra='';
-               if ((isset($_REQUEST['longtoken'])) AND $_REQUEST['longtoken']==1) {
-                   $extra='longtoken=1';
-               }
-                
+                $extra = '';
+                if ((isset($_REQUEST['longtoken'])) AND $_REQUEST['longtoken'] == 1) {
+                    $extra = 'longtoken=1';
+                }
+
                 //md5 and salt login here.
                 $username = filter_var($_REQUEST['username'], FILTER_SANITIZE_EMAIL);
                 $password = md5($_REQUEST['password']); //since we md5 it, it doesn't need filtered.
                 //$password=($_REQUEST['password']);
                 // curl -u david:MD5ofPassword https://int.littleriver.ca/auth/token.php -d 'grant_type=client_credentials'               
-                $login = curl_init($GLOBALS['config']['HTTP']['URL_SHORT'].'auth/token.php');
+                $login = curl_init($GLOBALS['config']['HTTP']['URL_SHORT'] . 'auth/token.php');
                 curl_setopt($login, CURLOPT_COOKIESESSION, true);
                 curl_setopt($login, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($login, CURLOPT_FOLLOWLOCATION, 1);
@@ -141,15 +135,14 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                 curl_setopt($login, CURLOPT_SSL_VERIFYHOST, 2);
                 curl_setopt($login, CURLOPT_UNRESTRICTED_AUTH, 1);
                 curl_setopt($login, CURLOPT_USERPWD, "$username:$password");
-                curl_setopt($login, CURLOPT_POSTFIELDS, $extra.'grant_type=client_credentials');
+                curl_setopt($login, CURLOPT_POSTFIELDS, $extra . 'grant_type=client_credentials');
                 $loginStr = curl_exec($login);
-                 
+
                 //without this curl silently fails.
-                if($loginStr === false)
-                {
+                if ($loginStr === false) {
                     throw new Exceiption('LOGIN Curl error: ' . curl_error($login));
                 }
-                
+
                 curl_close($login);
 
                 if (self::isJson($loginStr)) {
@@ -161,17 +154,19 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                         //lookup information in DB to encode into the session for later retrivel.
                         //UPDATE: there is no point in doing this unless we sign the information or it can't be trusted because the client can theoretically change it.
                         //
-                      // $tok->id_token='not_secure without being signed';
+                        // $tok->id_token='not_secure without being signed';
                         //
-                     //just use a server side global variable instead.
-                            
+                        //just use a server side global variable instead.
+
                         $_SESSION['access_token'] = json_encode($tok);
                         $GLOBALS['Oauth2']['userArr']['groups'] = self::findOutWhatGroupsTheUserIsIn($username);
+                        $GLOBALS['Oauth2']['userArr']['adminMode'] = self::findOutIfAdminMode($tok->access_token);
                         $GLOBALS['Oauth2']['userArr']['userid'] = $username;
+                        $GLOBALS['Oauth2']['userArr']['adminMode'] = 0; //0 false.
+                        $GLOBALS['Oauth2']['userArr']['debugMode'] = 0; //0 false.
                         $GLOBALS['auth'] = $this;
                         $this->loginLog($username);
                         //store in DB log that someone logged in.
-                        
                         //set global
                         // print_r2($GLOBALS['Oauth2']);
                     } else {
@@ -204,7 +199,9 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                 $row5 = $res5->fetch(PDO::FETCH_ASSOC);
                 $username = $row5['client_id'];
                 $GLOBALS['Oauth2']['userArr']['groups'] = self::findOutWhatGroupsTheUserIsIn($username);
+                $GLOBALS['Oauth2']['userArr']['adminMode'] = self::findOutIfAdminMode($tok->access_token);
                 $GLOBALS['Oauth2']['userArr']['userid'] = $username;
+                $GLOBALS['Oauth2']['userArr']['debugMode'] = 0; //0 false.
                 $GLOBALS['auth'] = $this;
             }
             //expired token
@@ -224,7 +221,7 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                     $row3 = $res3->fetch(PDO::FETCH_ASSOC);
 
 
-                    $login2 = curl_init($GLOBALS['config']['HTTP']['URL_SHORT'].'auth/token.php');
+                    $login2 = curl_init($GLOBALS['config']['HTTP']['URL_SHORT'] . 'auth/token.php');
                     curl_setopt($login, CURLOPT_COOKIESESSION, true);
                     curl_setopt($login, CURLOPT_RETURNTRANSFER, 1);
                     curl_setopt($login, CURLOPT_FOLLOWLOCATION, 1);
@@ -237,11 +234,12 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
                     curl_close($login2);
 
                     if (self::isJson($loginStr2)) {
-                        //so we know we have json. still coud be an error
+                        //so we know we have json. still could be an error
                         $tok2 = json_decode($loginStr2);
                         if (isset($tok2->access_token)) {
                             $_SESSION['access_token'] = $tok2;
                             $GLOBALS['Oauth2']['userArr']['groups'] = self::findOutWhatGroupsTheUserIsIn($username);
+                            $GLOBALS['Oauth2']['userArr']['adminMode'] = self::findOutIfAdminMode($tok2->access_token);
                             $GLOBALS['Oauth2']['userArr']['userid'] = $username;
                             $GLOBALS['auth'] = $this;
                         }
@@ -297,6 +295,15 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
         }
     }
 
+    /* used to see if a user is part of the owner group and can access higher level functions. Different then admin mode which has to be switched too. */
+
+    public static function getOwnerAccess() {
+        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) {
+            return 1;
+        }
+        return 0;
+    }
+
     public static function getAuthData($array) {
         if ($array = 'groups') {
             return $GLOBALS['Oauth2']['userArr']['groups'];
@@ -305,10 +312,114 @@ setcookie(session_name(),session_id(),time()+$cookieLifetime);
         }
     }
 
+    /* used to see if a user who is part of the admin group has switched to admin mode. */
+
+    public static function getAdminMode() {
+        if (isset($GLOBALS['Oauth2']['userArr']['adminMode'])) {
+            if (($GLOBALS['Oauth2']['userArr']['adminMode']) == 1) {
+                return 1;
+            }
+        }
+        return 0; //0 false.
+    }
+
+    /*
+     * DEBUG mode on or off. 
+     * 
+     */
+
+    public static function getDebugMode() {
+
+        $sql = <<<SQL
+                     SELECT debug_mode FROM wcauthentication.users_params WHERE userid='{$GLOBALS['Oauth2']['userArr']['userid']}' limit 1
+        SQL;
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        if (empty($row)) {
+            return 0;
+        } elseif ($row['debug_mode'] == true) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    // 0 or 1
+    public static function setDebugMode($onOff) {
+
+        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) { //only works if user is in admin group
+            $bool = ($onOff == 1) ? 'true' : 'false';
+
+            $sql = <<<SQL
+                     INSERT INTO wcauthentication.users_params 
+                        (userid, debug_mode) VALUES ('{$GLOBALS['Oauth2']['userArr']['userid']}', $bool)
+                        ON CONFLICT (userid)
+                        DO UPDATE SET debug_mode = $bool ;   
+                SQL;
+            $res = $GLOBALS ['pdo']->exec($sql);
+        }
+    }
+
+    public static function actionDebugMode() {
+
+        if (self::getDebugMode() == 1) {
+            //show all errors
+            ini_set('display_errors', 1);
+            ini_set('display_startup_errors', 1);
+            error_reporting(E_ALL);
+        } else {
+            error_reporting(-1);
+            //error_reporting(E_ALL ^ E_DEPRECATED ^ E_WARNING ^ E_NOTICE);
+        }
+    }
+
+    /* used to visually indicate an area has admin secure items you cant access */
+
+    public static function showAdminSecureAreaLockedOut($name) {
+        return ("<p><span class='glyphicon glyphicon-lock'>$name</span></p>");
+    }
+
+    //change user in admin group to admin mode. 
+    //all cases fail to no access.
+    //used when user presses admin on/off button
+    public static function setAdminMode($onOff) {
+
+        if ((in_array('owner', $GLOBALS ['auth']->getAuthData('groups')) == TRUE)) { //only works if user is in admin group
+            if ($onOff == 1) {
+
+                $GLOBALS['Oauth2']['userArr']['adminMode'] = 1; //kind of useless to set because of page refresh and html stateless.
+                if (!empty($_SESSION['access_token'])) {
+                    $tok = json_decode($_SESSION['access_token']);
+                    $sql = "UPDATE wcauthentication.oauth_access_tokens SET scope='admin' where access_token='{$tok->access_token}'";
+                    $res = $GLOBALS ['pdo']->exec($sql);
+
+                    return 1;
+                }
+            } else {
+
+                $GLOBALS['Oauth2']['userArr']['adminMode'] = 0;
+                if (!empty($_SESSION['access_token'])) {
+                    $tok = json_decode($_SESSION['access_token']);
+                    $sql = "UPDATE wcauthentication.oauth_access_tokens SET scope='null' where access_token='{$tok->access_token}'";
+                    $res = $GLOBALS ['pdo']->exec($sql);
+                }
+                return 0;
+            }
+            $GLOBALS['Oauth2']['userArr']['adminMode'] = 0;
+            if (!empty($_SESSION['access_token'])) {
+                $tok = json_decode($_SESSION['access_token']);
+                $sql = "UPDATE wcauthentication.oauth_access_tokens SET scope='null' where access_token='{$tok->access_token}'";
+                $res = $GLOBALS ['pdo']->exec($sql);
+            }
+            return 0;
+        }
+        return 0;
+    }
+
     private function logout() {
         unset($_SESSION['access_token']);
         unset($GLOBALS['Oauth2']);
-        $this->gClient->revokeToken();
+        //$this->gClient->revokeToken(); //this is local auth, so we don't need to revoke a google token that does not exist to begin with. 
         header('Location: ' . filter_var($this->google_redirect_url, FILTER_SANITIZE_URL));
         exit();
     }
@@ -340,7 +451,7 @@ JS;
         print('<head>' . '<!-- Login Page-->' . "\n");
         basePage::allPageHeadContent(); //
         print('<title>Login Page</title>' . "\n");
-        basePage::pageCSS();
+        print(basePage::pageCSS());
         print('</head>' . "\n");
         print('<body>' . "\n");
 
@@ -421,14 +532,14 @@ HTML;
 
         //used to load CSS files.
         include_once($_SERVER['DOCUMENT_ROOT'] . '/template/basePage.php');
-        BasePage::pageCSS();
+        print(BasePage::pageCSS());
     }
 
     /* choose which type of logout button to show based on ip address. Private computers would only want to logout of INT site and not google too. */
 
     public static function logoutButton() {
         //all computers will just log out of the boviebook, not google too. 
-           return self::logoutJustIntButton();
+        return self::logoutJustIntButton();
     }
 
     /* this logs out of just little river int site. Used for PC's that are secure and single user */
@@ -445,7 +556,8 @@ HTML;
     }
 
     /* logs out of google then Int site */
-  /* NOT USED AS OF 2019 */
+    /* NOT USED AS OF 2019 */
+
     public static function logoutGoogleIntButton() {
         $str = '';
         /**
@@ -483,7 +595,19 @@ HTML;
         return $groupArray;
     }
 
-    
+    public static function findOutIfAdminMode($access_token) {
+
+        $sql = "SELECT scope FROM wcauthentication.oauth_access_tokens WHERE access_token='$access_token' limit 1";
+        $res = $GLOBALS ['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC); //get as an object.
+
+        if ($row['scope'] === 'admin') {
+            return 1;
+        }
+
+        return 0;
+    }
+
     /**
      * 
      * find out when session access token expires
@@ -499,7 +623,6 @@ HTML;
         $row = $res->fetch(PDO::FETCH_ASSOC);
         return($row['expires']); //since unix epoch
     }
-
 
     /**
      * 
@@ -519,13 +642,13 @@ HTML;
             //now look up what security groups that userid is in.
             $groupArr = self::findOutWhatGroupsTheUserIsIn($userid);
 
-              //create a fancy object to return with all info needed on the security side.
-            $obj=new stdClass();
-            $obj->userid=$userid;
-            $obj->groups=$groupArr;
-            $obj->expires=$row['expires'];
-            $obj->access_token=$access_token;
-            
+            //create a fancy object to return with all info needed on the security side.
+            $obj = new stdClass();
+            $obj->userid = $userid;
+            $obj->groups = $groupArr;
+            $obj->expires = $row['expires'];
+            $obj->access_token = $access_token;
+
             return($obj); //since unix epoch   
         } else {
 

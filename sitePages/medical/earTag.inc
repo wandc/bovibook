@@ -1,11 +1,4 @@
 <?php 
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/template/tabPage.php');
-;
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-
 class EarTag extends TabPage {
 
     public $leftTagType = 'Ultraflex XL Panel';
@@ -15,7 +8,7 @@ class EarTag extends TabPage {
     public function defaultDisplay() {
         $tabArray[1]['name'] = 'Missing Tags';
         $tabArray[2]['name'] = 'Ear Tag Log';
-                if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+               if ($GLOBALS['auth']->getOwnerAccess() == 1) {
         $tabArray[3]['name'] = 'Valid Tag Range';
                 }
         $this->renderTabs($tabArray);
@@ -28,8 +21,11 @@ class EarTag extends TabPage {
         print("<div class='row'>");
         print("<div class='col-sm-4 col-sm-push-8'>");
        
-          $this->eartagEventQuickForm();
-      if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {   
+        $a=new QF2_OrderEarTag((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        print($a->renderBox('QF2_OrderEarTag','Mark Animal(s) Needing an Ear Tag'));  
+       
+        
+     if ($GLOBALS['auth']->getOwnerAccess() == 1) {   
       $this->displayTagsToOrderEmail();
       print($this->markAllOrderedQuickForm());
       }
@@ -55,8 +51,8 @@ class EarTag extends TabPage {
         print("<div class='col-sm-4 col-sm-push-8'>");
        
      
-      if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {   
-        $a=new QF2_EarTagRangeEntry((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'individual');
+     if ($GLOBALS['auth']->getOwnerAccess() == 1) {   
+        $a=new QF2_EarTagRangeEntry((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'individual');
         print($a->renderBox('qf2_EarTagRangeEntry','Record Ear Tag Range'));       
       }
         print("</div>");
@@ -73,7 +69,20 @@ class EarTag extends TabPage {
     
 
     public function tagRanges() {
-        $sql = "SELECT *, lower(rfid_range),upper(rfid_range) from bovinemanagement.eartag_valid order by event_time ";
+
+$sql = <<<SQL
+with temp as (
+                     SELECT *, lower(rfid_range),upper(rfid_range), 
+                         (SELECT max(rfid_number) as max_used FROM bovinemanagement.bovine WHERE bovine.rfid_number <@ eartag_valid.rfid_range)
+                     FROM bovinemanagement.eartag_valid order by event_time
+)
+SELECT *, upper-max_used as remaining_tags_in_series FROM temp
+SQL;
+
+        
+
+
+        
 
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
@@ -82,7 +91,7 @@ class EarTag extends TabPage {
 
         //change presentation
         foreach ($results as &$row) {
-            if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+           if ($GLOBALS['auth']->getOwnerAccess() == 1) {
            $row['action']=$this->deleteButton($row['update_time'],$row['rfid_range']);
             }
         }
@@ -95,7 +104,7 @@ class EarTag extends TabPage {
     private function deleteButton($update_time,$id) { //update_time 
          if (strtotime($update_time) >= strtotime('-1 week')) {
                 $callBackURL = "Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}";
-                $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $id,'deleteName'=>'rfid_range', 'schemaTable' => 'bovinemanagement.eartag_valid'));
+                $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $id,'deleteName'=>'rfid_range', 'schemaTable' => 'bovinemanagement.eartag_valid'));
                 $deleteButtonAsString =''. ($a->renderDelete('tag_range_delete' . $id));
             } else {
                 $deleteButtonAsString = '';
@@ -122,163 +131,58 @@ class EarTag extends TabPage {
             },
             {
                 data: "local_num_sig_digits",
-                title: "local_num_sig_digits",       
+                title: "Sig Digits",       
             },
             
         {
                 data: "local_num_offset",
-                title: "local_num_offset"
+                title: "Num Offset"
         },
+                {
+                data: "remaining_tags_in_series",
+                title: "Remaining Tags in Series"
+        },
+                
                    {
                 data: "action",
                 title: "Action"
         }
            
 EX;
-        print("<h3>RFID valid tag ranges</h3>");
-        print($dt->start(13, 'tagRanges', null, $columnsStr));
+    
+        print($dt->start('RFID valid tag ranges', 13, 'tagRanges', null, $columnsStr));
     }
 
-    function eartagEventQuickForm() {
-
-        /*         * ******************************* */
-        /* eartag Event Form */
-        /*         * ******************************* */
-
-        $dateArray = $GLOBALS['MiscObj']->createHourlyDatesForLastDay(); //hourly array, with unix timestamp as index.
-        //grab a list of cows.
-        $res = $GLOBALS['pdo']->query("SELECT id,full_name,local_number from bovinemanagement.bovine WHERE death_date IS NULL ORDER BY local_number");
-
-        $aniNumber[null] = "Please Select one..."; //dummy value
-        while (($row = $res->fetch())) {
-            //parse for last word of name and then make an array for the select list.
-            $aniNumber[$row[0]] = $row[2] . " - " . $GLOBALS['MiscObj']->femaleShortName($row[1]);
-        }
-
-        //sides
-        $earTagSide[null] = "Please Select one..."; //dummy value
-        $earTagSide['left'] = 'Left';
-        $earTagSide['right'] = 'Right (RFID)';
-
-        $form = new HTML_QuickForm("eartagMissingQUickform", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-
-        $form->addElement('header', 'hdrQuickfortEartag', 'Record Missing Animal Ear Tags');
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-        $form->addElement('select', 'animalNumber', 'Animal Number', $aniNumber);
-        $form->addElement('select', 'side', 'Side', $earTagSide);
-
-        //submit buttons
-        $submitGroup[] = $form->createElement('reset', 'btnClear', 'Clear');
-        $submitGroup[] = $form->createElement('submit', 'btnSubmit', 'Submit');
-        $form->addGroup($submitGroup, 'submitGroup');
-
-        //defaults
-        $form->setDefaults(array('animalNumber' => 0)); //set default to no variety.	
-        $form->setDefaults(array('side' => 0));
-
-        //rules
-        $form->addRule('animalNumber', 'Animal number is required', 'required');
-        $form->addRule('side', 'Side is required', 'required');
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            $pageid = $form->exportValue('pageid');
-            $bovine_id = $form->exportValue('animalNumber');
-            $event_time = date('Y-m-d H:i:sO', time());
-            $side = $form->exportValue('side');
-
-
-            //check that it isn't already in.
-            $res = $GLOBALS['pdo']->query("SELECT id,event_time,side FROM bovinemanagement.eartag WHERE bovine_id={$bovine_id} AND side='{$side}' AND ordered_event_time is null Order by event_time DESC Limit 1");
-
-
-            if ($res->rowCount() == 0) {  // Always check that result is not an error
-                //don't put id value, uses next one in DB.
-                $query = "INSERT INTO bovinemanagement.eartag (event_time, bovine_id, side, userid) VALUES
-                                 ('$event_time',$bovine_id,'$side','{$GLOBALS['auth']->getUsername()}')";
-
-                $res = $GLOBALS['pdo']->exec($query);
-                {
-                    print_r($res);
-                  
-                }
-            } else {
-                //don't insert it. 
-            }
-
-            //forward to same page, ob_start() is key to making this work!
-            $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
-            exit();
-        } //end validation
-        else {
-            $form->accept($renderer);
-        echo $renderer->toHtml();
-        }
-    }
+    
 
     function printActionButtons($id,$callBackURL = null) {
        
 
         $currentUserid = $GLOBALS['auth']->getUsername();
-
-        $res = $GLOBALS['pdo']->query("SELECT id,ordered_event_time FROM bovinemanagement.eartag WHERE userid='$currentUserid' AND ordered_event_time is null ORDER BY update_time DESC LIMIT 1");
-
         $returnButtonsAsString = null;
-        while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-            if (($id == $row['id'])) {
-                $returnButtonsAsString = self::deleteQuickForm($row['id'], null,$callBackURL); //show delete button
-            }
-            //show for owners always
-            elseif ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-                $returnButtonsAsString = self::deleteQuickForm($row['id'], null,$callBackURL); //show delete button
-            }
+
+      
+     
+      
+
+            $res = $GLOBALS['pdo']->query("SELECT id,ordered_event_time FROM bovinemanagement.eartag WHERE userid='$currentUserid' AND ordered_event_time is null ORDER BY update_time DESC LIMIT 1");
+            $row = $res->fetch(PDO::FETCH_ASSOC);
+              if (($id == $row['id'])) {
+            $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.eartag'));
+            $returnButtonsAsString = ($a->renderDelete('eartag' . $row['id']));
+        } elseif ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+
+            $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $id, 'schemaTable' => 'bovinemanagement.eartag'));
+            $returnButtonsAsString = ($a->renderDelete('eartag' . $id));
         }
+
+
 
         //print button
         return $returnButtonsAsString;
     }
 
-    function deleteQuickForm($tableid, $tablename,$callBackURL) {
-
-        $form = new HTML_QuickForm("eartagDeleteButton", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
-        $form->addElement('hidden', 'pageid', $_REQUEST['pageid']);
-        $form->addElement('hidden', 'tableid', $tableid);
-        $form->addElement('submit', 'btnDelete', 'Delete');
-
-
-        // Try to validate a form
-        if ($form->validate()) {
-
-            //get values
-            $pageid = $form->exportValue('pageid');
-            $tableid = $form->getElementValue('tableid');
-
-
-            // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
-
-            //delete the dryoff_event
-            $res = $GLOBALS['pdo']->query("DELETE FROM bovinemanagement.eartag where id='$tableid'");
-
-            // determine if the commit or rollback
- 
-               $GLOBALS['pdo']->commit();
-            } catch (Exception $e) {
-                $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
-            
-            }
-
-
-            header($callBackURL);
-            exit();
-        }
-        return $form->toHtml(); //pass on as html string to display later in the table
-    }
+   
 
     /**
       Button that is clicked after all tags are ordered
@@ -307,12 +211,12 @@ EX;
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             
             }
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
         return $form->toHtml(); //pass on as html string to display later in the table
@@ -383,7 +287,7 @@ EX;
             
 EX;
         print("<h3>Missing Tag List</h3>");
-        print($dt->start(13, 'missingTags', null, $columnsStr));
+        print($dt->start('Title CHANGE ME', 13, 'missingTags', null, $columnsStr));
     }
     
     
@@ -494,11 +398,18 @@ EX;
             
 EX;
         print("<h3>Ear Tag Log</h3>");
-          print($dt->start(13, 'taglog',  null, $columnsStr, null, false," \"pageLength\": 100,"));
+          print($dt->start('Title CHANGE ME', 13, 'taglog',  null, $columnsStr, null, false," \"pageLength\": 100,"));
     }
     
+     public function error() {
+         $a1=$this->errorTooManyTagsinQueueOrderMore();
+         $a2=$this->errorLocalNumberAndRFIDDoNotMatch();
+         $a3=$this->errorAlmostOutOfTagsInCurrentSeries();
+         $error=array_merge($a1,$a2,$a3);
+         return $error; 
+     }
     //passes along error info.
-    public function error() {
+    public function errorTooManyTagsinQueueOrderMore() {
         $error = array();
 
 
@@ -520,12 +431,75 @@ EX;
 
         return $error;
     }
+    
+    public function errorAlmostOutOfTagsInCurrentSeries() {
+        $error = array();
+ 
+        
+        //pure bred
+        $sql = <<<SQL
+ SELECT upper(rfid_range)-rfid_number as from_end_of_range,rfid_range, rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
+                 FROM bovinemanagement.bovine
+                 LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
+                 WHERE purebred=true
+                 ORDER BY birth_date desc,rfid_number desc
+                 LIMIT 1
+SQL;
+       
+        //if two or more right side tags need to be ordered then notify
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+      if ($row['from_end_of_range']<=10) {
+          
+         $error[] = new notifyObj(get_class($this), date('r', strtotime("now")), 1, $row['from_end_of_range'] . ' tags left, pure bred tags need to be ordered! It takes 3 weeks.');  
+      }
+
+      //beef tags
+              $sql = <<<SQL
+ SELECT upper(rfid_range)-rfid_number as from_end_of_range,rfid_range, rfid_number, purebred,  right(rfid_number::varchar,local_num_sig_digits)::numeric as local_number
+                 FROM bovinemanagement.bovine
+                 LEFT JOIN bovinemanagement.eartag_valid ON rfid_range @> rfid_number
+                 WHERE purebred=false
+                 ORDER BY birth_date desc,rfid_number desc
+                 LIMIT 1
+SQL;
+       
+        //if two or more right side tags need to be ordered then notify
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+      if ($row['from_end_of_range']<=10) {
+          
+         $error[] = new notifyObj(get_class($this), date('r', strtotime("now")), 1, $row['from_end_of_range'] . ' tags left, beef tags need to be ordered! It takes 3 weeks.');  
+      }
+      
+      
+    
+
+        return $error;
+    }
+    
+    
+   public function errorLocalNumberAndRFIDDoNotMatch() {
+          $error = array();
+        $sql = <<<SQL
+ SELECT  local_number,rfid_number,bovinemanagement.rfid_purebred( rfid_number),bovinemanagement.rfid_to_local_number (rfid_number) as rfid_to_local_number
+from bovinemanagement.bovine where bovinemanagement.rfid_to_local_number (rfid_number) != local_number 
+SQL;
+          $res = $GLOBALS['pdo']->query($sql);
+    while (($row = $res->fetch(PDO::FETCH_ASSOC))) {      
+        
+    
+      $error[] = new notifyObj(get_class($this), date('r', strtotime("now")), 2, $row['local_number'] . 'The RFID#: ' . $row['rfid_number'] .' and the DB generated local#: '. $row['rfid_to_local_number'] . ' do not match. This usually means the RFID number was changed for the urban feeder to work.');
+      
+    }
+    return $error;
+}
 }
 //end class
 
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_EarTagRangeEntry extends Quickform2Helper {
+        
+Class QF2_EarTagRangeEntry extends QF2_Base {
 
     function definition($form) {
 
@@ -574,4 +548,63 @@ Class QF2_EarTagRangeEntry extends Quickform2Helper {
         $res = $GLOBALS['pdo']->exec($query);
     }
 
-}
+}//end class   
+
+Class QF2_OrderEarTag extends QF2_Base {
+
+    function definition($form) {
+       
+       
+      
+       
+        $earTagSide = array(null => 'Please Select one...','left' => 'Left', 'right' => 'Right (RFID)');       //sides
+
+
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+        
+       if ($this->mode == 'group') {
+            $form=(new Quickform2_GroupSelect())->definitionAnimalGroup($form);
+        }
+        else {
+            $form=(new Quickform2_GroupSelect($this->param->bovineID))->definitionAnimalGroup($form);
+        }
+              
+        $form->addElement('select', 'earTagSide', null, array('options' => $earTagSide, 'label' => 'Ear Tag Side'))->addRule("required", "Please specify your ear tag side.");   
+       
+        
+         // Set defaults for the form elements
+$form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('event_time' => 1)));
+        
+  return $form; //required   
+    }
+
+    
+   
+    
+    function process($value) {
+        $value['event_time'] = date('Y-m-d H:i:sO', strtotime("now"));
+
+        $bovineIdArr=(new Quickform2_GroupSelect)->processAnimalsGroupIndividiual($value['animalSelected']);
+        
+        try {
+            $res = $GLOBALS['pdo']->beginTransaction();
+   
+          foreach ($bovineIdArr as $key => $bovineId) {
+            
+  
+   $query = "INSERT INTO bovinemanagement.eartag (event_time, bovine_id, side, userid) VALUES ('{$value['event_time']}',$bovineId,'{$value['earTagSide']}','{$GLOBALS['auth']->getUsername()}') ON CONFLICT DO NOTHING";
+              
+            
+            $res = $GLOBALS['pdo']->exec($query);
+                           
+          }
+            // determine if the commit or rollback
+            $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+             echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
+        }
+    }
+
+
+}//end class   

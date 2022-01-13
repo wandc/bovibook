@@ -1,22 +1,103 @@
 <?php
 
-class BagSample extends BasePage {
+class BagSample extends TabPage {
 
-    public function defaultDisplay() {
+    
+    
+      public function defaultDisplay() {
+
+
+        //setup for tabs.
+        $tabArray[1]['name'] = 'Addican Lab';
+        $tabArray[2]['name'] = 'Agri Analyse';
+        //$tabArray[1]['load_inline'] = '1'; //don't enable, too slow.
+        $tabArray[3]['name'] = 'Shur-Gain';
+        $tabArray[4]['name'] = 'Cumberland';
+        $this->setCSStabs('jquery_tabs_bagSample');
+        $this->renderTabs($tabArray);
+    }
+    
+    
+    
+    public function tab1() {
 
                $html = <<<HTML
             <div class='row'>
                 <div class='col-sm-4 col-sm-push-8'>   
-                   <h3>CO-OP cumberland valley lab. Type lab ID number into form and then go into db and change feet and bag_id.</h3>
-               {$this->CumberLandValleySampleImportQuickform()}
-                   <h3>Link Sample to Bag Footage</h3>
+       
                {$this->footageToSampleLinkcQuickform()}
                 </div>       
                 <div class='col-sm-8 col-sm-pull-4'>
+                    <h2>Addican Lab Samples</h2>
+               {$this->displayLastAddicanLabSampleNumbers(7)}
+                    <h2>Log</h2>
+             {$this->displayLastAddicanLabSampleNumbers(365)}
+
+                   
+                </div>
+            </div>           
+HTML;
+               
+        print($html);
+     
+    }
+    
+    public function tab2() {
+
+               $html = <<<HTML
+            <div class='row'>
+                <div class='col-sm-4 col-sm-push-8'>   
+       
+               {$this->footageToSampleLinkcQuickform()}
+                </div>       
+                <div class='col-sm-8 col-sm-pull-4'>
+                    <h2>Agri Analyse Samples</h2>
+               {$this->displayLastAgriAnalyseSampleNumbers(7)}
+                    <h2>Log</h2>
+               {$this->displayLastAgriAnalyseSampleNumbers(365)}
+
+                   
+                </div>
+            </div>           
+HTML;
+               
+        print($html);
+     
+    }
+    
+    public function tab3() { 
+        
+           $html = <<<HTML
+            <div class='row'>
+                <div class='col-sm-4 col-sm-push-8'>   
+                   
+                   <h3>Link Sample to Bag Footage</h3>
+                </div>       
+                <div class='col-sm-8 col-sm-pull-4'>
                     <h2>Shur-Gain Samples</h2>
-               {$this->displayLastShurGainSampleNumbers(2)}
+               {$this->displayLastShurGainSampleNumbers(7)}
                     <h2>Log</h2>
                {$this->displayLastShurGainSampleNumbers(365)}
+
+               
+                </div>
+            </div>           
+HTML;
+               
+        print($html);
+    }
+    
+    
+    public function tab4() {
+         $html = <<<HTML
+            <div class='row'>
+                <div class='col-sm-4 col-sm-push-8'>   
+                   <h3>CO-OP cumberland valley lab. Type lab ID number into form and then go into db and change feet and bag_id.</h3>
+               {$this->CumberLandValleySampleImportQuickform()}
+                  
+                </div>       
+                <div class='col-sm-8 col-sm-pull-4'>
+                    
 
                     <h2>Cumberland Lab Samples</h2>
                {$this->displayLastCumberlandSampleNumbers(2)}
@@ -25,40 +106,69 @@ class BagSample extends BasePage {
                 </div>
             </div>           
 HTML;
-               
-        print($html);
-     
+    print($html);    
     }
-
+    
+    
+      function displayLastAddicanLabSampleNumbers($days = 2) {
+        $sql = <<<SQL
+                SELECT sample_number ,sample_date,bag_analysis.raw_report->>'Identification' as "Comment",
+ SUBSTR(location, 1, 1) || slot || '-' || footage as linked_bag,nutrition.bag_dimenension(bag_id)
+FROM nutrition.bag_analysis 
+LEFT JOIN nutrition.bag ON bag_id=bag.id
+WHERE bag_analysis.create_time > current_timestamp  - interval '$days day'  AND lab_name='addican' ORDER BY linked_bag DESC,sample_number,bag_analysis.create_time DESC
+SQL;
+       
+        $str[]=( (new JQueryDataTable)->startBasicSql("Samples Added in Last $days Days", $sql,''));
+       return implode($str);
+    }
+    
+   
+      function displayLastAgriAnalyseSampleNumbers($days = 2) {
+        $sql = <<<SQL
+                SELECT sample_number ,sample_date,bag_analysis.raw_report->'comment' as "Comment",
+ SUBSTR(location, 1, 1) || slot || '-' || footage as linked_bag,nutrition.bag_dimenension(bag_id)
+FROM nutrition.bag_analysis 
+LEFT JOIN nutrition.bag ON bag_id=bag.id
+WHERE bag_analysis.create_time > current_timestamp  - interval '$days day'  AND lab_name='agri-analyse' ORDER BY linked_bag DESC,sample_number,bag_analysis.create_time DESC
+SQL;
+       
+        $str[]=( (new JQueryDataTable)->startBasicSql("Samples Added in Last $days Days", $sql,''));
+       return implode($str);
+    }
+    
+    
     function displayLastCumberlandSampleNumbers($days = 2) {
 //SELECT sample_number from nutrition.bag_analysis  WHERE NOT (nutrition.bag_dimenension(bag_id))[1] < footage AND (nutrition.bag_dimenension(bag_id))[2] >= footage ; //cehck for error
 
         $sql = <<<SQL
-                SELECT '<a href=\"http://www.foragelab.com/ViewSamples.aspx?LabID=' || sample_number || '\">' || sample_number || '</a>' as sample_number ,bag_analysis.raw_report->'comment' as "Comment",
+                SELECT '<a href=\"http://www.foragelab.com/ViewSamples.aspx?LabID=' || sample_number || '\">' || sample_number || '</a>' as sample_number ,sample_date,bag_analysis.raw_report->'comment' as "Comment",
  SUBSTR(location, 1, 1) || slot || '-' || footage as linked_bag,nutrition.bag_dimenension(bag_id)
 FROM nutrition.bag_analysis 
 LEFT JOIN nutrition.bag ON bag_id=bag.id
 WHERE bag_analysis.create_time > current_timestamp  - interval '$days day'  AND lab_name='cumberland' ORDER BY bag_analysis.create_time DESC
 SQL;
         
-        $str[]=("<h3>Samples Added in Last $days Days</h3>");
-        $str[]=( (new JQueryDataTable)->startBasicSql($sql,''));
+        $str[]=( (new JQueryDataTable)->startBasicSql("Samples Added in Last $days Days", $sql,''));
        return implode($str);
     }
 
     function displayLastShurGainSampleNumbers($days = 2) {
         $sql = <<<SQL
-                SELECT sample_number ,bag_analysis.raw_report->'comment' as "Comment",
+                SELECT sample_number ,sample_date,bag_analysis.raw_report->'comment' as "Comment",
  SUBSTR(location, 1, 1) || slot || '-' || footage as linked_bag,nutrition.bag_dimenension(bag_id)
 FROM nutrition.bag_analysis 
 LEFT JOIN nutrition.bag ON bag_id=bag.id
 WHERE bag_analysis.create_time > current_timestamp  - interval '$days day'  AND lab_name='shur-gain' ORDER BY linked_bag DESC,sample_number,bag_analysis.create_time DESC
 SQL;
        
-        $str[]=("<h3>Samples Added in Last $days Days</h3>");
-        $str[]=( (new JQueryDataTable)->startBasicSql($sql,''));
+        $str[]=( (new JQueryDataTable)->startBasicSql("Samples Added in Last $days Days", $sql,''));
        return implode($str);
     }
+    
+    
+   
+    
 
     /*
      * looks for samples with empty footage and allows footage TO BE ADDED.
@@ -68,15 +178,26 @@ SQL;
 
 
         //Find bag samples with empty footage.
-        $sql = "SELECT id,raw_report->'comment',sample_number FROM nutrition.bag_analysis WHERE bag_id isnull or footage isnull order by sample_number";
+        $sql = "SELECT id,COALESCE (raw_report->>'comment', raw_report->>'Identification') as comment,sample_number FROM nutrition.bag_analysis WHERE sample_number is not null AND bag_id isnull or footage isnull order by sample_number";
         $res = $GLOBALS['pdo']->query($sql);
         $bagSampleArr = array();
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
-            $bagSampleArr[$row['sample_number']] = $row['sample_number'] . ' ' . $row['comment'];
+            $comment=empty($row['comment']) ? '': $row['comment'];
+            $bagSampleArr[$row['sample_number']] = $row['sample_number'] . '  | ' . $comment;
         }
 
+        
+        //used when entering old samples. shows last 1.5 years of bags.
+        $sql=<<<SQL
+            SELECT id,substring(location,1,1)||slot as slotnew,event_time 
+            FROM nutrition.bag 
+            WHERE event_time >= (current_date - interval '1.5 years')
+        ORDER BY substring(location,1,1)||slot,event_time DESC
+SQL;
+
+        
         //Find current bags
-        $sql = "SELECT id,substring(location,1,1)||slot as slotnew,event_time FROM nutrition.bag_current ORDER BY substring(location,1,1)||slot,event_time DESC";
+        //$sql = "SELECT id,substring(location,1,1)||slot as slotnew,event_time FROM nutrition.bag_current ORDER BY substring(location,1,1)||slot,event_time DESC";
         $res = $GLOBALS['pdo']->query($sql);
 
         $bagArr[null] = "Please Select one..."; //dummy value
@@ -131,7 +252,7 @@ SQL;
 
 
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } //end validation
         else {
@@ -179,7 +300,7 @@ SQL;
             //print("<br>OK");
             // forward to same page, ob_start() is key to making this work!
             $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } // end validation
 
@@ -253,6 +374,7 @@ SQL;
         $rowArray['comment'] = pg_escape_string((string) $xml->Sample_Data->Desc_1['Value']); //escape it, can have arbitrary characters.
         $rowArray['DryMatter'] = (string) $xml->Sample_Data->DM['Value'];
         $rowArray['pH'] = (string) $xml->Sample_Data->pH;
+        $rowArray['NEL'] = (string) $xml->Sample_Data->NEL['Value'];
         $rowArray['CrudeProtein'] = (string) $xml->Sample_Data->CP['Value'];
         $rowArray['SolubleProtein'] = (string) $xml->Sample_Data->sp['Value'];
         $rowArray['ADFCP'] = (string) $xml->Sample_Data->ADICP_CP['Value'];
@@ -292,13 +414,14 @@ SQL;
 
         //FIXME, needs to be changed to JSON if we use cumberland again.
         //now insert into db.
-        $sql = 'INSERT INTO nutrition.bag_analysis (bag_id,footage,sample_number,sample_date,comment,"DM","pH","CP","SP","ADFCP","NDFCP","ADF","NDF","lignin","NFC","starch","CF","TDN","DE","Ca","P","Mg","K","Na","ash","ADFN","Vomitoxine","Zearalenone","report_file",userid,"RFQ",lab_name) VALUES (' . "
+        $sql = 'INSERT INTO nutrition.bag_analysis (bag_id,footage,sample_number,sample_date,comment,"DM","pH","CP","SP","NEL",ADFCP","NDFCP","ADF","NDF","lignin","NFC","starch","CF","TDN","DE","Ca","P","Mg","K","Na","ash","ADFN","Vomitoxine","Zearalenone","report_file",userid,"RFQ",lab_name) VALUES (' . "
 null,null,
 '{$sampleArr['Sample no']}','{$sampleArr['Analysis date']}','{$sampleArr['comment']}',
 {$sampleArr['DryMatter']},
 {$sampleArr['pH']},
 {$sampleArr['CrudeProtein']},
 {$sampleArr['SolubleProtein']},
+{$sampleArr['NEL']},    
 {$sampleArr['ADFCP']},
 {$sampleArr['NDFCP']},
 {$sampleArr['ADF']},

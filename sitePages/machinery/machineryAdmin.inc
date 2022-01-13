@@ -1,22 +1,80 @@
 <?php 
 
-class machineryAdmin extends BasePage {
+class machineryAdmin extends TabPage {
 
 
-    public function defaultDisplay() {
+    
+     public function defaultDisplay() {
+        $tabArray[1]['name'] = 'Entry';
+        $tabArray[2]['name'] = 'Machine List';
+        $tabArray[3]['name'] = 'Filter List';
+        $tabArray[4]['name'] = 'xxx';
+        $tabArray[5]['name'] = 'yyy';
+        $this->renderTabs($tabArray);
+    }
+
+   
+    
+    public function tab1() {
         //print("<h2>Machine Actions</h2>");
         print($this->checkMachineHoursHaveNotBeenEnteredIn3Months());
-        $a=new QF2_UploadMachinePicture((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'default');
+        $a=new QF2_UploadMachinePicture((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'default');
         print($a->renderBox('QF2_MachineUploadPicture','Upload Machine Photo'));  
         
+        
+         $b=new QF2_Hours((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'default');
+         print($b->renderBox('QF2_Hours','Enter Machine Hours'));  
+        
+        $c=new QF2_AddSeriveItemToMachine((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'default');
+        print($c->renderBox('QF2_AddSeriveItemToMachine','Enter Service Item'));  
+        
+         
         //$this->uploadPicture();
+        
+        
+    }
+    
+    public function tab2() {
         print('<hr/>');
         $this->addNewMachine();
          print('<hr/>');
         $this->displayMachineListAll();
     }
+    
+    public function tab3() {
+        
+       $this->displayFiltersList();
+    }
 
-   
+    public function tab4() {
+        print('<h1>JD filters spring order, check every year or fix this to be proper.</h1>');
+        
+        
+        $sql=<<<SQL
+              SELECT machine.name ,service_item.name as "Part Name",extract(hour FROM hours) as Hours,concat(part_num, ' ',part_num2) as "Part #" , service_item.id as "Service Item ID"
+FROM machinery.service_item 
+LEFT JOIN machinery.machine ON machine.id=machine_id
+WHERE machine_id = ANY ('{85,95,67,78,96,59,76,68,96}'::int[]) ORDER BY machine.name ASC  
+SQL;        
+       print((new JQueryDataTable)->startSql($sql));         
+    }
+    
+    public function tab5() {
+      print('ttt');
+    }
+    
+    
+   function displayFiltersList() {
+ $sql = <<<SQL
+       SELECT concat(part_num, ' ',part_num2) as "Part #",napa_part_num,machine.name as machine_name,service_item.name as filter_info
+from machinery.service_item
+LEFT JOIN machinery.machine on machine_id=machine.id where is_filter=true and machine.active =true
+order by machine_name,part_num
+SQL;
+ 
+
+      print((new JQueryDataTable)->startSql($sql));       
+   }
     
      function displayMachineListAll() {
         $dt = new JQueryDataTable();
@@ -45,8 +103,8 @@ class machineryAdmin extends BasePage {
         }
            
 EX;
-        print("<h3>List of All Machines</h3>");
-        print($dt->start(117, 'machineListAll',  null, $columnsStr, null, false," \"pageLength\": 100,"));
+    
+        print($dt->start('List of All Machines', 117, 'machineListAll',  null, $columnsStr, null, false," \"pageLength\": 100,"));
     }
     
     public function machineListAll() {
@@ -126,12 +184,12 @@ EX;
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             }
             
 
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 
@@ -142,7 +200,7 @@ EX;
     public function uploadPicture() {
      
 
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/machinery/machineQuery.inc');
+      
         $machineNumber = MachineQuery::createListOfAllActiveMachines('default'); //input compact here to see small version
 
 
@@ -226,12 +284,12 @@ EX;
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             
             }
             // Close the transaction
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } // end validation
 
@@ -243,7 +301,7 @@ EX;
     
 function checkMachineHoursHaveNotBeenEnteredIn3Months() {
     // $txt = "Error: " . round($value, $roundValue) . " out of range: (" . round($referenceValue - 2 * $safeLowerBound, $roundValue) . " to " . round($referenceValue + 2 * $safeUpperBound, $roundValue) . "), rebalance!";
-    //            $msg = $msg . BootStrap::errorNotify($txt);
+    //            $msg = $msg . (new BootStrap)->errorNotify($txt);
     $sql = "with temp  as (
 SELECT *, (SELECT event_time from machinery.hours_log WHERE event_time >= (current_date - interval '90 days') AND machine_id=machine.id order by event_time DESC limit 1) as event_time
 FROM machinery.machine WHERE hours_log = true and active = true 
@@ -267,7 +325,7 @@ select * from temp where event_time is null order by name";
      }
       $out[]='</ul>';
   
-     return (BootStrap::errorNotify(implode($out))); 
+     return ((new BootStrap)->errorNotify(implode($out))); 
         }
         else {
             return null;
@@ -276,10 +334,8 @@ select * from temp where event_time is null order by name";
     
     
 }//end class 
- 
-
-require_once $_SERVER['DOCUMENT_ROOT'] . '/functions/quickform2Helper.inc';         
-Class QF2_UploadMachinePicture extends Quickform2Helper {
+         
+Class QF2_UploadMachinePicture extends QF2_Base {
 
     function definition($form) {
 
@@ -300,7 +356,7 @@ Class QF2_UploadMachinePicture extends Quickform2Helper {
             $form->addElement('select', 'machine_id', null, array('options' => $machineNumber, 'label' => 'Machine'))->addRule("required", "Please specify your Machine.");
             
       $fsUpload = $form->addElement('fieldset')->setLabel('Upload picture');
-$upload = $fsUpload->addElement('file', 'imageName', array('style' => 'width: 200px'))
+$upload = $fsUpload->addElement('file', 'imageName', array('style' => 'width: auto'))
                    ->setLabel('Picture (jpg, &lt;=20MB):');
 // no longer using special 'uploadedfile' rule for uploads, allow client-side validation
 $upload->addRule('required', 'Please upload picture', null,
@@ -345,4 +401,67 @@ $upload->addRule('maxfilesize', 'File is too big, allowed size 20MB', 20480000);
     
     
     
+}//end class
+
+class QF2_AddSeriveItemToMachine extends QF2_Base {
+
+    public function generateServiceHoursArray() {
+        
+                  //hours array
+              $hoursArray = array(null => 'Please Select One');
+        for ($counter = 50; $counter <= 250; $counter += 50) {
+            $hoursArray[$counter] = "$counter hours";
+        }
+        for ($counter = 250; $counter <= 6500; $counter += 250) {
+            $hoursArray[$counter] = "$counter hours";
+        }
+        
+        return $hoursArray;
+    }
+    
+    
+    function definition($form) {
+
+        $machineNumber = MachineQuery::createListOfAllActiveMachines('default'); //input compact here to see small version
+        $form->addElement('select', 'machine_id', null, array('options' => $machineNumber, 'label' => 'Machine'))->addRule("required", "Please specify your Machine.");
+       
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+
+        $form->addElement('textarea', 'name', null, array('label' =>'Item Action'))->addRule("required", "Please specify your item.");
+        $form->addElement('text', 'part_num', null, array('label' =>'Part Number (offical)'))->addRule("required", "Please specify your part number.");;
+        $form->addElement('text', 'napa_part_num', null, array('label' =>'NAPA Part Number (optional)'));
+        
+        $hoursArray=$this->generateServiceHoursArray();
+        $form->addElement('select', 'hours', null, array('options' => $hoursArray, 'label' => 'Number of Hours'))->addRule("required", "Please specify your service interval in hours.");
+        
+        $form->addElement('checkbox', 'is_filter', array('id' => 'boxId', 'value' => 'yes'))->setContent('Is this a filter?');
+        
+        //look up previoud machine done and make that the defualt. //a bit hackish, depends on id order, this is not really guranteed. 
+        $sql = "SELECT machine_id FROM machinery.service_item ORDER BY id DESC";
+        $res = $GLOBALS['pdo']->query($sql);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('machine_id'=>$row['machine_id'])));
+        
+        return $form;
+    }
+
+    function process($value) {
+      
+        if (empty($value['is_filter'])) {
+            $value['is_filter']=false;
+        }
+        
+          //we have hours entry so add it.   
+            $query = "INSERT INTO machinery.service_item (machine_id,name,part_num,hours,napa_part_num,is_filter) VALUES (:machine_id,:name,:part_num,:hours,:napa_part_num,:is_filter)";
+            $res = $GLOBALS['pdo']->prepare($query);
+            $res->bindValue(':machine_id', $value['machine_id'], PDO::PARAM_INT);
+            $res->bindValue(':name', $value['name'], PDO::PARAM_STR);
+            $res->bindValue(':part_num', $value['part_num'], PDO::PARAM_STR);
+            $res->bindValue(':hours', $value['hours'] . ' hours', PDO::PARAM_STR);
+            $res->bindValue(':napa_part_num', $value['napa_part_num'], PDO::PARAM_STR);
+            $res->bindValue(':is_filter', $value['is_filter'], PDO::PARAM_BOOL);
+            $res->execute();
+        }
+    
+
 }//end class

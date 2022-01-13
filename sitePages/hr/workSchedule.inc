@@ -1,10 +1,4 @@
 <?php 
-include_once($_SERVER['DOCUMENT_ROOT'].'functions/debug.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/functions/misc.inc');
-include_once($_SERVER['DOCUMENT_ROOT'] . 'functions/googleCalendar.inc');
-
-
-
 class WorkSchedule extends BasePage{
   
  
@@ -14,22 +8,22 @@ class WorkSchedule extends BasePage{
 public function defaultDisplay() {
     
 
-    print("<div class='row'>"."\n\r");
-       
-        print("<div class='col-sm-4 col-sm-push-8'>");
-       if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
-            $this->add63workScheduleDatesQuickform();
-            $this->add6241workScheduleDatesQuickform();
-            $this->addSingleWorkShiftQuickform();
-            $this->addVacationDayQuickform();
+      
+     if ($GLOBALS['auth']->getOwnerAccess() == 1) {
+
+            $right = <<<HTML
+                 
+         {$this->add63workScheduleDatesQuickform()}
+         {$this->add6241workScheduleDatesQuickform()}
+         {$this->addSingleWorkShiftQuickform()}
+         {$this->addVacationDayQuickform()}
+HTML;
+            $left = $this->displayGoogleCalendarWorkSchedule();
+            print ((new BootStrap)->oneThirdTwoThirds($left, $right));
+        } else {
+            print($this->displayGoogleCalendarWorkSchedule());
         }
-        print("</div>")."\n\r";
-       print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-       $this->displayGoogleCalendarWorkSchedule();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");
-  
-}
+    }
 
 /**
 admin function to add single work schedule dates to calendar
@@ -119,7 +113,7 @@ function addSingleWorkShiftQuickform() {
       //calculate the end date 
       $endDate = date('Y-m-d',strtotime($startDate.' + '. $numIterations .' days'));
      
-         $gCal = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); //work_schedule
+         $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); //work_schedule
          $eventId = null;
          $eventId = $gCal->createRecurringEvent($gCal->calendarID, "$shiftTypeMini: $employee", $shiftType, '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $endTime, '-04', $endDate);
          print("RetVal:$eventId<br>");	
@@ -127,13 +121,13 @@ function addSingleWorkShiftQuickform() {
       
     
     $host  = $_SERVER['HTTP_HOST'];
-    header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+    header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
     exit();
     
     } //end validation
     
     $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     
  }
 
@@ -226,7 +220,7 @@ function add63workScheduleDatesQuickform() {
       //calculate the end date of the 6 works days
       $endDate = date('Y-m-d',strtotime($startDate.' + 6 days'));
     
-       $gCal = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); //work_schedule
+       $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); //work_schedule
       
          $eventId = null;
          $eventId = $gCal->createRecurringEvent($gCal->calendarID, "milk: $employee",   'Milking Shift', '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $endTime, '-04', $endDate);
@@ -249,13 +243,13 @@ function add63workScheduleDatesQuickform() {
 
     
     $host  = $_SERVER['HTTP_HOST'];
-    header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+    header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
     exit();
     
     } //end validation
     
     $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     
  }
  
@@ -336,7 +330,7 @@ function add6241workScheduleDatesQuickform() {
       $endDate = date('Y-m-d',strtotime($startDate.' + 6 days'));
      
                 
-       $gCal = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); //work_schedule
+       $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); //work_schedule
          $eventId = null;
          $eventId = $gCal->createRecurringEvent($gCal->calendarID, "work: $employee",   'Work Shift', '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $endTime, '-04', $endDate);
          print("RetVal:$eventId<br>");	
@@ -348,7 +342,7 @@ function add6241workScheduleDatesQuickform() {
 	$startDate = date('Y-m-d',strtotime($endDate.' + 2 days'));
 	$endDate = date('Y-m-d',strtotime($startDate.' + 4 days'));
 	         
-       $gCal = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); //work_schedule
+       $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); //work_schedule
          $eventId = null;
          $eventId = $gCal->createRecurringEvent($gCal->calendarID, "work: $employee",   'Work Shift', '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $endTime, '-04', $endDate);
          print("RetVal:$eventId<br>");	
@@ -363,13 +357,13 @@ function add6241workScheduleDatesQuickform() {
 
     
     $host  = $_SERVER['HTTP_HOST'];
-    header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+    header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
     exit();
     
     } //end validation
     
     $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     
  } 
  
@@ -453,39 +447,65 @@ function addVacationDayQuickform() {
       $endDate = date('Y-m-d',strtotime($startDate.' + '. $numIterations .' days'));
     
                
-         $gCal = new GoogleCalendar('littleriver.ca_3shnhbtafpt4dtkg078epi707c@group.calendar.google.com'); //work_schedule
+         $gCal = new GoogleCalendar($GLOBALS['config']['GOOGLE_CALENDAR']['WORK_SCHEDULE']); //work_schedule
          $eventId = null;
          $eventId = $gCal->createRecurringEvent($gCal->calendarID,  "$reason: $employee",  "$reason", '99 Milky Way,Colpitts Settlement,NB,Canada', $startDate, $startTime, $startDate, $endTime, '-04', $endDate);
          print("RetVal:$eventId<br>");	
            
 
     $host  = $_SERVER['HTTP_HOST'];
-    header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+    header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
     exit();
     
     } //end validation
     
     $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     
  }
      
     
     function displayGoogleCalendarWorkSchedule() {
 
-      
-      $orig0='<iframe id="workSchedule" src="https://www.google.com/calendar/hosted/littleriver.ca/embed?pvttk=3c65bd5ec63960094fc2a37553bfac90&amp;title=Work%20Schedule&amp;showTabs=0&amp;showCalendars=0&amp;showTz=0&amp;height=600&amp;wkst=1&amp;bgcolor=%23ffffff&amp;src=littleriver.ca_3shnhbtafpt4dtkg078epi707c%40group.calendar.google.com&amp;color=%23A32929&amp;ctz=America%2FHalifax" ></iframe>
-      ';
-      
-      //display work schedule and no vacation calendar
-      $orig2='<iframe id="workSchedule" src="https://www.google.com/calendar/embed?pvttk=3c65bd5ec63960094fc2a37553bfac90&amp;wkst=1&amp;bgcolor=%23FFFFFF&amp;src=littleriver.ca_0nbh8b4t9ggo4miksf12r95g5s%40group.calendar.google.com&amp;color=%23711616&amp;src=littleriver.ca_3shnhbtafpt4dtkg078epi707c%40group.calendar.google.com&amp;color=%230D7813&amp;ctz=America%2FHalifax&amp;showTabs=0&amp;showCalendars=0&amp;showTz=0" ></iframe>';
-      
-      
-     
-      
-      
-      print($orig2);
-      //print($orig3 . $orig4);
+      /* display a 100% responsive iframe
+       FROM:  https://community.weebly.com/t5/How-Do-I-In-the-Community/responsive-Google-Calendar-and-where-to-put-the-CSS-code/m-p/155095/highlight/true#M14287 */
+       $html=<<<HTML
+               <style>
+iframe {
+width: 10px !important;
+min-width: 100%;
+*width: 100%;
+}
+
+ 
+
+.responsive {
+width: 100%;
+height: 0;
+padding-bottom: 56.25%;
+position: relative;
+}
+
+ 
+
+.responsive iframe {
+position: absolute;
+width: 100%;
+height: 100%;
+}
+</style>
+
+ 
+
+<div class="responsive">
+               
+<iframe src="https://calendar.google.com/calendar/embed?height=600&wkst=1&bgcolor=%23ffffff&ctz=America%2FHalifax&src=bGl0dGxlcml2ZXIuY2FfMG5iaDhiNHQ5Z2dvNG1pa3NmMTJyOTVnNXNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=bGl0dGxlcml2ZXIuY2FfM3NobmhidGFmcHQ0ZHRrZzA3OGVwaTcwN2NAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%23D50000&color=%2333B679" style="border:solid 1px #777" width="1000" height="600" frameborder="0" scrolling="no"></iframe>
+</div>
+HTML;
+        
+        
+       return $html;
+         
       
     }
     

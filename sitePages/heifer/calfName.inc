@@ -1,19 +1,13 @@
 <?php 
-
-
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/sitePages/transition/transitionCalving.inc'); //used for potential calf sire loginc.
-
-
-
 class CalfName extends BasePage {
 
     public function defaultDisplay() {
 
-        $this->calfNameQuickForm();
-       print($this->displayCalvesNeedingApotentialNameAndRegisterd());
-         print("<br/><h2>Recent Calvings</h2>");
-        (new TransitionCalving)->displayLast100DaysCalvingEvents();   
+       $right=$this->calfNameQuickForm();
+       $left=($this->displayCalvesNeedingApotentialNameAndRegisterd());
+      
+        
+       print( (new BootStrap)->oneThirdTwoThirds($left, $right));
     }
 
     /*
@@ -26,10 +20,10 @@ class CalfName extends BasePage {
         
 $sql = <<<SQL
 SELECT calf_potential_name.id,potential_name,local_number,xx.id as bovine_id,xx.full_name,xx.full_reg_number,event_time_reg_sent,birth_date as birth_time,(SELECT id FROM bovinemanagement.bovine WHERE full_reg_number=xx.dam_full_reg_number) as conceiver_id 
-                 FROM bovinemanagement.bovine xx
+                 FROM bovinemanagement.bovinecurrall xx
                  LEFT JOIN batch.holstein_canada_registered ON xx.id=bovine_id 
                  LEFT JOIN bovinemanagement.calf_potential_name ON xx.id=calf_potential_name.bovine_id 
-                 WHERE (local_reg_status is null OR local_reg_status=false) AND death_date is null ORDER BY potential_name DESC, local_number DESC
+                 WHERE (local_reg_status is null OR local_reg_status=false) AND purebred = true ORDER BY potential_name DESC, local_number DESC
 SQL;
 
              $statement = $GLOBALS['pdo']->prepare($sql);
@@ -42,7 +36,7 @@ SQL;
             $rowOut['Animal'] = JQueryDataTable::formattedAnimalNameLink($row['bovine_id'],$row['local_number'],''); 
             $rowOut['Potential Name#'] = ($row['potential_name']);
             $rowOut['Relatives'] = $this->printDamAndGrandDam($row);
-            $rowOut['Potential Calf Sire'] =  (new TransitionCalving)->PotentialSireandRecipient($row);
+            //$rowOut['Potential Calf Sire'] =  (new TransitionCalving)->PotentialSireandRecipient($row);
             $rowOut['Registration Sent'] = JQueryDataTable::formattedDate($row['event_time_reg_sent']);
             $rowOut['Action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             $row['action'] = $this->printActionButtons($row,"Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
@@ -53,8 +47,7 @@ SQL;
        //output
         $dataArr = $resultsOut;
 
-        $out[]=("<h2>Calves to be Named Who Are Not Yet Registered</h2>");
-        $out[]= ( (new JQueryDataTable)->startBasicArray($dataArr, ''));
+        $out[]= ( (new JQueryDataTable)->startBasicArrayOpt('Calves to be Named Who Are Not Yet Registered', $dataArr, ''));
         return implode($out);
 
     }
@@ -81,11 +74,12 @@ SQL;
         
     function calfNameQuickForm() {
 
-        $sql = "SELECT bovine.id,bovine.local_number,bovine.dam_full_reg_number,bovine.sire_full_reg_number,bovinedam.full_name as dam_full_name,sire.full_name as sire_full_name,sire.short_name as sire_short_name
-FROM bovinemanagement.bovine 
-LEFT JOIN bovinemanagement.bovine as bovinedam ON bovinedam.full_reg_number = bovine.dam_full_reg_number
-LEFT JOIN bovinemanagement.sire as sire on sire.full_reg_number = bovine.sire_full_reg_number
-WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_number";
+        $sql = "SELECT bovinecurrall.id,bovinecurrall.local_number,bovinecurrall.dam_full_reg_number,bovinecurrall.sire_full_reg_number,bovinedam.full_name as dam_full_name,sire.full_name as sire_full_name,sire.short_name as sire_short_name
+FROM bovinemanagement.bovinecurrall 
+LEFT JOIN bovinemanagement.bovinecurrall as bovinedam ON bovinedam.full_reg_number = bovinecurrall.dam_full_reg_number
+LEFT JOIN bovinemanagement.sire as sire on sire.full_reg_number = bovinecurrall.sire_full_reg_number
+LEFT JOIN bovinemanagement.calf_potential_name ON bovinecurrall.id=calf_potential_name.bovine_id 
+WHERE bovinecurrall.full_name IS NULL AND  potential_name IS NULL AND bovinecurrall.purebred = true  ORDER BY bovinecurrall.local_number";
         $res = $GLOBALS['pdo']->query($sql);
         $bovineToBeNamed[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
@@ -137,12 +131,12 @@ WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_numb
 
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } //end validation
         //displayLastEstrusEvents();
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     
@@ -158,7 +152,7 @@ WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_numb
         //find the last entry for the current user and use that as a basais to display the delete button or not.
         //We only want the delete button shown once for the latest entry.
         //allow any  that has not yet been given to be deleted by management.
-          if ((in_array('owner', $GLOBALS['auth']->getAuthData('groups')) == TRUE) || (in_array('admin', $GLOBALS['auth']->getAuthData('groups')) == TRUE)) {
+         if ($GLOBALS['auth']->getAdminMode() == 1) {
             $sql = "SELECT id,'calf_potential_name' as tablename FROM bovinemanagement.calf_potential_name LEFT JOIN batch.holstein_canada_registered ON holstein_canada_registered.bovine_id=calf_potential_name.bovine_id  WHERE event_time_reg_sent is null ORDER BY calf_potential_name.update_time DESC ";
         } else { //only allow the last one to be deleted for normal users.
             $sql = "SELECT id,'calf_potential_name' as tablename FROM bovinemanagement.calf_potential_name LEFT JOIN batch.holstein_canada_registered ON holstein_canada_registered.bovine_id=calf_potential_name.bovine_id  WHERE userid='$currentUserid' AND event_time_reg_sent is null ORDER BY calf_potential_name.update_time DESC limit 1 ";
@@ -169,7 +163,7 @@ WHERE bovine.full_name IS NULL AND bovine.death_date IS NULL ORDER BY local_numb
 
             if (($record['id'] == $row['id'])) {
 
-                 $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.calf_potential_name'));
+                 $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.calf_potential_name'));
                  $returnButtonsAsString = ($a->renderDelete('calfPotName' . $row['id']));           
                 
                 

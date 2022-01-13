@@ -13,7 +13,7 @@ class SalePrice extends TabPage {
         
        
 /*
-        $b=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'group');
+        $b=new QF2_SalesListCustom((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'group');
         print($b->renderBox('qf2_SalesListCustomEvent2','Select Animals to Add to Custom Sales List SECONDARY'));  
         print($b->formJS());
   */      
@@ -22,12 +22,14 @@ class SalePrice extends TabPage {
         $tabArray[1]['name'] = 'Current Prices';
         $tabArray[2]['name'] = 'Custom List Primary';
         $tabArray[3]['name'] = 'Custom List Secondary';
-        $tabArray[4]['name'] = 'Fresh List';
-        $tabArray[5]['name'] = 'Pregnant List';
-        $tabArray[6]['name'] = 'Springer Heifer List';
-        $tabArray[7]['name'] = 'Due Soon List';
-        $tabArray[8]['name'] = 'Recent Sold (cull) Buyer Output';
-        $tabArray[9]['name'] = 'Recent Sold (custom primary list) Buyer Output';
+        $tabArray[4]['name'] = 'Custom List Low pro$ Calves';
+        $tabArray[5]['name'] = 'Fresh List';
+        $tabArray[6]['name'] = 'Pregnant List';
+        $tabArray[7]['name'] = 'Springer Heifer List';
+        $tabArray[8]['name'] = 'Due Soon List';
+        $tabArray[9]['name'] = 'Recent Sold (cull) Buyer Output';
+        $tabArray[10]['name'] = 'Recent Sold (custom primary list) Buyer Output';
+        
         $this->setCSStabs('jquery_tabs_sale_price');
 
         
@@ -57,7 +59,7 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id = sale_pr
     //primary
     function tab2() {
     
-         $a=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'custom');
+         $a=new QF2_SalesListCustom((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'custom');
         print($a->renderBox('qf2_SalesListCustomEvent1','Select Animals to Add to Custom Sales List PRIMARY'));  
         print($a->formJS());
         print($this->displaySalesList('custom'));
@@ -66,26 +68,37 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id = sale_pr
     //secondary
     function tab3() {
 
-        $a=new QF2_SalesListCustom((object) array(forwardURLArr=>array('pageid'=>$_REQUEST['pageid'])),'custom_secondary');
+        $a=new QF2_SalesListCustom((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'custom_secondary');
         print($a->renderBox('qf2_SalesListCustomEvent2','Select Animals to Add to Custom Sales List SECONDARY'));  
         print($a->formJS_Secondary());
         print($this->displaySalesList('custom_secondary'));
 
     }
-
+    
+     //low pro$ calves
     function tab4() {
+
+        $a=new QF2_SalesListCustom((object) array('forwardURLArr'=>array('pageid'=>$_REQUEST['pageid'])),'custom_lowProDollarcalves');
+        print($a->renderBox('qf2_SalesListCustomEvent3','Select Animals to Add to Custom Sales List Low Pro$ Calves'));  
+        print($a->formJS_Secondary());
+        print($this->displaySalesList('custom_lowProDollarcalves'));
+
+    }
+    
+
+    function tab5() {
         print($this->displaySalesList('fresh'));
     }
 
-    function tab5() {
+    function tab6() {
         print($this->displaySalesList('pregnant'));
     }
 
-    function tab6() {
+    function tab7() {
         print($this->displaySalesList('springer'));
     }
 
-    function tab7() {
+    function tab8() {
         print($this->displaySalesList('dueSoon'));
     }
     
@@ -93,7 +106,7 @@ LEFT JOIN bovinemanagement.sale_price_comment ON sale_price.comment_id = sale_pr
     /*
      * print medical and repro report to give to buyer from list based on cull sold.
      */
-     function tab8() {
+     function tab9() {
       $sql="SELECT * FROM bovinemanagement.cull_event
 LEFT JOIN bovinemanagement.bovine ON cull_event.bovine_id=bovine.id 
 WHERE event_time >= now() - interval '5 days' AND reason='Sold' ORDER BY local_number";
@@ -111,7 +124,7 @@ WHERE event_time >= now() - interval '5 days' AND reason='Sold' ORDER BY local_n
      /*
      * print medical and repro report to give to buyer from list based on custom list.
      */
-     function tab9() {
+     function tab10() {
       $sql="select bovine_id,local_number,full_name,full_reg_number,birth_date from system.salesreport_temp
 left join bovinemanagement.bovine on bovine_id=id order by local_number";
              $res = $GLOBALS ['pdo']->query($sql);
@@ -135,7 +148,7 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         print("<h2>{$full_reg_number}</h2>");   
         print("<h3>Born: ".date('M d, Y',strtotime($birth_date))."</h3>");   
         $number2 = "<a href=\"" . HolsteinCanadaHelper::createHolsteinCanadaQuery($full_reg_number) . "\"> <b>HOL</b>" . "</a>";
-        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($full_reg_number) . "\"> <b>CDN</b>" . "</a>";
+        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createCDNLink($full_reg_number) . "\"> <b>CDN</b>" . "</a>";
         print(  $number2 . "&nbsp;&nbsp;" . $number3);
         
         
@@ -257,13 +270,13 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
-                echo "Failed: " . $e->getMessage();
+                 echo "Failed: " . $e->getMessage(); error_log( $e->getMessage(), 0);
             
             }
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&bovine_id=$bovine_id");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&bovine_id=$bovine_id");
             exit();
         } //end validation
 
@@ -279,7 +292,7 @@ left join bovinemanagement.bovine on bovine_id=id order by local_number";
         $row = $res->fetch(PDO::FETCH_ASSOC);
         $animalShortName = $GLOBALS['MiscObj']->femaleShortName($row['full_name']);
 
-         $out[]=("<h3>Pricing History for " . $row['local_number'] . " - " . $animalShortName . "</h3>");
+         $title=("<h3>Pricing History for " . $row['local_number'] . " - " . $animalShortName . "</h3>");
         
         ////
 
@@ -298,7 +311,7 @@ SQL;
          $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-    
+        $resultsOut=array();
         //change presentation
         foreach ($results as &$row) {
           
@@ -316,7 +329,7 @@ SQL;
         $dataArr = $resultsOut;
       
 
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr)); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt($title, $dataArr)); 
          return implode($out); 
       
     }
@@ -368,7 +381,7 @@ SQL;
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
            
             if (($record['id'] == $row['id'])) {
-                 $a = new QF2_GenericDeleteButton((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.sale_price'));
+                 $a = new QF2_DeleteButtonGeneric((object) array('callBackURL' => $callBackURL), 'individual', (object) array('deleteID' => $row['id'], 'schemaTable' => 'bovinemanagement.sale_price'));
                  $returnButtonsAsString = ($a->renderDelete('salePrice' . $row['id']));                
             }
         }
@@ -415,7 +428,7 @@ SQL;
         $dataArr = $resultsOut;
       
          $out[]=('<h2>Current Prices</h2>');
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'paging: false')); 
          return implode($out);                 
                 
      
@@ -487,7 +500,7 @@ LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = bov
 
             //return to same page.
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -526,7 +539,7 @@ LEFT JOIN bovinemanagement.bovine as dam ON dam.full_reg_number = bovinecurr.dam
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
- ,price,comment,valacta_data_latest_test_view.*	  
+ ,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll	  
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -551,7 +564,7 @@ LEFT JOIN bovinemanagement.bovine as dam ON dam.full_reg_number = bovinecurr.dam
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
- ,price,comment,valacta_data_latest_test_view.*	  
+ ,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll	  
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -559,6 +572,30 @@ LEFT JOIN bovinemanagement.sale_price_curr ON sale_price_curr.bovine_id=temp.bov
 LEFT JOIN batch.valacta_data_latest_test_view ON  temp.bovine_full_reg_number = valacta_data_latest_test_view.reg
 LEFT JOIN system.salesreport_temp2 ON salesreport_temp2.bovine_id = temp.bovine_id
 WHERE salesreport_temp2.checked=true ORDER BY temp.bovine_local_number;
+";
+        }
+       
+         if ($listType == 'custom_lowProDollarcalves') {
+            $sql = "
+WITH temp as (
+SELECT
+ bovinecurr.id as bovine_id,calculated_potential_due_date as event_time2, bovinecurr.local_number as bovine_local_number, bovinecurr.full_name as bovine_full_name,calculated_potential_due_date,service_sire_short_name,bovinecurr.location_name,bovinecurr.full_reg_number as bovine_full_reg_number,bovinecurr.birth_date as b_birth_date,bovinecurr.sire_full_reg_number,bovinecurr.dam_full_reg_number,dam.full_name as dam_full_name,sire.short_name as sire_short_name,bovinecurr.fresh_date as bovinecurr_fresh_date,(SELECT date FROM alpro.latest_full_day_production(bovinecurr.id)) as latest_production_date, (SELECT milkyield FROM alpro.latest_full_day_production(bovinecurr.id)) as latest_production_milkyield
+FROM bovinemanagement.bovinecurr 
+LEFT JOIN bovinemanagement.pregnant_view ON pregnant_view.id = bovinecurr.id
+LEFT JOIN bovinemanagement.sire ON sire.full_reg_number = bovinecurr.sire_full_reg_number
+LEFT JOIN bovinemanagement.bovine as dam ON dam.full_reg_number = bovinecurr.dam_full_reg_number
+)
+SELECT temp.*,
+(aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
+(dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
+ ,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll	  
+FROM temp
+LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
+LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
+LEFT JOIN bovinemanagement.sale_price_curr ON sale_price_curr.bovine_id=temp.bovine_id
+LEFT JOIN batch.valacta_data_latest_test_view ON  temp.bovine_full_reg_number = valacta_data_latest_test_view.reg
+LEFT JOIN system.salesreport_temp3 ON salesreport_temp3.bovine_id = temp.bovine_id
+WHERE salesreport_temp3.checked=true ORDER BY temp.bovine_local_number;
 ";
         }
         
@@ -578,7 +615,7 @@ WHERE (calculated_potential_due_date  <= (current_date + interval '60 day') )
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
- ,price,comment,valacta_data_latest_test_view.*
+ ,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -603,7 +640,7 @@ WHERE (fresh_date + interval '90 day' >= current_date) AND (fresh_date + interva
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
-,price,comment,valacta_data_latest_test_view.*
+,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -628,7 +665,7 @@ WHERE (calculated_potential_due_date is not null )
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
-,price,comment,valacta_data_latest_test_view.*
+,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -654,7 +691,7 @@ AND (SELECT count(id) FROM bovinemanagement.lactation WHERE lactation.bovine_id 
 SELECT temp.*,
 (aggregate_view_curr.class ||' - ' ||	aggregate_view_curr.score) as classification,
 (dam_aggregate_view_curr.class ||' - ' ||	dam_aggregate_view_curr.score) as dam_classification
- ,price,comment,valacta_data_latest_test_view.*
+ ,price,comment,valacta_data_latest_test_view.*,aggregate_view_curr.prodoll
 FROM temp
 LEFT JOIN batch.aggregate_view_curr ON aggregate_view_curr.full_reg_number = temp.bovine_full_reg_number
 LEFT JOIN batch.aggregate_view_curr as dam_aggregate_view_curr ON dam_aggregate_view_curr.full_reg_number = temp.dam_full_reg_number
@@ -678,6 +715,8 @@ ORDER BY calculated_potential_due_date ASC
             $rowOut['Sire'] = ($row['sire_short_name']);
             $rowOut['Dam'] = ($row['dam_full_name']);
             $rowOut['Birth Date'] = JQueryDataTable::formattedDate($row['b_birth_date']);
+            $rowOut['Reg #'] = ($row['bovine_full_reg_number']);
+            $rowOut['Pro$'] = ($row['prodoll']);
             $rowOut['Classification'] = ($row['classification']);
             $rowOut['Fresh'] = JQueryDataTable::formattedDate($row['bovinecurr_fresh_date']);
             $rowOut['Due To'] = ($row['service_sire_short_name']);
@@ -694,7 +733,7 @@ ORDER BY calculated_potential_due_date ASC
        //output
         $dataArr = $resultsOut;
       
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'paging:false')); 
+         $out[]=( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr,'paging:false')); 
          return implode($out);                
         
     }
@@ -703,19 +742,19 @@ ORDER BY calculated_potential_due_date ASC
         extract($params);
         $number1 = $GLOBALS['MiscObj']->hrefToBovinePageFullName($record['bovine_id'],$record['bovine_local_number'],$record['bovine_full_name']);
         $number2 = "<a href=\"" . HolsteinCanadaHelper::createHolsteinCanadaQuery($record['bovine_full_reg_number']) . "\"> <b>HOL</b>" . "</a>";
-        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['bovine_full_reg_number']) . "\"> <b>CDN</b>" . "</a>";
+        $number3 = "<a href=\"" . $GLOBALS['MiscObj']->createCDNLink($record['bovine_full_reg_number']) . "\"> <b>CDN</b>" . "</a>";
         return $number1 . "&nbsp;&nbsp;" . $number2 . "&nbsp;&nbsp;" . $number3;
     }
 
     function printSire($params) {
         extract($params);
-        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['sire_full_reg_number']) . "\">{$record['sire_short_name']}" . "</a>";
+        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createCDNLink($record['sire_full_reg_number']) . "\">{$record['sire_short_name']}" . "</a>";
         return $number2;
     }
 
     function printDam($params) {
         extract($params);
-        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['dam_full_reg_number']) . "\">{$record['dam_full_name']} &nbsp;&nbsp;{$record['dam_classification']}" . "</a>";
+        $number2 = "<a href=\"" . $GLOBALS['MiscObj']->createCDNLink($record['dam_full_reg_number']) . "\">{$record['dam_full_name']} &nbsp;&nbsp;{$record['dam_classification']}" . "</a>";
         return $number2;
     }
 
@@ -777,14 +816,14 @@ ORDER BY calculated_potential_due_date ASC
 }//end class
 
        
-Class QF2_SalesListCustom extends Quickform2Helper {
+Class QF2_SalesListCustom extends QF2_Base {
 
     function definition($form) {
 
 
         $mode = 'group';
 
-        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveCowsFemale();
+        $aniNumber = $GLOBALS['MiscObj']->createListOfAllAliveBovinesFemale();
 
         ////
         //$fieldset = $form->addFieldset('header')->setLabel('Check Animals to Add to Sales List');
@@ -794,12 +833,15 @@ Class QF2_SalesListCustom extends Quickform2Helper {
         //read animals that are currently marked as slected and add them as defaults to the form
             if ($this->mode == 'custom') {
             $query = "SELECT bovine_id FROM system.salesreport_temp";
-            $form->addSelect('aniamlSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($aniNumber);
+            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'selectEvents'))->loadOptions($aniNumber);
         } elseif ($this->mode == 'custom_secondary') {
             $query = "SELECT bovine_id FROM system.salesreport_temp2";
-            $form->addSelect('aniamlSelected', array('multiple' => 'multiple', 'id' => 'selectEvents_secondary'))->loadOptions($aniNumber);
+            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'selectEvents_secondary'))->loadOptions($aniNumber);
+         } elseif ($this->mode == 'custom_lowProDollarcalves') {
+            $query = "SELECT bovine_id FROM system.salesreport_temp3";
+            $form->addSelect('animalSelected', array('multiple' => 'multiple', 'id' => 'custom_lowProDollarcalves'))->loadOptions($aniNumber);    
         } else {
-            throw new Exception("ERROR: Custom sales list type of priamry or secondary not chosen in definition.");
+            throw new Exception("ERROR: Custom sales list type of priamary or secondary not chosen in definition.");
         }
 
         $statement = $GLOBALS['pdo']->prepare($query);
@@ -807,7 +849,7 @@ Class QF2_SalesListCustom extends Quickform2Helper {
         $results = $statement->fetchAll(PDO::FETCH_COLUMN); //fetch column
 
         $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array(
-    'aniamlSelected' =>  $results
+    'animalSelected' =>  $results
 )));
   return $form; //required   
     }
@@ -834,7 +876,15 @@ var s2 = $("#selectEvents_secondary").select2({
     placeholder: "Choose Animals",
     tags: false
 });   
-      </script>      
+      </script>    
+          
+         <script>           
+var s3 = $("#custom_lowProDollarcalves").select2({
+    placeholder: "Choose Animals",
+    tags: false
+});   
+      </script> 
+        
 JSCRIPT;
 
             return $jscript;
@@ -848,7 +898,7 @@ JSCRIPT;
             //fist step is to delete everything in the temp storage table.
             $res = $GLOBALS['pdo']->exec("TRUNCATE system.salesreport_temp"); //erase contents of temp db table.	
 
-            foreach ($value['aniamlSelected'] as $k => $v) {
+            foreach ($value['animalSelected'] as $k => $v) {
                 //now we insert all the animals that were checked.
                 $query = ("INSERT INTO system.salesreport_temp (bovine_id,checked) VALUES ($v,true)");
                 $res = $GLOBALS['pdo']->exec($query);
@@ -857,13 +907,22 @@ JSCRIPT;
             //fist step is to delete everything in the temp storage table.
             $res = $GLOBALS['pdo']->exec("TRUNCATE system.salesreport_temp2"); //erase contents of temp db table.	
 
-            foreach ($value['aniamlSelected'] as $k => $v) {
+            foreach ($value['animalSelected'] as $k => $v) {
                 //now we insert all the animals that were checked.
                 $query = ("INSERT INTO system.salesreport_temp2 (bovine_id,checked) VALUES ($v,true)");
                 $res = $GLOBALS['pdo']->exec($query);
             }
+        } elseif ($this->mode == 'custom_lowProDollarcalves') {
+            //fist step is to delete everything in the temp storage table.
+            $res = $GLOBALS['pdo']->exec("TRUNCATE system.salesreport_temp3"); //erase contents of temp db table.	
+
+            foreach ($value['animalSelected'] as $k => $v) {
+                //now we insert all the animals that were checked.
+                $query = ("INSERT INTO system.salesreport_temp3 (bovine_id,checked) VALUES ($v,true)");
+                $res = $GLOBALS['pdo']->exec($query);
+            }    
         } else {
-            throw new Exception("ERROR: Custom sales list type of priamry or secondary not chosen.");
+            throw new Exception("ERROR: Custom sales list type of priamry or secondary or lowProDollar not chosen.");
         }
     }
 

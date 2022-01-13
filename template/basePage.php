@@ -26,16 +26,11 @@ abstract Class BasePage {
 
         $this->pageid = $pageid; //constructor portion
 
-        header('Content-Type: text/html; charset=utf-8'); //set encoding for all pages.
-        
-        require_once('auth/pageSecurityCheck.inc');
-
-
+        //header('Content-Type: text/html; charset=utf-8'); //set encoding for all pages.
 
         $PageSecurityCheckInstance = new PageSecurityCheck();
 
         $userid = $GLOBALS['auth']->getUsername();
-
 
 
         /* TAB PAGE */
@@ -113,16 +108,21 @@ abstract Class BasePage {
     /*
      * There are 3 types of pages that the site serves (plus ajax). secure, unsecure, and securebasic
      * securebasic is used by the TMR mixer, has no nav, etc. The user is aiuthenticated though. This should be locked to a single device and sing auth group, so they can see no other pages. 
-     * 
+
+
+      ██╗   ██╗███╗   ██╗███████╗███████╗ ██████╗██╗   ██╗██████╗ ███████╗
+      ██║   ██║████╗  ██║██╔════╝██╔════╝██╔════╝██║   ██║██╔══██╗██╔════╝
+      ██║   ██║██╔██╗ ██║███████╗█████╗  ██║     ██║   ██║██████╔╝█████╗
+      ██║   ██║██║╚██╗██║╚════██║██╔══╝  ██║     ██║   ██║██╔══██╗██╔══╝
+      ╚██████╔╝██║ ╚████║███████║███████╗╚██████╗╚██████╔╝██║  ██║███████╗
+      ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
      */
-
-
     function unsecurePage() {
         ob_start();
 
         print('<html>' . "\n");
         print('<head>' . '<!-- Insecure Page-->' . "\n");
-        $this->pageHeadContent();
+
         print('<title>Insecure Page</title>' . "\n");
         self::pageCSS();
         $this->customCSS();
@@ -134,7 +134,7 @@ abstract Class BasePage {
         security::doSecurity2();
         //if we are now logged in we have to get back to the secure page.
         if ($GLOBALS['auth']->checkAuth()) {
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         }
 
@@ -143,7 +143,7 @@ abstract Class BasePage {
         ob_end_flush();
     }
 
-    /** ansi shadwo http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=SECURE
+    /** ansi shadow http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=SECURE
       ███████╗███████╗ ██████╗██╗   ██╗██████╗ ███████╗
       ██╔════╝██╔════╝██╔════╝██║   ██║██╔══██╗██╔════╝
       ███████╗█████╗  ██║     ██║   ██║██████╔╝█████╗
@@ -152,105 +152,111 @@ abstract Class BasePage {
       ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
      */
     function securePage() {
-        ob_start(); //this seems to be needed for security logout to work???
-        //ob_Start, should be Turned off, apache2 uses defalte to compress pages.
+       ob_start();
+        /*
+        IMPORTANT
+        ob_Start buffers the output. if multiple headers are passed it takes care to put them together. 
+        If this isn't used headers used to forward in form submits don't work. 
+        A way to get around this and possibly speed things up, is to handle forms at the top of pages before everything else. 
+       */
+        
+        $allPageHeadContent=$this->allPageHeadContent(); 
 
+        $contentHeader=(new Header)->headerContent();
+        $sideBar = (new SideBar())->sideBarContent();
+        $pageLevel=self::getPageLevel();
+        $pageTitle=self::getPageTitleStr();       
+        $footer = (new Footer)->footerContent();
 
-        print('<html>' . "\n");
-        print('<head>' . "\n");
-        self::pageCSS();
-        $this->allPageJavascript();
-        $this->pageHeadJavascript(); //from page class
-        $this->pageHeadContent(); //from page class
-        basePage::allPageHeadContent(); //must be static
-        print('<title>LR - ' . self::getPageTitleStr() . '</title>' . "\n");
+        
+        /*
+         * Using three heredocs so that we can still output 
+         */
+        
+        
+$securePageTop = <<<HTML
+<html>
+            <head>
+                    {$this->pageCSS()}
+                    {$this->allPageJavascript()}
+                    {$this->pageHeadJavascript()}                   
+                    {$allPageHeadContent}
+                    <title>LR - {$pageTitle} </title>
+                    {$this->customCSS()}
+            </head>
+            <body class="sidebar-mini layout-fixed layout-navbar-fixed">   
+                <div class="wrapper">
+                  
+                    <div class="content-wrapper" style="min-height: 733px;">
+                        <div class="content-header">
+                          
+                            <div class="container-fluid">
+                    
+                    {$contentHeader}
+                    {$sideBar}
+                    
+                                <div class="row mb-2">
+                                    <div class="col-sm-6">
+                                        <h1 class="m-0 text-dark">
+                                           $pageTitle
+                                    
+                                        </h1>
+                                    </div>
+                                    <div class="col-sm-6">
+                                      <ol class="breadcrumb float-sm-right">
+                                            <li class="breadcrumb-item"><a href="#">$pageTitle</a></li>
+                                            <li class="breadcrumb-item active">$pageLevel</li>
+                                      </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>    
+                                         <!-- PAGE CONTENT GOES HERE -->
+                        <div class="mainContainer">    
+HTML;                     
+                    
+$securePageMiddle = <<<HTML
+                        </div>
+                           
+                            
+                      {$footer}             
+                    </div>
+                   
+                     
+                </div>
+                <!-- /.content-wrapper -->    
+                
+                                   
+                {$this->pageJavascript()}
+                {$this->customJavascript()}
+ HTML;   
+ $securePageBottom = <<<HTML
+                 <script src="/vendor/almasaeed2010/adminlte/dist/js/adminlte.min.js"></script>  <!-- AdminLTE App -->
+            </body>
+</html>                   
+HTML;
 
-        $this->customCSS();
-        print('</head>' . "\n");
-        //flush(); //suppose to be faster: http://developer.yahoo.com/performance/rules.html#expires
-
-
-
-        print('<body class="hold-transition skin-purple  sidebar-mini">' . "\n");
-
-        print('<div class="wrapper">' . "\n");
-
-
-        /** Header */
-        $header = new Header();
-        $header->headerContent();
-        ///////////////////////////
-
-        /** Side bar * */
-        $sideBar = new SideBar();
-        $sideBar->sideBarContent();
-        ?>
-        <!-- Content Wrapper. Contains page content -->
-        <div class="content-wrapper">
-            <!-- Content Header (Page header) -->
-            <section class="content-header">
-                <h1>
-        <?php print(self::getPageTitleStr()); ?>
-               <!--   <small>Optional description</small> -->
-                </h1>
-                <ol class="breadcrumb">
-                    <li><a href="#"><i class="fa fa-dashboard"></i> <?php print(self::getPageTitleStr()); ?></a></li>
-                    <li class="active"><?php print(self::getPageLevel()); ?></li>
-                </ol>
-            </section>
-
-            <!-- Main content -->
-            <section class="content">
-        <?php
-        $this->customBody();
-        $this->defaultDisplay();
-        ?>
-            </section>
-            <!-- /.content -->
-        </div>
-        <!-- /.content-wrapper -->
-
-
-
-        <?php
-        $footer = new Footer;
-        $footer->footerContent();
-
-
-        /** Side bar * */
-        //goes after footer
-        $sideBar = new SideBarRight();
-        $sideBar->sideBarRightContent();
-
-        print('
-        </div>
-<!-- ./wrapper -->
-        ');
-
-
-        $this->pageJavascript();
-        $this->customJavascript();
-        ?>
-
-
-        <!-- AdminLTE App -->
-        <script src="/vendor/almasaeed2010/adminlte/dist/js/adminlte.min.js"></script>
-
-        <!-- Optionally, you can add Slimscroll and FastClick plugins.
-             Both of these plugins are recommended to enhance the
-             user experience. Slimscroll is required when using the
-             fixed layout. -->
-        </body>
-        </html>
-
-        <?php
-        ob_end_flush();
+    
+    //has to be written this way to allow tag output....
+   // maybe it is not worth supporting. 
+    print($securePageTop);
+     $this->customBody();
+     $this->defaultDisplay();
+     print($securePageMiddle . $securePageBottom);   
     }
 
     //basic secure page, no nav etc., used for one page apps, ie TMR MIXER.
+
+    /**
+      ██████╗  █████╗ ███████╗██╗ ██████╗
+      ██╔══██╗██╔══██╗██╔════╝██║██╔════╝
+      ██████╔╝███████║███████╗██║██║
+      ██╔══██╗██╔══██║╚════██║██║██║
+      ██████╔╝██║  ██║███████║██║╚██████╗
+      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝ ╚═════╝
+     */
     function basicSecurePage() {
-        ob_start(); //this seems to be needed for security logout to work???
-        //ob_Start, should be Turned off, apache2 uses defalte to compress pages.
+        ob_start(); //neaded if header forwarding is used. 
 
 
         print('<html>' . "\n");
@@ -259,7 +265,7 @@ abstract Class BasePage {
         self::pageCSS();
         $this->allPageJavascript();
         $this->pageHeadJavascript();
-        $this->pageHeadContent();
+
         print('<title>LR - ' . self::getPageTitleStr() . '</title>' . "\n");
 
         //$this->customCSS();
@@ -286,63 +292,67 @@ abstract Class BasePage {
         //some code might need to be placed in head???
 
         $this->pageJavascript();
-        $this->customJavascript();
+        print($this->customJavascript());
 
 
         print('</html>' . "\n");
-        ob_end_flush();
+        //ob_end_flush();
     }
 
-    function pageHeadContent() {
-        
-    }
-
-    static function allPageHeadContent() {
-        ?>
-
-
+    function allPageHeadContent() {
+         $html = <<<HTML
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-        <!-- Tell the browser to be responsive to screen width -->
+             <!-- Tell the browser to be responsive to screen width -->
         <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-
-
-
-        <?php
+HTML;
+         
+         return $html;
     }
 
     static function pageCSS() {
 
-        print(cssLinkGenerate('/vendor/twbs/bootstrap/dist/css/bootstrap.min.css', 'all'));
+        $out[]=(cssLinkGenerate('/vendor/twbs/bootstrap/dist/css/bootstrap.min.css', 'all'));
          //DO NOT ENABLE BOOTSTRAP THEME. ADMIN LTE IS THEME.
         
         //jquery
-        print(cssLinkGenerate('/vendor/components/jqueryui/themes/blitzer/jquery-ui.css', 'all')); //modifed blitzer theme to match bootstrap.
-        print(cssLinkGenerate('/css/jquery-ui.theme.css', 'all')); //modifed blitzer theme to match bootstrap.
+        $out[]=(cssLinkGenerate('/vendor/components/jqueryui/themes/blitzer/jquery-ui.css', 'all')); //modifed blitzer theme to match bootstrap.
+        $out[]=(cssLinkGenerate('/css/jquery-ui.theme.css', 'all')); //modifed blitzer theme to match bootstrap.
         //jquery datatables
-        print(cssLinkGenerate('/vendor/datatables/datatables/media/css/jquery.dataTables.css', 'all'));
-        print(cssLinkGenerate('/jscript/select.dataTables.min.css', 'all')); //for tmr recipe new page.
+        
+        $out[]=(cssLinkGenerate('/vendor/peekleon/datatables-all/media/css/jquery.dataTables.css', 'all'));
+        $out[]=(cssLinkGenerate('/vendor/peekleon/datatables-all/media/css/dataTables.bootstrap4.min.css', 'all'));
+             // $out[]=(cssLinkGenerate('/vendor/peekleon/datatables-all/media/css/responsive.bootstrap4.min.css', 'all'));
+             // $out[]=(cssLinkGenerate('/vendor/peekleon/datatables-all/media/css/buttons.bootstrap4.min.css', 'all'));
+
+        
+        $out[]=(cssLinkGenerate('/jscript/select.dataTables.min.css', 'all')); //for tmr recipe new page.
+        //datatable buttons   
+        // $out[]=('<script type="text/css" src="/vendor/peekleon/datatables-all/extensions/Buttons/css/buttons.dataTables.min.css"></script>' . "\n");
+        // $out[]=('<script type="text/css" src="/vendor/peekleon/datatables-all/extensions/Buttons/css/buttons.bootstrap.min.css"></script>' . "\n");
         
         //select2 needs
-        print(cssLinkGenerate('/vendor/select2/select2/dist/css/select2.min.css', 'all')); // <!-- Select2 CSS -->
+        $out[]=(cssLinkGenerate('/vendor/select2/select2/dist/css/select2.min.css', 'all')); // <!-- Select2 CSS -->
         
-        //adminLTE Needed CSS
-        print(cssLinkGenerate('/vendor/fortawesome/font-awesome/css/font-awesome.min.css', 'all')); //  <!-- Font Awesome -->
-        print(cssLinkGenerate('/vendor/driftyco/ionicons/css/ionicons.min.css', 'all')); // <!-- Ionicons -->
+        //adminLTE 3 Needed CSS
+        $out[]=(cssLinkGenerate('/vendor/components/font-awesome/css/all.min.css','all'));  //Font Awesome Icons 
+        $out[]=(cssLinkGenerate('/vendor/driftyco/ionicons/css/ionicons.min.css', 'all')); // <!-- Ionicons -->
         
-
-        print(cssLinkGenerate('/vendor/almasaeed2010/adminlte/dist/css/AdminLTE.min.css', 'all'));
-        print(cssLinkGenerate('/vendor/almasaeed2010/adminlte/dist/css/skins/skin-purple.min.css', 'all'));
-
+        //must be added this way because it includes child style sheets with print media, etc. 
+        $out[]='<link rel="stylesheet" href="/vendor/almasaeed2010/adminlte/dist/css/adminlte.min.css">'; //theme syle adminelte 3
+        
+        $out[]=('<script type="text/css" src="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700"></script>' . "\n"); //adminlte3 fonts
+        
         //legacy
-        print(cssLinkGenerate('/css/quickformTableless.css', 'all'));
+        $out[]=(cssLinkGenerate('/css/quickformTableless.css', 'all'));
 
-        print(cssLinkGenerate('/css/header.css', 'all'));
-        print(cssLinkGenerate('/css/generic.css', 'all'));
-        print(cssLinkGenerate('/css/bovineQuery.css', 'all'));
-        print(cssLinkGenerate('/css/fonts.css', 'all'));
-        print(cssLinkGenerate('/css/print.css', 'print'));
+        $out[]=(cssLinkGenerate('/css/header.css', 'all'));
+        $out[]=(cssLinkGenerate('/css/generic.css', 'all'));
+        $out[]=(cssLinkGenerate('/css/bovineQuery.css', 'all'));
+        $out[]=(cssLinkGenerate('/css/fonts.css', 'all'));
+        $out[]=(cssLinkGenerate('/css/print.css', 'print'));
+        
+        return implode($out);
     }
 
   
@@ -350,27 +360,39 @@ abstract Class BasePage {
 
     private function allPageJavascript() {
        
-      print('<script type="text/javascript" src="/vendor/components/jquery/jquery.min.js"></script>' . "\n");
-      print('<script type="text/javascript" src="/vendor/components/jqueryui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
-      print('<script type="text/javascript" src="/vendor/datatables/datatables/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
-      print('<script type="text/javascript" src="/vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
+      $out[]=('<script type="text/javascript" src="/vendor/components/jquery/jquery.min.js"></script>' . "\n");
+      $out[]=('<script type="text/javascript" src="/vendor/components/jqueryui/jquery-ui.min.js"></script>' . "\n"); //themes are here to with css
+      $out[]=('<script type="text/javascript" src="/vendor/peekleon/datatables-all/media/js/jquery.dataTables.min.js"></script>' . "\n"); 
+      
+       $out[]=('<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>' . "\n");  //need for tooltips.
+      
+      $out[]=('<script type="text/javascript" src="/vendor/twbs/bootstrap/dist/js/bootstrap.min.js"></script>' . "\n");
        
         //NOTE: adminLTE is loaded in header. 
-        print('<script type="text/javascript" src="/jscript/dataTables.select.min.js"</script>' . "\n"); //used on TMR recipe new page.
-        print('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
-        print('<script type="text/javascript" src="/vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
-        print('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
-        print('<script type="text/javascript" src="/vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
-        print('<script type="text/javascript" src="/vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
+      
+      
+        $out[]=('<script type="text/javascript" src="/vendor/peekleon/datatables-all/extensions/Buttons/js/buttons.print.min.js"</script>' . "\n"); //print button
+        $out[]=('<script type="text/javascript" src="/vendor/peekleon/datatables-all/extensions/Buttons/js/buttons.bootstrap4.min.js"</script>' . "\n"); //bootstrap 4 buttons.
+       
+        $out[]=('<script type="text/javascript" src="/vendor/peekleon/datatables-all/extensions/Buttons/js/dataTables.buttons.min.js"</script>' . "\n"); //CSV button
+        $out[]=('<script type="text/javascript" src="/vendor/stuk/jszip/dist/jszip.min.js"</script>' . "\n"); //CSV button 
+        $out[]=('<script type="text/javascript" src="/vendor/peekleon/datatables-all/extensions/Buttons/js/buttons.html5.min.js"</script>' . "\n"); //CSV button 
+              
+        $out[]=('<script type="text/javascript" src="/jscript/dataTables.select.min.js"</script>' . "\n"); //used on TMR recipe new page.
+        $out[]=('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/num-html.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.
+        $out[]=('<script type="text/javascript" src="/vendor/moment/moment/min/moment.min.js"></script>' . "\n"); //datatable needs moment for moment plugin for dates.
+        $out[]=('<script type="text/javascript" src="/vendor/drmonty/datatables-plugins/sorting/datetime-moment.js"></script>' . "\n"); //datatable plugin for sorting this type, add other types here as necessary.    
+        $out[]=('<script type="text/javascript" src="/vendor/drmonty/datatables-responsive/js/dataTables.responsive.min.js"></script>' . "\n"); //responsive datatables, switch this too botrstrap responsive.bootstrap.min.js if we move to bootsreap tables.    
+        $out[]=('<script type="text/javascript" src="/vendor/select2/select2/dist/js/select2.min.js"></script>' . "\n"); //<!- no idea if this is used, could be for admin LTE fancy select buttons? ->
         
        //load charts for all pages, because it is easier
-       print(GoogleVisualization::loadVisualization());
-
-     
+       $out[]=(GoogleVisualization::loadVisualization());
+       
+        return implode($out);
     }
 
     function idleTimer() {
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/functions/idleTimer.inc');
+     
         IdleTimer::main();
     }
 
@@ -400,9 +422,8 @@ abstract Class BasePage {
         $sql="SELECT title from intwebsite.page where pageid=(SELECT parent_id from intwebsite.page where pageid=$pageidreal) limit 1";
         
         $res = $GLOBALS['pdo']->query($sql);
-        $row = $res->fetch(PDO::FETCH_ASSOC);
-
-        return $row['title'];
+        $row = $res->fetch(PDO::FETCH_ASSOC);     
+        return empty($row) ? '' : $row['title'];
     }
     
     
@@ -452,6 +473,4 @@ abstract Class BasePage {
     }
 
 }
-
 //end class
-?>

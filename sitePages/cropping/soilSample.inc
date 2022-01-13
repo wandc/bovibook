@@ -1,5 +1,4 @@
-<?php 
-
+<?php
 
 /**
  * Lists soil samples for fields and allows us to enter new ones *
@@ -7,6 +6,9 @@
 class SoilSample extends TabPage {
 
     public function defaultDisplay() {
+
+        $fertR = new FertilzerRequirements();
+        $fertR->test();
 
         //setup for tabs.
         $tabArray[1]['name'] = 'Soil Sample';
@@ -16,23 +18,23 @@ class SoilSample extends TabPage {
     }
 
     protected function tab1() {
-        
-        
-           $html = <<<HTML
+
+        $note = (new BootStrap)->infoNotify("Note: PEI lab uses Phosphate and Potash (oxidated) and not P and K like NB lab use to. We now enter things as Phosphate and Potash and the software converts to P and K and uses P and K from then on.");
+
+        $html = <<<HTML
     <div class='row'>
         <div class='col-sm-2 col-sm-push-10'>                
             {$this->soilTestQuickForm()}
         </div>
         <div class='col-sm-10 col-sm-pull-2'> 
+            $note
             {$this->P_Phosphorus_Calibration_Olsen(17)}
             {$this->displaySoilSamples('default')}
         </div>
     </div>    
 HTML;
-    
+
         print($html);
-        
-       
     }
 
     protected function tab2() {
@@ -45,10 +47,9 @@ HTML;
         $this->displaySoilTestNeeded();
     }
 
-    
     function displaySoilTestNeeded() {
-        $dt=new JQueryDataTable();
-$columnsStr= <<<EX
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
                            
             {
                 data: "alpha_numeric_id",
@@ -77,14 +78,20 @@ $columnsStr= <<<EX
                 title: "spfh_suitable"
            }
 EX;
-    print($dt->start(59,'soilTestNeeded',null,$columnsStr));     
-    
-   //    print($dt->startLocal($this->AllHeats7Days(''),$columnsStr,null,' "paging": false'));     
-}     
-    
+        print($dt->start('Needs Soil Test', 59, 'soilTestNeeded', null, $columnsStr));
+
+        //    print($dt->startLocal('Title Local CHANGE ME', $this->AllHeats7Days(''),$columnsStr,null,' "paging": false'));     
+    }
+
     // called by displaySingleSoilTest
     public function displaySingleSoilSampleFancy($obj) {
-        ?>
+        $soilSampleTable = self::soilSampleTable($obj);
+        $soilSampleColumnChart = self::soilSampleColumnChart($obj);
+        $baseSaturationTable = self::baseSaturationTable($obj);
+        $baseSaturationChart = self::baseSaturationChart($obj);
+
+        $html = <<<HTML
+
         <style type = "text/css">
             #soilContainer {
                 position:relative;
@@ -101,8 +108,6 @@ EX;
 
             #soilBaseSatChart {
                 position:absolute;
-                top:90;
-
                 left:585px;
                 width:180px;
 
@@ -113,8 +118,9 @@ EX;
             }
 
             #baseSaturationTable {
+                font-size:.8em;
                 margin-top: 5px;
-                        margin-bottom: 10px;
+                    
                         /* border: #cccccc solid 1px; */
                         text-align: center;
                         background: #FCFCFC;
@@ -122,18 +128,20 @@ EX;
             }
 
         </style>
-        <?php 
-        print('<div id="soilContainer">');
-        self::soilSampleTable($obj);
-        print('<div id="soilColumnChart">');
-        self::soilSampleColumnChart($obj);
-        print('</div>');
-        print('<div id="soilBaseSatChart">');
-        self::baseSaturationTable($obj);
-        self::baseSaturationChart($obj);
+        <div id="soilContainer">
+        {$soilSampleTable}
+             <div id="soilColumnChart">
+                {$soilSampleColumnChart}
+            </div>
+            <div id="soilBaseSatChart">
+                {$baseSaturationTable}
+                {$baseSaturationChart}
+            </div>
+        </div>
+    HTML;
 
-        print('</div>');
-        print('</div>');
+
+        return (new BootStrap())->plainCard('Latest Soil Sample', $html);
     }
 
     function baseSaturationPieChart($K, $Mg, $Ca, $H, $Na) {
@@ -145,19 +153,21 @@ EX;
         $headerStrArr['Element'] = 'number'; //BACKWARDS
         $headerStrArr['Percent'] = 'number';
         $x = new GoogleVisualizationPie($opt, $headerStrArr, $one, $two);
-        print($x->toString());
+        return ($x->toString());
     }
 
     function baseSaturationChart($stdObj) {
-        ?><script type="text/javascript">
+
+        $js = <<<JS
+          <script type="text/javascript">
             function drawChart2() {
                 var data2 = google.visualization.arrayToDataTable([
                     ['Element', 'ppm'],
-                    ['K', <?php  echo($stdObj->k_base_sat); ?>],
-                    ['Mg', <?php  echo($stdObj->mg_base_sat); ?>],
-                    ['Ca', <?php  echo($stdObj->ca_base_sat); ?>],
-                    ['Na', <?php  echo($stdObj->na_base_sat); ?>],
-                    ['H', <?php  echo($stdObj->h_base_sat); ?>]
+                    ['K', {$stdObj->k_base_sat}],
+                    ['Mg', {$stdObj->mg_base_sat}],
+                    ['Ca', {$stdObj->ca_base_sat}],
+                    ['Na', {$stdObj->na_base_sat}],
+                    ['H', {$stdObj->h_base_sat}]
                 ]);
 
                 var options2 = {
@@ -175,31 +185,37 @@ EX;
             google.charts.setOnLoadCallback(drawChart2);
             });
         </script><div id="piechart2" style="width: 180px; height: 155px;"></div>
-        <?php 
+    JS;
+        return $js;
     }
 
     function baseSaturationTable($stdObj) {
-        ?>
+        $html = <<<HTML
         <div id="baseSaturationTable">
-            <li><b>CEC: </b><?php  echo($stdObj->cec); ?> meq/100g</li> 
+            <li><b>CEC: </b>{$stdObj->cec} meq/100g</li> 
 
-            <li><b>K: </b><?php  echo($stdObj->k_base_sat); ?> %</li>
-            <li><b>Mg: </b><?php  echo($stdObj->mg_base_sat); ?> %</li>
-            <li><b>Ca: </b><?php  echo($stdObj->ca_base_sat); ?> %</li>
-            <li><b>Na: </b> <?php  echo($stdObj->na_base_sat); ?> %</li> 
-            <li><b>H: </b> <?php  echo($stdObj->h_base_sat); ?>%</li> 
-            <li><b>Total Base Sat: </b> <?php  echo($stdObj->total_base_sat); ?>%</li> 
+            <li><b>K: </b>{$stdObj->k_base_sat}%</li>
+            <li><b>Mg: </b>{$stdObj->mg_base_sat}%</li>
+            <li><b>Ca: </b>{$stdObj->ca_base_sat}%</li>
+            <li><b>Na: </b> {$stdObj->na_base_sat}%</li> 
+            <li><b>H: </b> {$stdObj->h_base_sat}%</li> 
+            <li><b>Total Base Sat: </b> {$stdObj->total_base_sat}%</li> 
         </div>  
-        <?php 
+        HTML;
+        return $html;
     }
 
     function soilSampleTable($stdObj) {
-      
-        ?>
+        $date = date('M d, Y', strtotime($stdObj->event_time));
+        $caMg = round($stdObj->ca / $stdObj->mg, 1);
+        $pAl = round($stdObj->p / $stdObj->al, 2);
+        $mgK = round($stdObj->mg / $stdObj->k, 2);
+
+        $html = <<<HTML
 
         <style type = "text/css">
             .soilsampletable  {
-                width:765px; border:1px solid black; font-size: 1.2em; background: #e6f0d8;  
+                width:765px; border:1px solid black; font-size: 1.2em; background: #c4e4ea;  
             }
 
             table.soilsampletable,table.soilsampletable td,table.soilsampletable th {
@@ -277,18 +293,18 @@ EX;
 
 
             <tr class="magnitude_row">
-                <td> <?php  echo($stdObj->p); ?></td>
-                <td> <?php  echo($stdObj->k); ?></td>
-                <td> <?php  echo($stdObj->mg); ?></td>
-                <td> <?php  echo($stdObj->ca); ?></td>
-                <td> <?php  echo($stdObj->ph); ?></td>
-                <td> <?php  echo($stdObj->buffer_ph); ?></td>
-                <td> <?php  echo($stdObj->s); ?></td>
-                <td> <?php  echo($stdObj->b); ?></td>
-                <td> <?php  echo($stdObj->zn); ?></td>
-                <td> <?php  echo($stdObj->mn); ?></td>
-                <td> <?php  echo($stdObj->fe); ?></td>
-                <td> <?php  echo($stdObj->cu); ?></td>
+                <td> {$stdObj->p}</td>
+                <td> {$stdObj->k}</td>
+                <td> {$stdObj->mg}</td>
+                <td> {$stdObj->ca}</td>
+                <td> {$stdObj->ph}</td>
+                <td> {$stdObj->buffer_ph}</td>
+                <td> {$stdObj->s}</td>
+                <td> {$stdObj->b}</td>
+                <td> {$stdObj->zn}</td>
+                <td> {$stdObj->mn}</td>
+                <td> {$stdObj->fe}</td>
+                <td> {$stdObj->cu}</td>
 
             </tr>
 
@@ -311,29 +327,34 @@ EX;
 
             <tr class="micro_magnitude_row">
 
-                <td> <?php  echo($stdObj->al); ?></td>
-                <td> <?php  echo($stdObj->na); ?></td>
+                <td> {$stdObj->al}</td>
+                <td> {$stdObj->na}</td>
                 <td> </td>
                 <td> </td>
-                <td> <?php  echo($stdObj->organic_matter . ' %'); ?></td>
-                <td> <?php  echo(date('M d, Y', strtotime($stdObj->event_time))); ?></td>
+                <td> {$stdObj->organic_matter} %</td>
+                <td> {$date}</td>
                 <td></td>
                 <td> </td>
                 <td></td>
-                <td><?php  echo(round($stdObj->ca / $stdObj->mg, 1)); ?></td>
-                <td><?php  echo(round($stdObj->p / $stdObj->al, 2)); ?></td>
-                <td><?php  echo(round($stdObj->mg / $stdObj->k, 2)); ?> </td>
+                <td>{$caMg}</td>
+                <td>{$pAl}</td>
+                <td>{$mgK}</td>
 
             </tr>
 
+        </table> 
+        HTML;
 
+        return ($html);
+    }
 
-        </table>
-        <?php 
+    private function soilSampleColumnChartDataLine($value, $elem, $name) {
+
+        return "['$elem', " . self::calibrationArrays($elem, $value) . ", 'color: " . self::colourValueForNormalizedSoilElementValue(self::calibrationArrays($elem, $value)) . "', ('<b>$name</b><br/>" . $value . "ppm')],";
     }
 
     function soilSampleColumnChart($stdObj) {
-        ?>
+        $js = <<<JS
         <script type="text/javascript">
 
             function drawChart() {
@@ -341,17 +362,18 @@ EX;
                 /*data.addColumn({type: 'string', role: 'style'}); */
                 var data = google.visualization.arrayToDataTable([
                     ['Element', 'Amount', {role: 'style'}, {'type': 'string', 'role': 'tooltip', 'p': {'html': true}}],
-                    ['P', <?php  echo(self::calibrationArrays('P', $stdObj->p)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('P', $stdObj->p))); ?>', ('<b>Phosphorus</b><br/> <?php  echo($stdObj->p); ?> ppm')],
-                    ['K', <?php  echo(self::calibrationArrays('K', $stdObj->k)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('K', $stdObj->k))); ?>', ('<b>Potassium</b><br/> <?php  echo($stdObj->k); ?> ppm')],
-                    ['Mg', <?php  echo(self::calibrationArrays('Mg', $stdObj->mg)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Mg', $stdObj->mg))); ?>', ('<b>Magnesium</b><br/> <?php  echo($stdObj->mg); ?> ppm')],
-                    ['Ca', <?php  echo(self::calibrationArrays('Ca', $stdObj->ca)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Ca', $stdObj->ca))); ?>', ('<b>Calcium</b><br/> <?php  echo($stdObj->ca); ?> ppm')],
-                    ['S', <?php  echo(self::calibrationArrays('S', $stdObj->s)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('S', $stdObj->s))); ?>', ('<b>Sulphur</b><br/> <?php  echo($stdObj->s); ?> ppm')],
-                    ['B', <?php  echo(self::calibrationArrays('B', $stdObj->b)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('B', $stdObj->b))); ?>', ('<b>Boron</b><br/> <?php  echo($stdObj->b); ?> ppm')],
-                    ['Zn', <?php  echo(self::calibrationArrays('Zn', $stdObj->zn)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Zn', $stdObj->zn))); ?>', ('<b>Zinc</b><br/> <?php  echo($stdObj->zn); ?> ppm')],
-                    ['Mn', <?php  echo(self::calibrationArrays('Mn', $stdObj->mn)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Mn', $stdObj->mn))); ?>', ('<b>Manganese</b><br/> <?php  echo($stdObj->mn); ?> ppm')],
-                    ['Fe', <?php  echo(self::calibrationArrays('Fe', $stdObj->fe)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Fe', $stdObj->fe))); ?>', ('<b>Iron</b><br/> <?php  echo($stdObj->fe); ?> ppm')],
-                    ['Cu', <?php  echo(self::calibrationArrays('Cu', $stdObj->cu)); ?>, 'color: <?php  echo(self::colourValueForNormalizedSoilElementValue(self::calibrationArrays('Cu', $stdObj->cu))); ?>', ('<b>Copper</b><br/> <?php  echo($stdObj->cu); ?> ppm')]
-
+                    {$this->soilSampleColumnChartDataLine($stdObj->p, 'P', 'Phosphorus')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->k, 'K', 'Potassium')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->mg, 'Mg', 'Magnesium')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->ca, 'Ca', 'Calcium')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->s, 'S', 'Sulphur')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->b, 'B', 'Boron')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->zn, 'Zn', 'Zinc')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->mn, 'Mn', 'Manganese')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->fe, 'Fe', 'Iron')}
+                    {$this->soilSampleColumnChartDataLine($stdObj->cu, 'Cu', 'Copper')}
+                    
+                      
                 ]);
 
 
@@ -372,8 +394,12 @@ EX;
             google.charts.setOnLoadCallback(drawChart);
             });
         </script>
-        <?php 
-        print(' <div id="chart_divc" style="width: 580px; height: 460px;"></div>');
+    JS;
+
+        $out[] = $js;
+        $out[] = '<div id="chart_divc" style="width: 580px; height: 460px;"></div>';
+
+        return implode($out);
     }
 
     /* find the latest soil test id  for a field */
@@ -404,42 +430,42 @@ WHERE field_id=$field_id
                 manganese,iron,aluminum,sodium,buffer_ph,userid,(cropping.base_saturation(soil_sample_event.id)).* as bsat
 FROM cropping.soil_sample_event
 LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
-ORDER BY event_time DESC";
+ORDER BY update_time DESC";
         } else {   // assume looking at an individual field
             $sql = "SELECT field_id,alpha_numeric_id,common_name,report_date,ph,cec,organic_matter,phosphorus,potassium,calcium,magnesium,boron,copper,zinc,sulphur,
             manganese,iron,aluminum,sodium,buffer_ph,userid,(cropping.base_saturation(soil_sample_event.id)).* as bsat
 FROM cropping.soil_sample_event
 LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 	WHERE field_id=$field_id
-	ORDER BY event_time DESC";
+	ORDER BY update_time DESC";
         }
-        
-        
+
+
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-    
+
         //change presentation
         foreach ($results as &$row) {
- 
-            
+
+
             $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
             $rowOut['Common Name'] = ($row['common_name']);
             $rowOut['Report Date'] = JQueryDataTable::formattedDate($row['report_date']);
             $rowOut['pH'] = $this->printPh($row);
-            $rowOut['Organic %'] = ($row['organic_matter']);
-            $rowOut['Phosphorus (P)'] = ($row['phosphorus']);
-            $rowOut['Potassium (K)'] = ($row['potassium']);
-            $rowOut['Calcium'] = ($row['calcium']);
-            $rowOut['Magnesium (Mg)'] = $this->printMagnesium($row);
-            $rowOut['Boron'] = ($row['boron']);
-            $rowOut['Copper'] = ($row['copper']);
-            $rowOut['Zinc'] = $this->printZinc($row);
-            $rowOut['Sulphur'] = $this->printSulphur($row);
-            $rowOut['Manganese (Mn)'] = $this->printManganese($row);
-            $rowOut['Iron'] = ($row['iron']);
-            $rowOut['Aluminum'] = $this->printAluminum($row);
-            $rowOut['Sodium'] = ($row['sodium']);
+            $rowOut['Org %'] = ($row['organic_matter']);
+            $rowOut['(P)'] =  $this->printPhosphorus($row);
+            $rowOut['(K)'] = $this->printPotassium($row);
+            $rowOut['(C)'] = ($row['calcium']);
+            $rowOut['(Mg)'] = $this->printMagnesium($row);
+            $rowOut['B'] = $this->printBoron($row);
+            $rowOut['Cu'] = ($row['copper']);
+            $rowOut['Zn'] = $this->printZinc($row);
+            $rowOut['S'] = $this->printSulphur($row);
+            $rowOut['(Mn)'] = $this->printManganese($row); //Manganese 
+            $rowOut['Fe'] = ($row['iron']);
+            $rowOut['Al'] = $this->printAluminum($row);
+            $rowOut['Na'] = ($row['sodium']);
             $rowOut['Buffer pH'] = ($row['buffer_ph']);
             $rowOut['Base Sat'] = $this->CECCalculation($row);
             $rowOut['Employee'] = ($row['userid']);
@@ -450,19 +476,30 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 
         //output
         $dataArr = $resultsOut;
-         //var_dump($dataArr);
-         $out[]=("<h3>Soil Samples</h3>");
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
-         return implode($out); 
-        
+        //var_dump($dataArr);
+
+        $options = <<<OPT
+        dom: 'Bfrtip',
+        buttons: [
+   
+            'csvHtml5',
+        ],
+                 searching: false,paging: false,ordering: false,info: false
+OPT;
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Soil Samples', $dataArr, $options));
+        return implode($out);
     }
 
     function FertilizerRecommendationPerCrop($obj, $crop = null) {
         $crop = "soybean";
-        print("<h3>Fertilizer Recommendation for $crop</h3>");
+
         $rec = new FertilizerRecommendation();
-        $recommendation = $rec->lookupAll($crop, $obj);
-        print_r($recommendation);
+        $recommendation = (array) $rec->lookupAll($crop, $obj);
+        foreach ($recommendation as $key => $value) {
+            $out[] = '<li>' . $key . ' ' . $value . '</li>';
+        }
+
+        return (new BootStrap())->plainCard('Fertilizer Recommendation for ' . $crop, implode($out));
     }
 
     function soilTestNeeded() {
@@ -472,21 +509,30 @@ FROM cropping.field
 LEFT JOIN cropping.field_parameter ON field_id=field.id
 )
 SELECT distinct (id),*,last_soil_test::date,last_fertilizer_event::date FROM temp 
-WHERE pasture = FALSE AND active is true AND not_normally_farmed=false AND ((temp.last_soil_test <= (current_date - interval '2.8 years')::date) OR temp.last_soil_test IS NULL)
+WHERE pasture = FALSE AND active is true AND not_normally_farmed=false AND ((temp.last_soil_test <= (date_trunc('year',current_date) - interval '2 years')::date) OR temp.last_soil_test IS NULL)
 ORDER BY alpha_numeric_id
 ";
 
-       
-        
-       $statement = $GLOBALS['pdo']->prepare($sql);
+
+
+        $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         //change presentation
         foreach ($results as &$row) {
-           $row['alpha_numeric_id'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'],$row['alpha_numeric_id']); 
-           if  ((($row['spfh_suitable'])==1) AND empty($row['note']))  {  $row['colour_row']=1;} else {  $row['colour_row']=0;}
+            $row['alpha_numeric_id'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
+            if ((($row['spfh_suitable']) == 1) AND empty($row['note'])) {
+                $row['colour_row'] = 1;
+            } else {
+                $row['colour_row'] = 0;
+            }
+            if (($row['spfh_suitable']) == 1) {
+                $row['spfh_suitable'] = 'spfh';
+            } else {
+                $row['spfh_suitable'] = '';
+            }
         }
 
         //output
@@ -496,7 +542,6 @@ ORDER BY alpha_numeric_id
 
     function soilTestQuickForm() {
 
-        print("<h3>Note: PEI lab uses Phosphate and Potash and not P and K like NB lab use to. We now enter things as Phosphate and Potash and the software converts to P and K and uses P and K from then on.</h3>");
 
         $dateArray = $GLOBALS['MiscObj']->createDailyDatesForLastYearAtNoon(); // daily dates rray, with
         // unix timestamp as index.
@@ -547,7 +592,12 @@ ORDER BY alpha_numeric_id
         $form->addGroup($submitGroup, 'submitGroup');
 
         // defaults
-        //$form->setDefaults(array('sampleDate' =>   strtotime('2013-10-01') )); //does not work???
+        //find the last test and use that as defaults. date conversion to noon. 
+        $sql = "SELECT report_date::date + interval '12 hours' as report_date ,event_time FROM cropping.soil_sample_event ORDER BY extract(epoch from create_time) DESC limit 1";
+        $res = $GLOBALS ['pdo']->query($sql);
+        $row = $res->fetch();
+
+        $form->setDefaults(array('sampleDate' => strtotime($row['event_time']), 'reportDate' => strtotime($row['report_date']),)); //does not work???
 
         $form->addRule('fieldNumber', 'A field is required.', 'required');
         $form->addRule('sampleDate', 'The date the sample was taken is required.', 'required');
@@ -648,11 +698,12 @@ ORDER BY alpha_numeric_id
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
+                error_log($e->getMessage(), 0);
             }
             // Close the transaction
             // forward to same page, ob_start() is key to making this work!
             $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } // end validation
 
@@ -672,7 +723,8 @@ FROM cropping.soil_sample_event
 LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 WHERE field_id=$field_id
 	ORDER BY event_time DESC LIMIT 1";
-        $res = $GLOBALS['pdo']->query($sql); {
+        $res = $GLOBALS['pdo']->query($sql);
+        {
             
         } // Always check that result is not an error
         $row = $res->fetch(PDO::FETCH_ASSOC);
@@ -691,7 +743,7 @@ WHERE field_id=$field_id
      * 
      */
 
-    function latestFieldSoilTest($field_id = NULL) {
+    public static function latestFieldSoilTest($field_id = NULL) {
         $sql = "SELECT field_id,alpha_numeric_id,common_name,report_date,ph,cec,phosphorus,potassium,calcium,magnesium,boron,copper,zinc,sulphur,manganese,iron,aluminum,sodium,buffer_ph,userid
 FROM cropping.soil_sample_event
 LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
@@ -699,13 +751,13 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 	ORDER BY event_time DESC LIMIT 1";
 
         $res = $GLOBALS ['pdo']->query($sql);
-        $rows = $res->fetch(PDO::FETCH_NUM);
-        return $rows[0]; //return as array with labels
+        $rows = $res->fetch(PDO::FETCH_ASSOC);
+        return $rows; //return as array with labels
     }
 
     //add level value to report.
     function printPh($record) {
-  
+
 
         $level = self::Ph_Ph_Calibration_NB($record['ph']);
 
@@ -714,7 +766,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
 
     //add level value to report.
     function printPhosphorus($record) {
-        
+
 
         $level = self::P_Phosphorus_Calibration_NB($record['phosphorus']);
 
@@ -725,13 +777,13 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     function printPotassium($record) {
 
 
-        $level = self::K_Potassium_Calibration_NB($record['potassium']);
+        $level = self::K_Potassium_Calibration_Ontario($record['potassium']);
 
         return $record['potassium'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
 
     function printMagnesium($record) {
-      
+
 
         $level = self::Mg_Magnesium_Calibration_NB($record['magnesium']);
         if ($record['magnesium'] != '') {
@@ -741,8 +793,18 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
         }
     }
 
+    
+    //add level value to report.
+    function printBoron($record) {
+
+
+        $level = self::B_Boron_Calibration_Ontario($record['boron']);
+
+        return $record['boron'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
+    }
+    
     function printZinc($record) {
-       
+
 
         $level = self::Zn_Zinc_Calibration_Wisc($record['zinc']);
 
@@ -750,7 +812,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     function printManganese($record) {
-       
+
 
         $level = self::Mn_Manganese_Calibration_Wisc($record['manganese']);
 
@@ -758,7 +820,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     function printSulphur($record) {
-   
+
 
         $level = self::S_Sulphur_Calibration_Wisc($record['sulphur']);
 
@@ -766,7 +828,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
     }
 
     function printAluminum($record) {
-      
+
         $level = self::Al_Aluminum_Calibration_AL($record['aluminum']);
         return $record['aluminum'] . ' ' . '<span style="color: ' . self::colourLevelChooser($level) . '">' . $level . '</span>';
     }
@@ -815,7 +877,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
      */
     public function printLimeRequirementsNB($pH, $bufferPh, $required_ph = 6.8) {
 
-  
+
         //do 6.5 and 7.0 and linear interpolated 6.8.
         $neutralizingFactor = 0.95; //graymont aglime 
 
@@ -936,7 +998,7 @@ LEFT JOIN cropping.field ON field.id = soil_sample_event.field_id
         }
     }
 
-    function printLimeBudget($mode = 'default', $field_id, $required_ph = 6.8) {
+    public static function printLimeBudget($mode = 'default', $field_id, $required_ph = 6.8) {
 
 
 
@@ -953,15 +1015,15 @@ WHERE field_id=$field_id
         $res = $GLOBALS['pdo']->query($sql);
 
         if ($res->rowCount() == 0) {
-            print("No soil tests available!<br/>");
+            $out[] = ("No soil tests available!<br/>");
             return null;
         } else {
             $row = $res->fetch(PDO::FETCH_ASSOC);
 
-            //print("Ca:Mg Ratio: " . round($row['calcium'] / $row['magnesium']) .":1 <br/>");
+            //$out[]=("Ca:Mg Ratio: " . round($row['calcium'] / $row['magnesium']) .":1 <br/>");
             $reqLime = -100;
             try {
-                $reqLime = self::printLimeRequirementsNB($row['ph'], $row['buffer_ph'], $required_ph);
+                $reqLime = (new SoilSample)->printLimeRequirementsNB($row['ph'], $row['buffer_ph'], $required_ph);
             } catch (Exception $e) {
                 echo 'Caught exception: ', $e->getMessage(), "\n";
             }
@@ -969,7 +1031,7 @@ WHERE field_id=$field_id
 
 
 
-        print("Required Lime= $reqLime tonne/ha<br/>");
+        $out[] = ("Required Lime= $reqLime tonne/ha<br/>");
 
         //now find any lime events applied after the soil sample.
         $sql2 = "Select event_time,comment,lime_amount,sum(lime_amount) as sum_lime_spread FROM cropping.lime_event 
@@ -987,19 +1049,21 @@ WHERE field_id=$field_id
 
 
 
-        print("Lime spread since test: {$row2['sum_lime_spread']} tonne/ha<br/>");
+        $out[] = ("Lime spread since test: {$row2['sum_lime_spread']} tonne/ha<br/>");
+        $total = (is_numeric($reqLime)) ? $reqLime - $row2['sum_lime_spread'] : $reqLime; //passes though non numeric error message....really not a great way to do this.
 
-        $total = $reqLime - $row2['sum_lime_spread'];
-        print("Total Required= $total tonne/ha<br/>");
+        $out[] = ("Total Required= $total tonne/ha<br/>");
+
+        return implode($out);
     }
 
     //used in quickforms to print a lime req.
     function printLimeRequirementsQuickform($record, $required_ph = 6.8) {
-  
+
         // t /ha 
-        return self::printLimeRequirementsNB($record['ph'], $record['buffer_ph'], $required_ph);
+        return (new SoilSample)->printLimeRequirementsNB($record['ph'], $record['buffer_ph'], $required_ph);
     }
- 
+
     function CECCalculation($record) {
 
         return "CEC:{$record['cec']} meq/100g K:{$record['k_base_sat']} % Mg:{$record['mg_base_sat']} % Ca:{$record['ca_base_sat']} % Na:{$record['na_base_sat']} %  H:{$record['h_base_sat']} % Total:{$record['total_base_sat']} %";
@@ -1023,11 +1087,11 @@ WHERE field_id=$field_id
          */
 
         $all['P'] = array(0, 10, 19, 39, 58, 78); //fertiplan
-        $all['K'] = array(0, 18, 37, 74, 112, 148); //fertiplan
+        $all['K'] = array(0, 45, 100, 120, 150, 180); //https://www.plant.uoguelph.ca/sites/plant.uoguelph.ca/files/forages/documents/A7-Fertilizer%20practices%20for%20alfalfa%20production-Mar%201987-87-034.pdf
         $all['Mg'] = array(0, 22, 44, 89, 134, 178); //fertiplan
         $all['Ca'] = array(0, 223, 446, 893, 1340, 1785); //fertiplan
         $all['S'] = array(0, 30, 40, 50, 60, 70); //fertiplan
-        $all['B'] = array(0, 0.3, 0.5, 1, 1.5, 3); //based on http://www.novascotia.ca/agri/documents/lab-services/analytical-lab-understand-soil.pdf
+        $all['B'] = array(0, 0.3, 0.9, 1, 2, 3); //based on http://corn.agronomy.wisc.edu/Management/pdfs/a2522.pdf
         $all['Zn'] = array(0, 1.5, 3, 4, 5, 20); // ???
         $all['Mn'] = array(0, 20, 40, 60, 80, 100); //made up
         $all['Fe'] = array(0, 15, 30, 150, 200, 500); //based on http://www.novascotia.ca/agri/documents/lab-services/analytical-lab-understand-soil.pdf Iron tests are not accurate.
@@ -1129,6 +1193,36 @@ WHERE field_id=$field_id
         return $output;
     }
 
+    //from: https://www.plant.uoguelph.ca/sites/plant.uoguelph.ca/files/forages/documents/A7-Fertilizer%20practices%20for%20alfalfa%20production-Mar%201987-87-034.pdf
+    // this is specific for alfalfa, which basically sets the rate for potash on a field.
+    function K_Potassium_Calibration_Ontario($input) {
+
+        switch ($input) {
+            case ((0 <= $input) AND ( $input <= 45)):
+                $output = "L-";
+                break;
+            case ((46 <= $input) AND ( $input <= 100)):
+                $output = "L";
+                break;
+            case ((101 <= $input) AND ( $input <= 120)):
+                $output = "M";
+                break;
+            case ((121 <= $input) AND ( $input <= 150)):
+                $output = "M+";
+                break;
+            case ((151 <= $input) AND ( $input <= 180)):
+                $output = "H";
+                break;
+            case ((181 <= $input)):
+                $output = "H+";
+                break;
+            default:
+                throw new Exception("Error Input value out of range.");
+                break;
+        }
+        return $output;
+    }
+    
     function K_Potassium_Calibration_NB($input) {
 
         switch ($input) {
@@ -1184,6 +1278,34 @@ WHERE field_id=$field_id
         return $output;
     }
 
+    //https://www.plant.uoguelph.ca/sites/plant.uoguelph.ca/files/forages/documents/A6-Boron%20fertilization%20of%20alfalfa-July1986.pdf
+    //basically less than 1 is a problem for alfalfa
+    function B_Boron_Calibration_Ontario($input) {
+
+        switch ($input) {
+            case ((0 <= $input) AND ( $input <= 0.3)):
+                $output = "L-";
+                break;
+            case ((0.4 <= $input) AND ( $input <= 0.9)):
+                $output = "L";
+                break;
+            case ((1.0 <= $input) AND ( $input <= 1.5)):
+                $output = "M";
+                break;
+            case ((1.6 <= $input) AND ( $input <= 3.0)):
+                $output = "H";
+                break;
+            case ((3.1 <= $input)):
+                $output = "H+";
+                break;
+            default:
+                throw new Exception("Error Input value out of range.");
+                break;
+        }
+        return $output;
+    }
+    
+    
     //Note: info from here: http://www.soils.wisc.edu/extension/pubs/A2528.pdf
     //Values abobe 3.1 till 20 are  sufficient. 
     //and other source: http://corn.agronomy.wisc.edu/Management/pdfs/A3340.pdf
@@ -1584,11 +1706,12 @@ ORDER BY specific_type";
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
+                error_log($e->getMessage(), 0);
             }
             // Close the transaction
             // forward to same page, ob_start() is key to making this work!
             $host = $_SERVER ['HTTP_HOST'];
-            header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid");
             exit();
         } // end validation
 
@@ -1609,9 +1732,9 @@ ORDER BY specific_type";
         // Setup your database connection
 
         if ($mode == 'default') {
-           
-             $out[]=("<h3>Tissue Samples Log</h3>");
-             $out[]=("<h3>Note:VL and VH are out of sufficency range. VH is probably not a problem. VL probably <b>is</b> a problem.</h3>");
+
+            $out[] = ("<h3>Tissue Samples Log</h3>");
+            $out[] = ("<h3>Note:VL and VH are out of sufficency range. VH is probably not a problem. VL probably <b>is</b> a problem.</h3>");
 
             $sql = "SELECT field_id,alpha_numeric_id,common_name,report_date,comment,nitrogen,phosphorus,potassium,calcium,magnesium,boron,copper,zinc,manganese,iron,sodium,sulphur,userid,plant_tissue_parameter_id, specific_type,crop_growth_phase
 FROM cropping.plant_tissue_event
@@ -1629,19 +1752,19 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
 	ORDER BY event_time DESC";
         }
 
-        
-          $statement = $GLOBALS['pdo']->prepare($sql);
+
+        $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
-    
+
         //change presentation
         foreach ($results as &$row) {
- 
-            
+
+
             $rowOut['Field'] = JQueryDataTable::printFormattedFieldAlphaNumeric($row['field_id'], $row['alpha_numeric_id']);
             $rowOut['Common Name'] = ($row['common_name']);
             $rowOut['Report Date'] = JQueryDataTable::formattedDate($row['report_date']);
-            
+            $rowOut['Plant'] = $row['specific_type'];
 
             $rowOut['nitrogen'] = $this->printNitrogenTissue($row);
             $rowOut['Phosphorus (P)'] = $this->printPhosphorusTissue($row);
@@ -1654,7 +1777,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
             $rowOut['Manganese (Mn)'] = $this->printManganeseTissue($row);
             $rowOut['Iron'] = $this->printIronTissue($row);
             $rowOut['Sodium'] = $this->printSodiumTissue($row);
-            $rowOut['Sulphur'] = $row['sulphur'];
+            $rowOut['Sulphur'] = $this->printSulphurTissue($row);
             $rowOut['Employee'] = ($row['userid']);
 
 
@@ -1663,16 +1786,14 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
 
         //output
         $dataArr = $resultsOut;
-         //var_dump($dataArr);
-         $out[]=( (new JQueryDataTable)->startBasicArray($dataArr,'order: false')); 
-         return implode($out); 
-        
-       
+        //var_dump($dataArr);
+        $out[] = ( (new JQueryDataTable)->startBasicArrayOpt('Title BasicArr CHANGE ME', $dataArr, 'order: false'));
+        return implode($out);
     }
 
     //paramaters from: http://www.soils.wisc.edu/extension/wcmc/2007/pap/Peters.pdf
     function printNitrogenTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['nitrogen'];
         $type = 'nitrogen';
@@ -1683,7 +1804,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printPhosphorusTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['phosphorus'];
         $type = 'phosphorus';
@@ -1695,7 +1816,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printPotassiumTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['potassium'];
         $type = 'potassium';
@@ -1706,7 +1827,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printCalciumTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['calcium'];
         $type = 'calcium';
@@ -1717,7 +1838,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printMagnesiumTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['magnesium'];
         $type = 'magnesium';
@@ -1728,7 +1849,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printBoronTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['boron'];
         $type = 'boron';
@@ -1739,7 +1860,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printCopperTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['copper'];
         $type = 'copper';
@@ -1750,7 +1871,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printZincTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['zinc'];
         $type = 'zinc';
@@ -1761,7 +1882,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printIronTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['iron'];
         $type = 'iron';
@@ -1772,7 +1893,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printManganeseTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['manganese'];
         $type = 'manganese';
@@ -1783,12 +1904,25 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
     }
 
     function printSodiumTissue($record) {
-        
+
         //chnaging paramaters.
         $value = $record['sodium'];
         $type = 'sodium';
         //we have no data for ideal sodium values. I assume too high is a problem.
         $sql = "SELECT 0 as sodium_min,0 as sodium_max,0 as sodium_median,0 as sodium_sufficient_min,.04 as sodium_sufficient_max FROM cropping.plant_tissue_parameter WHERE id={$record['plant_tissue_parameter_id']} LIMIT 1 ";
+
+        $level = self::tissueCalibrationWisc($value, $type, $sql);
+        return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
+    }
+
+    function printSulphurTissue($record) {
+
+        //chnaging paramaters.
+        $value = $record['sulphur'];
+        $type = 'sulphur';
+        //http://www.nrcresearchpress.com/doi/pdf/10.4141/cjps76-104 for alfalfa. .3 is good. .23 is stunted. 
+        //https://www.agry.purdue.edu/ext/corn/news/timeless/sulfurdeficiency.pdf corn .15 is bad.
+        $sql = "SELECT 0 as sulphur_min,.9 as sulphur_max,sulphur_median,sulphur_sufficient_min,sulphur_sufficient_max FROM cropping.plant_tissue_parameter WHERE id={$record['plant_tissue_parameter_id']} LIMIT 1 ";
 
         $level = self::tissueCalibrationWisc($value, $type, $sql);
         return $value . ' ' . '<span style="color: ' . self::colourLevelChooserTissue($level) . '">' . $level . '</span>';
@@ -1807,6 +1941,11 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
         $median = $row[2];
         $sufficient_min = $row[3];
         $sufficient_max = $row[4];
+
+
+        if (empty($row[1]) OR empty($row[2]) OR empty($row[3]) OR empty($row[4])) {
+            return '';
+        }
 
 
         //now do some math to determine levels.
@@ -1860,7 +1999,7 @@ LEFT JOIN cropping.plant_tissue_parameter ON plant_tissue_event.plant_tissue_par
                 $output = "#FF9900";
                 break;
             default:
-                throw new Exception("Error Input value  for colour code, out of range.");
+                $output = "000"; //when not supported. 
                 break;
         }
 
@@ -1932,6 +2071,75 @@ WHERE specific_type='$cropName' AND element='$element' AND $currentValue::numeri
 }
 
 //end class
-?>  
 
 
+/*
+ * 
+ * used to find fertilizer requirements based on current test (supplied)
+ * 2021
+ */
+class FertilzerRequirements {
+
+    function test() {
+
+        $k_ppm = 140;
+        $cec = 15;
+        print $this->pottassiumAlfalfa($k_ppm, $cec);
+    }
+           
+    
+    //from: https://stackoverflow.com/questions/5464919/find-a-matching-or-closest-value-in-an-array
+        function getNearest($arr, $var) {
+            usort($arr, function($a, $b) use ($var) {
+                return abs($a - $var) - abs($b - $var);
+            });
+            return array_shift($arr);
+        }
+    
+    //source: https://www.extension.purdue.edu/extmedia/ay/ay-331-w.pdf
+    function pottassiumAlfalfa($k_ppm, $cec) {
+
+        
+
+        $y = array(0, 74, 75, 99, 100, 124, 125, 149, 150, 174, 175, 199, 200);
+        $x = array(5, 10, 20, 30);
+
+
+        $y_value = $this->getNearest($y, $k_ppm);
+        $x_value = $this->getNearest($x, $cec);
+
+
+        //in lbs k2O per acre
+        $y[0] = array(285, 300, 300, 300);
+        $y[74] = array(285, 300, 300, 300);
+        $y[75] = array(150, 270, 300, 300);
+        $y[99] = array(150, 270, 300, 300);
+        $y[100] = array(40, 160, 270, 300);
+        $y[124] = array(40, 160, 270, 300);
+        $y[125] = array(0, 55, 160, 270);
+        $y[149] = array(0, 55, 160, 270);
+        $y[150] = array(0, 0, 55, 160);
+        $y[174] = array(0, 0, 55, 160);
+        $y[175] = array(0, 0, 0, 55);
+        $y[199] = array(0, 0, 0, 55);
+        $y[200] = array(0, 0, 0, 0);
+
+        //for x array we need to find correspoding key value.
+        $x_value_raw = array_search($x_value, $x);
+
+        //debug
+        //var_dump($y_value);
+        //var_dump($x_value_raw);
+
+        //var_dump($y[149]);
+
+        $k20_lb_ac = $y[$y_value][$x_value_raw];
+ 
+
+        //convert to K units per hectare from k20 lbs/acre
+       return round(1.1209 * $k20_lb_ac * 0.8301) .' K units';
+        
+        
+    }
+
+}

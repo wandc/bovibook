@@ -321,28 +321,41 @@ static public function listOfCurrentFields($mode='default') {
 
 
 
-/**
-* Used in fieldquery page and interactive maps to show important info about the field.
-*/
- function displayFieldInfo($field_id) {
 
-     $sql="
-           SELECT * from cropping.field WHERE id=$field_id LIMIT 1
-          ";
-      $res = $GLOBALS['pdo']->query($sql);
-      $row=$res->fetch(PDO::FETCH_ASSOC);
+
+ 
+ /**
+  * google maps directions to field 
+  * ie URL: https://www.google.com/maps/search/?api=1&query=47.5951518,-122.3316393
+  */
+ public function directionsToField($field_id) {
      
-     $str="";
-     $str=$str.("<h3 style='float:right;font-size: inherit;'>Field ID: $field_id</h3>");
-     $str=$str.("<h1 id='alphanumeric'>{$row['alpha_numeric_id']}</h1>");
-     
-     $str=$str.("<h1 id='fieldname'>{$row['common_name']}</h1>");
-    
-     $str=$str. ("<h3>Area: ". CroppingHelper::fieldArea($field_id) ." ha</h3>");
-     
- return $str;
+   $sql="SELECT gis.ST_AsText(gis.ST_Centroid(border_geom)) as centre FROM cropping.fieldcurr WHERE id=$field_id LIMIT 1";
+ 	$res = $GLOBALS['pdo']->query($sql);
+ 	
+ 	if ($res->rowCount() > 0) {
+ 		$row=$res->fetch(PDO::FETCH_ASSOC);
+                 $centerPoint = self::convertPostgisPointStringToLanLngPointString($row['centre']);
+            
+ 		
+ 		return 'https://www.google.com/maps/search/?api=1&map_action=satellite&query='.round($centerPoint[1],5).','.round($centerPoint[0],5);
+ 	}
+ 	else {
+ 	return null; //no area for retired fields. 
+ 	}  
+        
+      
  }
-
+ 
+ public function convertPostgisPointStringToLanLngPointString($point) {
+        $str = $point;
+        $str = str_replace('POINT(', '', $str);
+        $str = str_replace(')', '', $str);
+        $tArr = (explode(' ', $str));
+        return $tArr;
+    }
+ 
+ 
  /**
  * returns the field area in hectares via postgis.
  */
@@ -358,7 +371,7 @@ static public function listOfCurrentFields($mode='default') {
  		return $x;
  	}
  	else {
- 	throw new Exception("ERROR: Field $field_id has no area, thus no vorder polygon.");
+ 	return null; //no area for retired fields. 
  	}
  	
  }

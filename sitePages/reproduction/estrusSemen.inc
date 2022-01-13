@@ -1,56 +1,93 @@
-<?php 
+<?php
+
 //Lists straws of semen in our inventory
 class EstrusSemen extends TabPage {
-
 
     public function defaultDisplay() {
         $tabArray[1]['name'] = 'Inventory';
         $tabArray[2]['name'] = 'Sires';
         $tabArray[3]['name'] = 'Projection';
         $tabArray[4]['name'] = 'Inventory (All)';
+        $tabArray[5]['name'] = 'Replace Sire Pick';
         $this->renderTabs($tabArray);
     }
 
     public function summaryDisplay() {
-
-        //$this->displaySemenInventory('summary');
+        
     }
 
     function tab1() {
-            print("<div class='row'>"."\n\r");
-       
-        print("<div class='col-sm-4 col-sm-push-8'>"."\n\r");
-        $this->addSemenToInventoryQuickForm();
-        $this->markSemenAsDiscardedQuickForm();        
-        $this->markSemenAsAtBottomOfTankQuickForm();
-        print("</div>"."\n\r");
-         print("<div class='col-sm-8 col-sm-pull-4'>"."\n\r");
-          print("<p>NOTE: Only shows >= 2400 lpi. &nbsp;&nbsp;&nbsp; NOTE2: Green are reliability >= 70</p>");
-        $this->displayListOfSemenStraws();
-        print("</div>"."\n\r");
-        print("</div>"."\n\r");
 
+        $note = (new BootStrap)->infoNotify("NOTE: Only shows >= 2400 lpi.");
+
+        $left = <<<HTML
+            {$note}
+            {$this->displayListOfSemenStraws()}
+        HTML;
+
+        $right = <<<HTML
+            {$this->addSemenToInventoryQuickForm()}
+            {$this->markSemenAsDiscardedQuickForm()}
+            {$this->markSemenAsAtBottomOfTankQuickForm()}
+        HTML;
+
+        $content = (new Bootstrap)->oneThirdTwoThirds($left, $right);
+        print($content);
     }
 
     function tab2() {
 
-        $this->addSireToSireListQuickForm();
-        $this->displayListOfSiresDataTable();
+        $a = new QF2_BeefSire((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+        $beefSire = ($a->renderBox('QF2_BeefSire', 'Beef Sire'));
+  
+
+    
+
+          $left = <<<HTML
+          {$this->displayListOfSiresDataTable()}
+          HTML;
+
+          $right = <<<HTML
+         
+          {$beefSire}
+           {$this->addSireToSireListQuickForm()}
+          HTML;
+
+          $content=(new Bootstrap)->oneThirdTwoThirds($left,$right);
+          print($content);
+        
     }
 
     function tab3() {
 
-        $this->addProjectionSemenToInventoryQuickForm();
-        $this->markSemenAsDiscardedQuickForm('projection');
-        print("<h2>Projection Semen</h2>");
-        $this->displayListOfSemenStraws('projection');
+
+        $left = <<<HTML
+                {$this->displayListOfSemenStraws('projection')}
+        HTML;
+
+        $right = <<<HTML
+            {$this->addProjectionSemenToInventoryQuickForm()}
+            {$this->markSemenAsDiscardedQuickForm('projection')}
+        HTML;
+
+        $content = (new Bootstrap)->oneThirdTwoThirds($left, $right);
+        print($content);
     }
 
-     function tab4() {
+    function tab4() {
 
-         $this->displayListOfSemenStraws('all');
+        print($this->displayListOfSemenStraws('all'));
     }
     
+     function tab5() {
+
+         //   $a = new QF2_BeefSire((object) array('forwardURLArr' => array('pageid' => $_REQUEST['pageid'])), 'group');
+       // $beefSire = ($a->renderBox('QF2_BeefSire', 'Beef Sire'));
+         
+     //   print($this->replaceSirePick());
+    }
+    
+
     /*     * ******************************* */
     /* Add Projection Semen Form */
     /*     * ******************************* */
@@ -62,7 +99,7 @@ class EstrusSemen extends TabPage {
         $res = $GLOBALS['pdo']->query("SELECT full_reg_number,sire.full_name,short_name
 FROM bovinemanagement.sire ORDER BY short_name ASC");
         {
-          
+            
         } // Always check that result is not an error
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
@@ -72,7 +109,8 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
 
 
-        $form = new HTML_QuickForm("addProjectionSemenToInventoryQuickForm",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("addProjectionSemenToInventoryQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         $form->addElement('header', 'hdrQuickform', 'Add Projection Semen To Inventory');
 
@@ -114,38 +152,39 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
             $binNumber = 'NULL';
 
             // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
+            try {
+                $res = $GLOBALS['pdo']->beginTransaction();
 
-            //lookup what the semen code is depending if the user selected sexed semen or not.
-            $res = $GLOBALS['pdo']->query("SELECT semen_code FROM bovinemanagement.sire_semen_code WHERE sire_full_reg_number='$sireReg' AND sexed_semen=$sexedSemen LIMIT 1");
-            
-            $row = $res->fetch(PDO::FETCH_ASSOC);
-            $semen_code = $row['semen_code'];
+                //lookup what the semen code is depending if the user selected sexed semen or not.
+                $res = $GLOBALS['pdo']->query("SELECT semen_code FROM bovinemanagement.sire_semen_code WHERE sire_full_reg_number='$sireReg' AND sexed_semen=$sexedSemen LIMIT 1");
 
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.semen_straw (semen_code,freeze_date,supplier_code,invoice_cost,tank,bin,transaction_id,userid,projection) VALUES ('$semen_code','$freezeCombined','$supplierCode',$invoiceCostPerStraw,'$tank',$binNumber,$transaction_id,'{$GLOBALS['auth']->getUsername()}','true')";
-            
-            $res = $GLOBALS['pdo']->exec($query);
-            
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $semen_code = $row['semen_code'];
+
+                //don't put id value, uses next one in DB.
+                $query = "INSERT INTO bovinemanagement.semen_straw (semen_code,freeze_date,supplier_code,invoice_cost,tank,bin,transaction_id,userid,projection) VALUES ('$semen_code','$freezeCombined','$supplierCode',$invoiceCostPerStraw,'$tank',$binNumber,$transaction_id,'{$GLOBALS['auth']->getUsername()}','true')";
+
+                $res = $GLOBALS['pdo']->exec($query);
 
 
-            // determine whether to commit or rollback
-          
-               $GLOBALS['pdo']->commit();
+
+                // determine whether to commit or rollback
+
+                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
-            
+                error_log($e->getMessage(), 0);
             }
 
             //print("end insert <br/>");
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     /*     * ******************************* */
@@ -154,9 +193,10 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
     function addSireToSireListQuickForm() {
 
-        $form = new HTML_QuickForm("addSireToSireListQuickForm",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("addSireToSireListQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
-        $form->addElement('header', 'hdrQuickform', 'Add Sire to Sire List');
+        $form->addElement('header', 'hdrQuickform', 'Holstein Sire');
 
         $form->addElement('text', 'sireRegNum', 'Sire Full Registration #');
 
@@ -211,11 +251,11 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
             $res = $GLOBALS['pdo']->query("SELECT id FROM bovinemanagement.sire WHERE full_reg_number='{$formData['sireRegNum']}' LIMIT 1");
             {
-              
+                
             } // Always check that result is not an error
             $row = $res->fetch(PDO::FETCH_ASSOC);
 
-            if ($row['id'] == NULL) {
+            if (empty($row['id'])) {
                 return true;
             } else {
                 return false;
@@ -224,6 +264,11 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
         function getSexxedSemenPrefixCode($semenCode) {
 
+            if (empty($semenCode)) {
+                throw new Exception("No semen Code provided.");
+            }
+            
+            
             //parse semen code and get prefix.
             preg_match('/([0-9]{4})HO([0-9]{5})/', $semenCode, $regs); //works only with full semen code number (11 chars).
             $semenCodePrefix = $regs[1];
@@ -248,14 +293,38 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
                 case '0250': //Genervations
                     $sexxedSemenCode = '0550' . $semenCodeSuffix;
                     break;
+                case '0014': //select sires AG
+                    $sexxedSemenCode = '0527' . $semenCodeSuffix;
+                    break;
+                case '0224': //cogent breeding UK
+                    $sexxedSemenCode = '0522' . $semenCodeSuffix;
+                    break;
+                case '0799': //Blondin
+                    $sexxedSemenCode = '0799' . $semenCodeSuffix;
+                    break;
+                case '0322': //DMV GenetiQ Services	(Blondin angus)
+                     $sexxedSemenCode = '0322' . $semenCodeSuffix;
+                    break;
+                case '0522': //cogent breeding UK / ST genetics only has sexxed for sale. so they use sexxed code on CDN. work-around
+                    $semenCode='0224'. $semenCodeSuffix;
+                    $sexxedSemenCode = '0522' . $semenCodeSuffix;
+                    break;
+                
                 //add others as more sexxed semen comes on the market.
                 default: //no match found.
                     throw new Exception("No Sexxed semen code found for equivalent:$semenCodePrefix.");
                     $sexxedSemenCode = null; //none exists
             }
 
+            //because of ST genetics stupidity we sometime change smenecode too after looking it up, so return both. 
+             $object = (object) [
+                        'semenCode' => $semenCode,
+                        'sexxedSemenCode' => $semenCodeSuffix,
+            ];
+
+
             //print_r($regs);
-            return $sexxedSemenCode;
+            return $object;
         }
 
         // Try to validate a form
@@ -278,51 +347,55 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
             if ($fullReg == NULL) {
                 throw new Exception('Aggregate Data Connection to CDN website returned NULL. Either invalid sire registration number or CDN website inaccessible.');
             }
-         
-            $secondarySemenCode = getSexxedSemenPrefixCode($sireInfoArray['semenCode']);
-
-     
-             //full_name and short_name needed to be sanitized for postgresql
+var_dump($sireInfoArray);
+            
+            $sexxedSemenPrefixCodeObj= getSexxedSemenPrefixCode($sireInfoArray['semenCode']);
+            $semenCode =$sexxedSemenPrefixCodeObj->semenCode;
+            $secondarySemenCode =$sexxedSemenPrefixCodeObj->secondarySemenCode;
+            
+            
+            //full_name and short_name needed to be sanitized for postgresql
             $sireInfoArray['fullName'] = pg_escape_string($sireInfoArray['fullName']);
             $sireInfoArray['shortName'] = pg_escape_string($sireInfoArray['shortName']);
-            
-            
+
+
             // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
+            try {
+                $res = $GLOBALS['pdo']->beginTransaction();
 
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.sire (full_reg_number,full_name,short_name,userid) VALUES ('$fullReg','{$sireInfoArray['fullName']}','{$sireInfoArray['shortName']}','{$GLOBALS['auth']->getUsername()}')";     
-             $statement = $GLOBALS['pdo']->prepare($query);
-             $statement->execute();
-
-
-            //insert primary semen code
-            $query = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES ('{$sireInfoArray['semenCode']}','$fullReg','FALSE')";           
-            $res = $GLOBALS['pdo']->exec($query);
+                //don't put id value, uses next one in DB.
+                $query = "INSERT INTO bovinemanagement.sire (full_reg_number,full_name,short_name,userid) VALUES ('$fullReg','{$sireInfoArray['fullName']}','{$sireInfoArray['shortName']}','{$GLOBALS['auth']->getUsername()}')";
+                $statement = $GLOBALS['pdo']->prepare($query);
+                $statement->execute();
 
 
-            //insert sexed semen code if necessary
-            if ($secondarySemenCode != null) {
-                $query = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES ('$secondarySemenCode','$fullReg','TRUE')";             
+                //insert primary semen code
+                $query = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES ('$semenCode','$fullReg','FALSE')";
                 $res = $GLOBALS['pdo']->exec($query);
-               
-            }
 
-               $GLOBALS['pdo']->commit();
+
+                //insert sexed semen code if necessary
+                if ($secondarySemenCode != null) {
+                    $query = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES ('$secondarySemenCode','$fullReg','TRUE')";
+                    $res = $GLOBALS['pdo']->exec($query);
+                }
+
+                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
+                error_log($e->getMessage(), 0);
             }
             // Close the transaction
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
             $_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     /*     * ******************************* */
@@ -332,62 +405,64 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
     function pullSireInfoFromCDNWebsite($sireRegNum) {
 
-        $sireRegNum=trim($sireRegNum);
+        $sireRegNum = trim($sireRegNum);
         //don't bother checking if in DB or not, 99% of the time it won't be.
-    
-            $aggrObj = new AggregateSiteData;
-            $aggrObj->upsertSingleAnimal(trim($sireRegNum), 'all');
-            
-       
+
+        $aggrObj = new AggregateSiteData;
+        $aggrObj->upsertSingleAnimal(trim($sireRegNum), 'all');
+
+
 
         $res = $GLOBALS['pdo']->query("SELECT full_reg_number, full_name,male_short_name, semen_code FROM batch.aggregate_view_all WHERE full_reg_number='$sireRegNum' limit 1");
-       $row = $res->fetch(PDO::FETCH_ASSOC);
+        $row = $res->fetch(PDO::FETCH_ASSOC);
 
-       //now create array to do sire insert later.
-       if (!empty($row['male_short_name'])) {
-         $returnArray['fullRegNumber'] = trim($row['full_reg_number']);
-        $returnArray['fullName'] = trim($row['full_name']);
-        $returnArray['shortName'] = trim($row['male_short_name']);
-        $returnArray['semenCode'] = trim($row['semen_code']);   
-       }
-       else {
-           $returnArray=null;
-           throw new Exception("Error: New Bull not in database. It's possible that it could not connect to internet site, try again later, or registration number does not exist. No data or null data returned.");
-       }
-  
+        //now create array to do sire insert later.
+        if (!empty($row['male_short_name'])) {
+            $returnArray['fullRegNumber'] = trim($row['full_reg_number']);
+            $returnArray['fullName'] = trim($row['full_name']);
+            $returnArray['shortName'] = trim($row['male_short_name']);
+            $returnArray['semenCode'] = trim($row['semen_code']);
+        } else {
+            $returnArray = null;
+            throw new Exception("Error: New Bull not in database. It's possible that it could not connect to internet site, try again later, or registration number does not exist. No data or null data returned.");
+        }
+
         return $returnArray;
     }
 
     /////////////////////////////////////////////////////////////////////
 
-   
-    
-      function listOfSires($mode = 'default') {
+
+
+    function listOfSires($mode = 'default') {
 
         $numberPerPage = 40;
         $sql = "SELECT id,sire.full_reg_number,sire.full_name,short_name,create_time,update_time,userid FROM bovinemanagement.sire ORDER BY short_name ASC";
-       
+
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+           $delButton = new QF2_DeleteButtonDecider('user_timeLimit', (object) array('dateTimePeriodDays' => '1', 'dateTimeName' => 'update_time', 'schemaTable' => 'bovinemanagement.sire'));
+            
         //change presentation
         foreach ($results as &$row) {
-            
- 
-	    $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
+
+
+            $row['full_reg_number'] = '<a href="' . $GLOBALS['MiscObj']->createCDNLink($row['full_reg_number']) . '">' . $row['full_reg_number'] . '</a>';
             $row['event_time_raw'] = strtotime($row['update_time']);
             $row['update_time'] = date("l M d Y H:00", strtotime($row['update_time']));  //has to be at end.
+            $row['action'] = $delButton->output($row['id']);
+          
         }
         //output
         $output['data'] = $results;
         return ($output);
     }
-    
 
-     function displayListOfSiresDataTable() {
-        $dt=new JQueryDataTable();
-$columnsStr= <<<EX
+    function displayListOfSiresDataTable() {
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
             {
                  data: "event_time_raw",
                  "visible": false,
@@ -414,12 +489,17 @@ $columnsStr= <<<EX
             {
                 data: "userid",
                 title: "Employee"
-            }
+            },
+            {
+                data: "action",
+                title: "Action"
+            },
+                
+                
 EX;
-    print($dt->start(33,'listOfSires',null,$columnsStr));     
-}     
-    
-    
+        return($dt->start('Sire List', 33, 'listOfSires', null, $columnsStr));
+    }
+
     function printFormattedTime($params) {
         extract($params);
         return date("M d Y", strtotime($record['update_time']));
@@ -438,7 +518,7 @@ EX;
         $res = $GLOBALS['pdo']->query("SELECT full_reg_number,sire.full_name,short_name
 FROM bovinemanagement.sire ORDER BY short_name ASC");
         {
-          
+            
         } // Always check that result is not an error
         $aniNumber[null] = "Please Select one..."; //dummy value
         while (($row = $res->fetch(PDO::FETCH_ASSOC))) {
@@ -454,12 +534,13 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
 
 
         //$numberOfStrawsArray=array(null=>'Please Select one...',5=>5,10=>10,15=>15,20=>20);
-        $numberOfStrawsArray = array(null => 'Please Select one...', 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 15 => 15, 20 => 20,30 => 30,40 => 40);
+        $numberOfStrawsArray = array(null => 'Please Select one...', 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 15 => 15, 20 => 20, 30 => 30, 40 => 40);
         $numberOfBinArray = array(null => 'Please Select one...', 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 99999 => 'Bottom of Tank');
-        $semenSupplierCodeArray = array(null => 'Please Select one...', 'ONAI0007' => 'Select - ONAI0007', 'ONAI0070' => 'EastGen - ONAI0070', 'ONAI0001' => 'Genex - ONAI0001', 'ONAI0029' => 'ABS - ONAI0029', 'ABAI0002' => 'Alta - ABAI0002');
+        $semenSupplierCodeArray = array(null => 'Please Select one...', 'ONAI0007' => 'Select - ONAI0007', 'ONAI0070' => 'EastGen - ONAI0070', 'ONAI0001' => 'Genex - ONAI0001', 'ONAI0029' => 'ABS - ONAI0029', 'ABAI0002' => 'Alta - ABAI0002', 'ONAI0014' => 'Select AG- ONAI0014','ONAI0076'=>'ST Genetics','ONAI0322'=>'DMV Genetics');
 
 
-        $form = new HTML_QuickForm("addSemenToInventoryQuickForm",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("addSemenToInventoryQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         $form->addElement('header', 'hdrQuickform', 'Add Semen To Inventory');
 
@@ -550,7 +631,7 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
             //print("TTT:{$formData['sireRegNumber']};");
             $res = $GLOBALS['pdo']->query("SELECT semen_code FROM bovinemanagement.sire_semen_code WHERE sire_full_reg_number='{$formData['sireRegNumber']}' AND sexed_semen IS TRUE LIMIT 1");
             {
-              
+                
             } // Always check that result is not an error
             $row = $res->fetch(PDO::FETCH_ASSOC);
             //sexed semen code does not exist.
@@ -606,50 +687,51 @@ FROM bovinemanagement.sire ORDER BY short_name ASC");
             }
 
             // Open a transaction
-            try {$res = $GLOBALS['pdo']->beginTransaction();
+            try {
+                $res = $GLOBALS['pdo']->beginTransaction();
 
-            //lookup what the semen code is depending if the user selected sexed semen or not.
-            $res = $GLOBALS['pdo']->query("SELECT semen_code FROM bovinemanagement.sire_semen_code WHERE sire_full_reg_number='$sireReg' AND sexed_semen=$sexedSemen LIMIT 1");
-            {
-              
-            } // Always check that result is not an error
-            $row = $res->fetch(PDO::FETCH_ASSOC);
-            $semen_code = $row['semen_code'];
+                //lookup what the semen code is depending if the user selected sexed semen or not.
+                $res = $GLOBALS['pdo']->query("SELECT semen_code FROM bovinemanagement.sire_semen_code WHERE sire_full_reg_number='$sireReg' AND sexed_semen=$sexedSemen LIMIT 1");
+                {
+                    
+                } // Always check that result is not an error
+                $row = $res->fetch(PDO::FETCH_ASSOC);
+                $semen_code = $row['semen_code'];
 
-            //don't put id value, uses next one in DB.
-            $query = "INSERT INTO bovinemanagement.semen_straw (semen_code,freeze_date,supplier_code,invoice_cost,tank,bin,transaction_id,userid) VALUES ('$semen_code','$freezeCombined','$supplierCode',$invoiceCostPerStraw,'$tank',$binNumber,$transaction_id,'{$GLOBALS['auth']->getUsername()}')";
-            
+                //don't put id value, uses next one in DB.
+                $query = "INSERT INTO bovinemanagement.semen_straw (semen_code,freeze_date,supplier_code,invoice_cost,tank,bin,transaction_id,userid) VALUES ('$semen_code','$freezeCombined','$supplierCode',$invoiceCostPerStraw,'$tank',$binNumber,$transaction_id,'{$GLOBALS['auth']->getUsername()}')";
 
-            //repeat the insert statement for each straw.
-            for ($counter = 1; $counter <= $numberOfStraws; $counter++) {
-                $res = $GLOBALS['pdo']->exec($query);
-            }
 
-      
-               $GLOBALS['pdo']->commit();
+                //repeat the insert statement for each straw.
+                for ($counter = 1; $counter <= $numberOfStraws; $counter++) {
+                    $res = $GLOBALS['pdo']->exec($query);
+                }
+
+
+                $GLOBALS['pdo']->commit();
             } catch (Exception $e) {
                 $GLOBALS['pdo']->rollBack();
                 echo "Failed: " . $e->getMessage();
-            
+                error_log($e->getMessage(), 0);
             }
 
             //print("end insert <br/>");
             //forward to same page, ob_start() is key to making this work!
             $host = $_SERVER['HTTP_HOST'];
-            ////header("Location: https://$host{$_SERVER['PHP_SELF']}?pageid=$pageid&selectedTab=2");
+            ////header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid=$pageid&selectedTab=2");
             $_SESSION['selectedTab'] = 2;
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}");
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}");
             exit();
         } //end validation
         //displayLastbreedingEvents();
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     /////////////////////////////////////////////////////////////////////
 
-     function listOfSemenStraws($mode = 'default') {
-    if ($mode == 'default') {
+    function listOfSemenStraws($mode = 'default') {
+        if ($mode == 'default') {
             $sql = "SELECT * FROM bovinemanagement.semen_straw_curr_summary
 WHERE (lpi >=2400 OR lpi IS NULL) AND projection IS FALSE
 ORDER BY short_name";
@@ -660,8 +742,7 @@ WHERE (lpi >=2400 OR lpi IS NULL) AND projection IS TRUE
 ORDER BY short_name 
             
 ";
-        
-} elseif ($mode == 'all') {
+        } elseif ($mode == 'all') {
 
             $sql = "
 SELECT * FROM bovinemanagement.semen_straw_curr_summary     
@@ -669,34 +750,35 @@ ORDER BY short_name
 ";
         }
 
-      
-        
+
+
         $statement = $GLOBALS['pdo']->prepare($sql);
         $statement->execute();
         //get data
         $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+         $delButton = new QF2_DeleteButtonDecider('user_timeLimit', (object) array('dateTimePeriodDays' => '1', 'deleteName' =>'create_time','dateTimeName' => 'create_time', 'schemaTable' => 'bovinemanagement.semen_straw'));
+      
         //change presentation
         foreach ($results as &$row) {
-      $row['short_nameX']=  '<a href="'.$GLOBALS['MiscObj']->createListOfAllCowsMilking($row['full_reg_number'])."\">{$row['short_name']}</a>";
-      $row['sexed_semen']= ( $row['sexed_semen']=='t' ? 'true' : '');
-       $row['reserved']= ( $row['reserved']=='t' ? 'true' : '');
-           
+            $row['short_nameX'] = '<a href="' . $GLOBALS['MiscObj']->createCDNLink($row['full_reg_number']) . "\">{$row['short_name']}</a>";
+            $row['sexed_semen'] = ( $row['sexed_semen'] == 't' ? 'true' : '');
+            $row['reserved'] = ( $row['reserved'] == 't' ? 'true' : '');
+            $row['prodoll'] = empty($row['prodoll']) ? '<i class="fab fa-github-alt"></i>' : $row['prodoll'];
+            $row['action'] = $delButton->output($row['create_time'],null,"<i class='fa fa-fw fa-object-group'></i><i class='fa fa-fw fa-trash'></i>");
         }
         //output
-        $output['data']=$results;
+        $output['data'] = $results;
         return $output['data'];
-         
-     
-     }
-    
+    }
+
     function displayListOfSemenStraws($mode = 'default') {
-        
-        
-        
-        
-          $dt=new JQueryDataTable();
-$columnsStr= <<<EX
+
+
+
+
+        $dt = new JQueryDataTable();
+        $columnsStr = <<<EX
            
              {
                  data: "short_name",
@@ -747,19 +829,21 @@ $columnsStr= <<<EX
             {
                 data: "count",
                 title: "Inventory"
+            },
+                {
+                data: "action",
+                title: "Action"
             }
+                
+                
 EX;
-    print($dt->startLocal($this->listOfSemenStraws($mode),$columnsStr,null,' "paging": false'));     
-        
-        
-        
-        
+        return($dt->startLocal('Semen Straws', $this->listOfSemenStraws($mode), $columnsStr, null, ' "paging": false'));
     }
 
     function printShortNameLink($params) {
         extract($params);
         //create a link to CDN website, so when user clicks they go there for the sire
-        $linkStr = $GLOBALS['MiscObj']->createListOfAllCowsMilking($record['full_reg_number']);
+        $linkStr = $GLOBALS['MiscObj']->createCDNLink($record['full_reg_number']);
         return "<a href=\"$linkStr\">{$record['short_name']}</a>";
     }
 
@@ -868,7 +952,8 @@ ORDER BY short_name";
             $inventory[$row['semen_straw_id']] = "{$row['short_name']} ({$row['semen_code']} / {$row['freeze_date']}) Bin: {$row['bin']}";
         }
 
-        $form = new HTML_QuickForm("markSemenAsDiscardedQuickForm",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("markSemenAsDiscardedQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         if ($mode == 'default') {
             $form->addElement('header', 'hdrQuickform', 'Mark Semen as Discarded');
@@ -895,16 +980,16 @@ ORDER BY short_name";
             //print("straw to discard:$semen_straw_id<br>");
             //mark discarded for the semen straw id supplied.
             $query = "UPDATE bovinemanagement.semen_straw SET discarded=TRUE WHERE id=$semen_straw_id";
-            
+
             $res = $GLOBALS['pdo']->exec($query);
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}"); //forward on.
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}"); //forward on.
             exit();
         } //end validation
 
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
     }
 
     /*     * ******************************* */
@@ -928,7 +1013,8 @@ ORDER BY short_name";
             $inventory[$row['semen_straw_id']] = "{$row['short_name']} ({$row['semen_code']} / {$row['freeze_date']}) Bin: {$row['bin']}";
         }
 
-        $form = new HTML_QuickForm("markSemenAsAtBottomOfTankQuickForm",   'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);  $renderer = new HTML_QuickForm_Renderer_Tableless();
+        $form = new HTML_QuickForm("markSemenAsAtBottomOfTankQuickForm", 'post', $_SERVER ["REQUEST_URI"], '', array('class' => 'quickformtableless'), true);
+        $renderer = new HTML_QuickForm_Renderer_Tableless();
 
         $form->addElement('header', 'hdrQuickform', 'Mark Semen at bottom of tank');
 
@@ -952,20 +1038,171 @@ ORDER BY short_name";
             //print("straw to discard:$semen_straw_id<br>");
             //mark discarded for the semen straw id supplied.
             $query = "UPDATE bovinemanagement.semen_straw SET bin=null WHERE id=$semen_straw_id";
-            
+
             $res = $GLOBALS['pdo']->exec($query);
 
-            header("Location: https://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}?pageid={$_REQUEST['pageid']}"); //forward on.
+            header("Location: {$GLOBALS['config']['HTTP']['URL']}?pageid={$_REQUEST['pageid']}"); //forward on.
             exit();
         } //end validation
 
 
         $form->accept($renderer);
-        echo $renderer->toHtml();
+        return $renderer->toHtml();
+    }
+
+}
+
+//end class
+Class QF2_BeefSire extends QF2_Base {
+
+    function definition($form) {
+
+
+
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+
+        //'minlength', 'The password is too short', 6))
+        $reg = $form->addElement('text', 'reg', array('size' => 50, 'maxlength' => 15))->setLabel('Beef reg #'); //
+        $reg->addRule("minlength", "Please specify your Reg # at 15 characters.", 15);
+        $reg->addRule("minlength", "Please specify your Reg # at 15 characters.", 15);
+        $reg->addRule("required", "Please specify your Reg #");
+        HTML_QuickForm2_Factory::registerRule('error1', 'HTML_QuickForm2_Rule_Callback', null, array('callback' => 'QF2_BeefSire::checkRegistrationNumberIsValid'));
+        $reg->addRule('error1', 'Registration Number is Not Valid!', array('test'));
+
+
+        
+        $form->addElement('text', 'longName', array('size' => 50, 'maxlength' => 255))->setLabel('Long Name')->addRule("required", "Please specify your Long Name");     
+        $form->addElement('text', 'shortName', array('size' => 50, 'maxlength' => 32))->setLabel('Short Name')->addRule("required", "Please specify your Short Name");
+        
+        $semenCode=$form->addElement('text', 'semenCode', array('size' => 50, 'maxlength' => 32))->setLabel('Semen Code (ie 0200AN0XXXX)');
+        $semenCode->addRule("minlength", "Please specify your Semen Code # at 11 characters.", 11);
+        $semenCode->addRule("minlength", "Please specify your Semen Code # at 11 characters.", 11);
+        $semenCode->addRule("required", "Please specify your Semen Code #");
+         HTML_QuickForm2_Factory::registerRule('error2', 'HTML_QuickForm2_Rule_Callback', null, array('callback' => 'QF2_BeefSire::checkSemenCodeIsValid'));
+        $semenCode->addRule('error2', 'Semen Code is Not Valid!', array('test'));
+
+        
+        //defaults
+        $form->addDataSource(new HTML_QuickForm2_DataSource_Array(array('reg' => 'AN')));
+
+
+
+        return $form; //required       
+    }
+
+    //rule called by callback. 
+    function checkRegistrationNumberIsValid($value, $one) {
+        //var_dump($value);
+
+        $regArr = $GLOBALS['MiscObj']->breakUpFullRegNumber($value, true);
+
+        //if reg is valid an array is returned, else false.
+        return (is_array($regArr)) ? true : false;
+    }
+
+    function checkSemenCodeIsValid($value) {
+        $semenCode=$value;
+        
+        $pattern = "/\d{4}[a-zA-Z]{2}\d{5}/i"; //matches like 0200AN01235
+        preg_match($pattern, $semenCode, $matches, PREG_OFFSET_CAPTURE);
+        
+        //if array returned we have a match. 
+        return (!empty($matches)) ?  true : false;
+
+    }
+    
+    
+    function process($value) {
+
+           try {
+               $res = $GLOBALS['pdo']->beginTransaction();
+        //sire       
+        $query = "INSERT INTO bovinemanagement.sire (full_reg_number,full_name,short_name,userid) VALUES (:reg,:long_name,:short_name,:userid) ON CONFLICT DO NOTHING";
+        $statement = $GLOBALS['pdo']->prepare($query);
+        $statement->bindValue(':reg', $value['reg'], PDO::PARAM_STR);
+        $statement->bindValue(':long_name', $value['longName'], PDO::PARAM_STR);
+        $statement->bindValue(':short_name', $value['shortName'], PDO::PARAM_STR);
+        $statement->bindValue(':userid', $GLOBALS['auth']->getUsername(), PDO::PARAM_STR);
+        $statement->execute();
+        
+        //semen code
+        $query2 = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES (:semen_code,:sire_full_reg_number,:sexed_semen) ON CONFLICT DO NOTHING";
+        $statement = $GLOBALS['pdo']->prepare($query2);
+        $statement->bindValue(':semen_code', $value['semenCode'], PDO::PARAM_STR);
+        $statement->bindValue(':sire_full_reg_number', $value['reg'], PDO::PARAM_STR);
+        $statement->bindValue(':sexed_semen', false, PDO::PARAM_BOOL);
+        $statement->execute();
+       
+        
+         $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+            echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
+        }
+        
     }
 
 }
 
 
 //end class
-?>
+
+/*
+ * used to replace all instances of a sire pick (for active animals) with another sire. Used when switching angus bulls for instance.
+ */
+Class QF2_ReplaceSirePick extends QF2_Base {
+
+    function definition($form) {
+
+
+
+        $form->addElement('hidden', 'pageid')->setValue($_REQUEST['pageid']);
+
+        
+        
+        
+        $form->addElement('select', 'heatType', null, array('options' => $heatEvents, 'label' => 'Type of Heat Event'))->addRule("required", "Please specify your type of heat");
+        $form->addElement('select', 'heatType', null, array('options' => $heatEvents, 'label' => 'Type of Heat Event'))->addRule("required", "Please specify your type of heat");
+        
+       
+        return $form; //required       
+    }
+
+   
+    
+    
+    function process($value) {
+
+           try {
+               $res = $GLOBALS['pdo']->beginTransaction();
+        //sire       
+        $query = "INSERT INTO bovinemanagement.sire (full_reg_number,full_name,short_name,userid) VALUES (:reg,:long_name,:short_name,:userid) ON CONFLICT DO NOTHING";
+        $statement = $GLOBALS['pdo']->prepare($query);
+        $statement->bindValue(':reg', $value['reg'], PDO::PARAM_STR);
+        $statement->bindValue(':long_name', $value['longName'], PDO::PARAM_STR);
+        $statement->bindValue(':short_name', $value['shortName'], PDO::PARAM_STR);
+        $statement->bindValue(':userid', $GLOBALS['auth']->getUsername(), PDO::PARAM_STR);
+        $statement->execute();
+        
+        //semen code
+        $query2 = "INSERT INTO bovinemanagement.sire_semen_code (semen_code,sire_full_reg_number,sexed_semen) VALUES (:semen_code,:sire_full_reg_number,:sexed_semen) ON CONFLICT DO NOTHING";
+        $statement = $GLOBALS['pdo']->prepare($query2);
+        $statement->bindValue(':semen_code', $value['semenCode'], PDO::PARAM_STR);
+        $statement->bindValue(':sire_full_reg_number', $value['reg'], PDO::PARAM_STR);
+        $statement->bindValue(':sexed_semen', false, PDO::PARAM_BOOL);
+        $statement->execute();
+       
+        
+         $GLOBALS['pdo']->commit();
+        } catch (Exception $e) {
+            $GLOBALS['pdo']->rollBack();
+            echo "Failed: " . $e->getMessage();
+            error_log($e->getMessage(), 0);
+        }
+        
+    }
+
+}
+
+//end class

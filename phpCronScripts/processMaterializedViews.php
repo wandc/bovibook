@@ -20,6 +20,8 @@ $res = $GLOBALS['pdo']->exec($sql1);
 $sql2="REFRESH MATERIALIZED VIEW bovinemanagement.herdgenetics";
 $res = $GLOBALS['pdo']->exec($sql2);
 
+$sql3= "REFRESH MATERIALIZED VIEW bovinemanagement.matview_breeding_voluntary_waiting_period";
+$res = $GLOBALS['pdo']->exec($sql3);
 
 }
 

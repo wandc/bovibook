@@ -37,3 +37,6 @@ ALTER USER user SET search_path TO accountschema;
 need to change garbage collection time, so we don't need to login all the time, set to 2 weeks.
 sudo nano /etc/php/7.0/apache2/php.ini
 change to: session.gc_maxlifetime = 604800
+
+make postgres start at boot
+sudo update-rc.d postgresql enable
